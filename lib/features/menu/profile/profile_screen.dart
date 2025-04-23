@@ -1,12 +1,6 @@
-// ignore_for_file: unused_import
-
 import 'package:flutter/material.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:promoter_app/core/constants/assets.dart';
-import 'package:promoter_app/core/utils/utils.dart';
-import 'package:promoter_app/core/view/widgets/image_loader.dart';
-import 'package:promoter_app/core/view/widgets/outlined_text.dart';
-import 'package:url_launcher/url_launcher.dart';
 
 class ProfileScreen extends StatelessWidget {
   const ProfileScreen({super.key});
@@ -36,18 +30,37 @@ class ProfileScreen extends StatelessWidget {
               ),
               child: Column(
                 children: [
-                  CircleAvatar(
-                    radius: 50.r,
-                    backgroundColor: Colors.red.shade100,
-                    child: Icon(
-                      Icons.person_outline,
-                      size: 60.r,
-                      color: Colors.red.shade600,
-                    ),
+                  Stack(
+                    alignment: Alignment.center,
+                    children: [
+                      CircleAvatar(
+                        radius: 60.r,
+                        backgroundColor: Colors.grey.shade300,
+                        backgroundImage: AssetImage('assets/profile_placeholder.png'),
+                      ).animate().fade(duration: 600.ms),
+                      Positioned(
+                        bottom: 0,
+                        child: Container(
+                          padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 6.h),
+                          decoration: BoxDecoration(
+                            color: Colors.blue,
+                            borderRadius: BorderRadius.circular(12.r),
+                          ),
+                          child: Text(
+                            "Uploading image...",
+                            style: TextStyle(color: Colors.white, fontSize: 12.sp),
+                          ),
+                        ).animate().slide(
+                            begin: const Offset(0, -40),
+                            end: Offset.zero,
+                            duration: 800.ms,
+                            curve: Curves.easeOut),
+                      )
+                    ],
                   ),
                   SizedBox(height: 10.h),
                   Text(
-                    "Mr. Haitham",
+                    "Jessy Prachette",
                     style: TextStyle(
                       fontSize: 20.sp,
                       fontWeight: FontWeight.bold,
@@ -56,7 +69,7 @@ class ProfileScreen extends StatelessWidget {
                   ),
                   SizedBox(height: 5.h),
                   Text(
-                    "رقم العضوية: 2025",
+                    "@jessy_p",
                     style: TextStyle(
                       fontSize: 14.sp,
                       color: Colors.blue,
@@ -68,27 +81,25 @@ class ProfileScreen extends StatelessWidget {
 
             SizedBox(height: 20.h),
 
-            /// 🔹 User Information Cards
+            /// 🔹 User Information Form Fields
             Padding(
               padding: EdgeInsets.symmetric(horizontal: 16.w),
               child: Column(
                 children: [
-                  OutlinedText(label: "رقم الهاتف", data: "+201129274823"),
-                  SizedBox(height: 10.h),
-                  OutlinedText(label: "المحافظة", data: "القاهرة"),
-                  SizedBox(height: 10.h),
-                  OutlinedText(label: "الحي", data: "الحي العاشر"),
-                  SizedBox(height: 10.h),
-                  OutlinedText(label: "اسم المخزن", data: "مخزن السعد"),
-                  SizedBox(height: 10.h),
-                  OutlinedText(label: "الموقع", data: "الموقع"),
-                ],
+                  _buildTextField(label: "Mobile", initialValue: "+2347011188896"),
+                  _buildTextField(
+                      label: "Bio",
+                      initialValue:
+                          "I am an avid learner here on FavYogis, UI/UX designer, brand and event designer."),
+                  _buildTextField(label: "Behance link", initialValue: "https://behance.com/jessy_p"),
+                  _buildTextField(label: "Dribbble link", initialValue: ""),
+                ].animate(interval: 100.ms).fade(duration: 500.ms),
               ),
             ),
 
             SizedBox(height: 20.h),
 
-            /// 🔹 Edit Button
+            /// 🔹 Save Button with Animation
             Padding(
               padding: EdgeInsets.symmetric(horizontal: 16.w),
               child: ElevatedButton(
@@ -103,16 +114,41 @@ class ProfileScreen extends StatelessWidget {
                   minimumSize: Size(double.infinity, 50.h),
                 ),
                 child: Text(
-                  "تعديل البيانات",
+                  "Save Profile",
                   style: TextStyle(fontSize: 16.sp, fontWeight: FontWeight.bold),
                 ),
-              ),
+              )
+                  .animate()
+                  .fade(duration: 400.ms)
+                  .scale(delay: 300.ms, duration: 500.ms)
+                  .shake(curve: Curves.elasticOut),
             ),
 
             SizedBox(height: 30.h),
           ],
         ),
       ),
+    );
+  }
+
+  Widget _buildTextField({required String label, String? initialValue}) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          label,
+          style: TextStyle(fontSize: 14.sp, fontWeight: FontWeight.w600, color: Colors.black87),
+        ),
+        SizedBox(height: 6.h),
+        TextFormField(
+          initialValue: initialValue,
+          decoration: InputDecoration(
+            contentPadding: EdgeInsets.symmetric(vertical: 14.h, horizontal: 12.w),
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12.r)),
+          ),
+        ),
+        SizedBox(height: 10.h),
+      ],
     );
   }
 }

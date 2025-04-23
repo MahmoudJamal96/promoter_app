@@ -47,6 +47,8 @@ dependencies:
   syncfusion_flutter_gauges: ^23.2.4
   intl: ^0.18.0
   url_launcher: ^6.3.1
+  pdf: ^3.10.1
+  printing: ^5.10.0
 
 dev_dependencies:
   flutter_test:
