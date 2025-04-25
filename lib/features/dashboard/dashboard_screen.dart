@@ -5,6 +5,10 @@ import 'package:flutter_zoom_drawer/flutter_zoom_drawer.dart';
 import 'package:promoter_app/core/constants/assets.dart';
 import 'package:promoter_app/core/utils/utils.dart';
 import 'package:promoter_app/core/view/widgets/image_loader.dart';
+import 'package:promoter_app/features/inventory/screens/inventory_screen.dart';
+import 'package:promoter_app/features/inventory/screens/product_inquiry_screen.dart';
+import 'package:promoter_app/features/inventory/screens/sales_invoice_screen.dart';
+import 'package:promoter_app/features/inventory/screens/sales_report_screen.dart';
 import 'package:promoter_app/features/tools/scanner/scanner_screen.dart';
 import 'package:syncfusion_flutter_gauges/gauges.dart';
 
@@ -116,7 +120,9 @@ class DashboardScreen extends StatelessWidget {
               ],
             ).animate().scale(duration: 1000.ms),
             const SizedBox(height: 20),
-            const FeatureGrid().animate().fade(duration: 1000.ms, delay: 200.ms),
+            const FeatureGrid()
+                .animate()
+                .fade(duration: 1000.ms, delay: 200.ms),
           ],
         ),
       ),
@@ -204,7 +210,8 @@ class DebtCard extends StatelessWidget {
           ),
           Text(
             '1690.0',
-            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.blue),
+            style: TextStyle(
+                fontSize: 18, fontWeight: FontWeight.bold, color: Colors.blue),
           ),
         ],
       ),
@@ -225,6 +232,10 @@ class FeatureGrid extends StatelessWidget {
         'anim': Assets.invoiceLottie,
         'action': () {
           print('جدول المبيعات tapped');
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (_) => const SalesReportScreen()),
+          );
         },
       },
       {
@@ -233,6 +244,10 @@ class FeatureGrid extends StatelessWidget {
         'anim': Assets.singleInvoiceLottie,
         'action': () {
           print('فاتورة مبيعات tapped');
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (_) => const SalesInvoiceScreen()),
+          );
         },
       },
       {
@@ -243,7 +258,7 @@ class FeatureGrid extends StatelessWidget {
           print('الجرد tapped');
           Navigator.push(
             context,
-            MaterialPageRoute(builder: (_) => const ScanningInquiryScreen()),
+            MaterialPageRoute(builder: (_) => const InventoryScreen()),
           );
         },
       },
@@ -252,6 +267,10 @@ class FeatureGrid extends StatelessWidget {
         'icon': '🔍',
         'action': () {
           print('استعلام عن صنف tapped');
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (_) => const ProductInquiryScreen()),
+          );
         },
         'anim': Assets.scanLottie,
       },
@@ -306,7 +325,9 @@ class FeatureGrid extends StatelessWidget {
           InkWell(
             onTap: features[index]['action'] as VoidCallback,
             child: FeatureCard(
-              anim: features[index].containsKey('anim') ? features[index]['anim'] as String : null,
+              anim: features[index].containsKey('anim')
+                  ? features[index]['anim'] as String
+                  : null,
               title: features[index]['title'] as String,
               icon: features[index]['icon'] as String,
             )
@@ -325,7 +346,8 @@ class FeatureCard extends StatelessWidget {
   final String icon;
   final String? anim;
 
-  const FeatureCard({super.key, required this.title, required this.icon, this.anim});
+  const FeatureCard(
+      {super.key, required this.title, required this.icon, this.anim});
 
   @override
   Widget build(BuildContext context) {
@@ -361,7 +383,9 @@ class FeatureCard extends StatelessWidget {
                   title,
                   maxLines: 1,
                   style: TextStyle(
-                      fontSize: 14, fontWeight: FontWeight.bold, color: Theme.of(context).primaryColor),
+                      fontSize: 14,
+                      fontWeight: FontWeight.bold,
+                      color: Theme.of(context).primaryColor),
                   textAlign: TextAlign.center,
                 ),
               ),
