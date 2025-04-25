@@ -31,8 +31,10 @@ class InvoiceGenerator {
     Uint8List pdfBytes, {
     PdfPageFormat format = PdfPageFormat.a4,
   }) async {
-    final pages = await Printing.raster(pdfBytes, format: format, dpi: 300);
-    return pages.first.toPng();
+    final pages = await Printing.raster(pdfBytes, dpi: 300);
+    // Wait for the Future to complete and then convert to PNG
+    final firstPage = await pages.first;
+    return firstPage.toPng();
   }
 
   /// Lists available printers
@@ -48,7 +50,7 @@ class InvoiceGenerator {
     return await Printing.layoutPdf(
       onLayout: (_) async => pdfBytes,
       name: 'Invoice',
-      printer: printerName != null ? Printer(name: printerName) : null,
+      // printer: printerName != null ? Printer(name: printerName) : null,
     );
   }
 

@@ -7,77 +7,44 @@ class ProfileScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
     return Scaffold(
-      backgroundColor: Colors.grey.shade100,
+      backgroundColor: theme.colorScheme.surface,
+      appBar: AppBar(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        title: Text(
+          'My Profile',
+          style: TextStyle(
+            color: theme.colorScheme.onSurface,
+            fontWeight: FontWeight.bold,
+            fontSize: 18.sp,
+          ),
+        ),
+        actions: [
+          IconButton(
+            icon: Icon(Icons.settings_outlined,
+                color: theme.colorScheme.onSurface),
+            onPressed: () {
+              // TODO: Navigate to settings
+            },
+          ),
+        ],
+      ),
       body: SingleChildScrollView(
+        physics: const BouncingScrollPhysics(),
         child: Column(
           children: [
-            SizedBox(height: 40.h),
+            SizedBox(height: 15.h),
 
-            /// 🔹 Profile Header
-            Container(
-              padding: EdgeInsets.all(16.w),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(16.r),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.grey.withOpacity(0.1),
-                    blurRadius: 8,
-                    spreadRadius: 2,
-                  ),
-                ],
-              ),
-              child: Column(
-                children: [
-                  Stack(
-                    alignment: Alignment.center,
-                    children: [
-                      CircleAvatar(
-                        radius: 60.r,
-                        backgroundColor: Colors.grey.shade300,
-                        backgroundImage: AssetImage('assets/profile_placeholder.png'),
-                      ).animate().fade(duration: 600.ms),
-                      Positioned(
-                        bottom: 0,
-                        child: Container(
-                          padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 6.h),
-                          decoration: BoxDecoration(
-                            color: Colors.blue,
-                            borderRadius: BorderRadius.circular(12.r),
-                          ),
-                          child: Text(
-                            "Uploading image...",
-                            style: TextStyle(color: Colors.white, fontSize: 12.sp),
-                          ),
-                        ).animate().slide(
-                            begin: const Offset(0, -40),
-                            end: Offset.zero,
-                            duration: 800.ms,
-                            curve: Curves.easeOut),
-                      )
-                    ],
-                  ),
-                  SizedBox(height: 10.h),
-                  Text(
-                    "Jessy Prachette",
-                    style: TextStyle(
-                      fontSize: 20.sp,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.black87,
-                    ),
-                  ),
-                  SizedBox(height: 5.h),
-                  Text(
-                    "@jessy_p",
-                    style: TextStyle(
-                      fontSize: 14.sp,
-                      color: Colors.blue,
-                    ),
-                  ),
-                ],
-              ),
-            ),
+            /// 🔹 Profile Header with Stats
+            _buildProfileHeader(context),
+
+            SizedBox(height: 20.h),
+
+            /// 🔹 Profile Stats
+            _buildProfileStats(context),
 
             SizedBox(height: 20.h),
 
@@ -85,17 +52,56 @@ class ProfileScreen extends StatelessWidget {
             Padding(
               padding: EdgeInsets.symmetric(horizontal: 16.w),
               child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  _buildTextField(label: "Mobile", initialValue: "+2347011188896"),
+                  Padding(
+                    padding: EdgeInsets.only(left: 8.w, bottom: 10.h),
+                    child: Text(
+                      "Personal Information",
+                      style: TextStyle(
+                        fontSize: 16.sp,
+                        fontWeight: FontWeight.bold,
+                        color: theme.colorScheme.primary,
+                      ),
+                    ),
+                  ),
                   _buildTextField(
-                      label: "Bio",
-                      initialValue:
-                          "I am an avid learner here on FavYogis, UI/UX designer, brand and event designer."),
-                  _buildTextField(label: "Behance link", initialValue: "https://behance.com/jessy_p"),
-                  _buildTextField(label: "Dribbble link", initialValue: ""),
-                ].animate(interval: 100.ms).fade(duration: 500.ms),
-              ),
+                      label: "Full Name", initialValue: "Jessy Prachette"),
+                  _buildTextField(label: "Username", initialValue: "@jessy_p"),
+                  _buildTextField(
+                      label: "Mobile", initialValue: "+2347011188896"),
+                  _buildTextField(
+                    label: "Bio",
+                    initialValue:
+                        "I am an avid learner here on FavYogis, UI/UX designer, brand and event designer.",
+                    maxLines: 3,
+                  ),
+                  SizedBox(height: 20.h),
+                  Padding(
+                    padding: EdgeInsets.only(left: 8.w, bottom: 10.h),
+                    child: Text(
+                      "Social Links",
+                      style: TextStyle(
+                        fontSize: 16.sp,
+                        fontWeight: FontWeight.bold,
+                        color: theme.colorScheme.primary,
+                      ),
+                    ),
+                  ),
+                  _buildSocialLinkField(
+                      label: "Behance",
+                      icon: Icons.link,
+                      initialValue: "https://behance.com/jessy_p"),
+                  _buildSocialLinkField(
+                      label: "Dribbble", icon: Icons.link, initialValue: ""),
+                ],
+              ).animate().fade(duration: 500.ms),
             ),
+
+            SizedBox(height: 20.h),
+
+            /// 🔹 Additional Settings Section
+            _buildAdditionalSettings(context),
 
             SizedBox(height: 20.h),
 
@@ -105,23 +111,25 @@ class ProfileScreen extends StatelessWidget {
               child: ElevatedButton(
                 onPressed: () {},
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.blue.shade600,
-                  foregroundColor: Colors.white,
+                  backgroundColor: theme.colorScheme.primary,
+                  foregroundColor: theme.colorScheme.onPrimary,
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(12.r),
                   ),
                   padding: EdgeInsets.symmetric(vertical: 14.h),
                   minimumSize: Size(double.infinity, 50.h),
+                  elevation: 2,
                 ),
                 child: Text(
                   "Save Profile",
-                  style: TextStyle(fontSize: 16.sp, fontWeight: FontWeight.bold),
+                  style:
+                      TextStyle(fontSize: 16.sp, fontWeight: FontWeight.bold),
                 ),
               )
                   .animate()
                   .fade(duration: 400.ms)
                   .scale(delay: 300.ms, duration: 500.ms)
-                  .shake(curve: Curves.elasticOut),
+                  .shimmer(delay: 700.ms, duration: 1000.ms),
             ),
 
             SizedBox(height: 30.h),
@@ -131,23 +139,386 @@ class ProfileScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildTextField({required String label, String? initialValue}) {
+  Widget _buildProfileHeader(BuildContext context) {
+    final theme = Theme.of(context);
+
+    return Container(
+      margin: EdgeInsets.symmetric(horizontal: 16.w),
+      padding: EdgeInsets.all(16.w),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [
+            theme.colorScheme.primary,
+            theme.colorScheme.primary.withOpacity(0.8),
+          ],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(16.r),
+        boxShadow: [
+          BoxShadow(
+            color: theme.colorScheme.primary.withOpacity(0.3),
+            blurRadius: 10,
+            offset: const Offset(0, 5),
+          ),
+        ],
+      ),
+      child: Column(
+        children: [
+          Stack(
+            alignment: Alignment.center,
+            children: [
+              Container(
+                padding: EdgeInsets.all(3.w),
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  border: Border.all(color: Colors.white, width: 2),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.1),
+                      blurRadius: 8,
+                      spreadRadius: 2,
+                    ),
+                  ],
+                ),
+                child: CircleAvatar(
+                  radius: 50.r,
+                  backgroundColor: Colors.grey.shade300,
+                  backgroundImage:
+                      const AssetImage('assets/profile_placeholder.png'),
+                )
+                    .animate()
+                    .fade(duration: 600.ms)
+                    .scale(begin: 0.8, end: 1, duration: 500.ms),
+              ),
+              Positioned(
+                bottom: 0,
+                right: 0,
+                child: Container(
+                  padding: EdgeInsets.all(8.w),
+                  decoration: BoxDecoration(
+                    color: theme.colorScheme.secondary,
+                    shape: BoxShape.circle,
+                    border: Border.all(color: Colors.white, width: 2),
+                  ),
+                  child: Icon(
+                    Icons.camera_alt,
+                    color: Colors.black,
+                    size: 16.sp,
+                  ),
+                ).animate().fade(delay: 300.ms, duration: 300.ms),
+              ),
+            ],
+          ),
+          SizedBox(height: 15.h),
+          Text(
+            "Jessy Prachette",
+            style: TextStyle(
+              fontSize: 22.sp,
+              fontWeight: FontWeight.bold,
+              color: Colors.white,
+            ),
+          ).animate().fade(duration: 400.ms),
+          SizedBox(height: 5.h),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                Icons.verified,
+                size: 16.sp,
+                color: theme.colorScheme.secondary,
+              ),
+              SizedBox(width: 5.w),
+              Text(
+                "Verified Promoter",
+                style: TextStyle(
+                  fontSize: 14.sp,
+                  color: Colors.white.withOpacity(0.9),
+                ),
+              ),
+            ],
+          ).animate().fade(delay: 200.ms, duration: 400.ms),
+          SizedBox(height: 10.h),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              _buildProfileBadge(context, "Premium", Icons.star),
+              SizedBox(width: 10.w),
+              _buildProfileBadge(context, "Top Performer", Icons.emoji_events),
+            ],
+          ).animate().fade(delay: 300.ms, duration: 400.ms),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildProfileBadge(BuildContext context, String label, IconData icon) {
+    final theme = Theme.of(context);
+
+    return Container(
+      padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 5.h),
+      decoration: BoxDecoration(
+        color: Colors.white.withOpacity(0.2),
+        borderRadius: BorderRadius.circular(20.r),
+        border: Border.all(color: Colors.white.withOpacity(0.3)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(
+            icon,
+            color: theme.colorScheme.secondary,
+            size: 14.sp,
+          ),
+          SizedBox(width: 5.w),
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: 12.sp,
+              color: Colors.white,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildProfileStats(BuildContext context) {
+    final theme = Theme.of(context);
+
+    return Container(
+      margin: EdgeInsets.symmetric(horizontal: 16.w),
+      padding: EdgeInsets.all(16.w),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16.r),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.grey.withOpacity(0.1),
+            blurRadius: 8,
+            spreadRadius: 2,
+          ),
+        ],
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+        children: [
+          _buildStatItem(context, "35", "Promotions"),
+          _buildDivider(),
+          _buildStatItem(context, "12", "Events"),
+          _buildDivider(),
+          _buildStatItem(context, "98%", "Success Rate"),
+        ],
+      ).animate().fade(duration: 500.ms),
+    );
+  }
+
+  Widget _buildDivider() {
+    return Container(
+      height: 40.h,
+      width: 1,
+      color: Colors.grey.withOpacity(0.2),
+    );
+  }
+
+  Widget _buildStatItem(BuildContext context, String value, String label) {
+    final theme = Theme.of(context);
+
+    return Column(
+      children: [
+        Text(
+          value,
+          style: TextStyle(
+            fontSize: 18.sp,
+            fontWeight: FontWeight.bold,
+            color: theme.colorScheme.primary,
+          ),
+        ),
+        SizedBox(height: 5.h),
+        Text(
+          label,
+          style: TextStyle(
+            fontSize: 12.sp,
+            color: Colors.grey.shade600,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildAdditionalSettings(BuildContext context) {
+    return Container(
+      margin: EdgeInsets.symmetric(horizontal: 16.w),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16.r),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.grey.withOpacity(0.1),
+            blurRadius: 8,
+            spreadRadius: 2,
+          ),
+        ],
+      ),
+      child: Column(
+        children: [
+          _buildSettingItem(
+            context,
+            "Notifications",
+            Icons.notifications_outlined,
+            showToggle: true,
+            initialValue: true,
+          ),
+          _buildSettingItem(
+            context,
+            "Privacy Settings",
+            Icons.privacy_tip_outlined,
+            showChevron: true,
+          ),
+          _buildSettingItem(
+            context,
+            "Account Security",
+            Icons.security_outlined,
+            showChevron: true,
+          ),
+          _buildSettingItem(
+            context,
+            "Help & Support",
+            Icons.help_outline,
+            showChevron: true,
+            showDivider: false,
+          ),
+        ],
+      ).animate().fade(duration: 500.ms),
+    );
+  }
+
+  Widget _buildSettingItem(BuildContext context, String title, IconData icon,
+      {bool showToggle = false,
+      bool showChevron = false,
+      bool initialValue = false,
+      bool showDivider = true}) {
+    final theme = Theme.of(context);
+
+    return Column(
+      children: [
+        ListTile(
+          leading: Container(
+            padding: EdgeInsets.all(8.w),
+            decoration: BoxDecoration(
+              color: theme.colorScheme.primary.withOpacity(0.1),
+              shape: BoxShape.circle,
+            ),
+            child: Icon(
+              icon,
+              color: theme.colorScheme.primary,
+              size: 20.sp,
+            ),
+          ),
+          title: Text(
+            title,
+            style: TextStyle(
+              fontSize: 14.sp,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+          trailing: showToggle
+              ? Switch(
+                  value: initialValue,
+                  activeColor: theme.colorScheme.primary,
+                  onChanged: (value) {},
+                )
+              : showChevron
+                  ? Icon(
+                      Icons.chevron_right,
+                      color: Colors.grey.shade600,
+                    )
+                  : null,
+          onTap: () {},
+        ),
+        if (showDivider)
+          Divider(
+            height: 1,
+            indent: 70.w,
+            endIndent: 20.w,
+          ),
+      ],
+    );
+  }
+
+  Widget _buildTextField(
+      {required String label, String? initialValue, int maxLines = 1}) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
           label,
-          style: TextStyle(fontSize: 14.sp, fontWeight: FontWeight.w600, color: Colors.black87),
+          style: TextStyle(
+              fontSize: 14.sp,
+              fontWeight: FontWeight.w600,
+              color: Colors.black87),
+        ),
+        SizedBox(height: 6.h),
+        TextFormField(
+          initialValue: initialValue,
+          maxLines: maxLines,
+          decoration: InputDecoration(
+            contentPadding:
+                EdgeInsets.symmetric(vertical: 14.h, horizontal: 12.w),
+            border:
+                OutlineInputBorder(borderRadius: BorderRadius.circular(12.r)),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12.r),
+              borderSide: BorderSide(color: Colors.grey.shade300),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12.r),
+              borderSide: BorderSide(color: Colors.blue.shade500),
+            ),
+            filled: true,
+            fillColor: Colors.white,
+          ),
+        ),
+        SizedBox(height: 16.h),
+      ],
+    );
+  }
+
+  Widget _buildSocialLinkField(
+      {required String label, required IconData icon, String? initialValue}) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          label,
+          style: TextStyle(
+              fontSize: 14.sp,
+              fontWeight: FontWeight.w600,
+              color: Colors.black87),
         ),
         SizedBox(height: 6.h),
         TextFormField(
           initialValue: initialValue,
           decoration: InputDecoration(
-            contentPadding: EdgeInsets.symmetric(vertical: 14.h, horizontal: 12.w),
-            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12.r)),
+            contentPadding:
+                EdgeInsets.symmetric(vertical: 14.h, horizontal: 12.w),
+            border:
+                OutlineInputBorder(borderRadius: BorderRadius.circular(12.r)),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12.r),
+              borderSide: BorderSide(color: Colors.grey.shade300),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12.r),
+              borderSide: BorderSide(color: Colors.blue.shade500),
+            ),
+            filled: true,
+            fillColor: Colors.white,
+            prefixIcon: Icon(icon, color: Colors.blue.shade400),
+            hintText: "Enter URL",
           ),
         ),
-        SizedBox(height: 10.h),
+        SizedBox(height: 16.h),
       ],
     );
   }
