@@ -1,5 +1,7 @@
 import 'dart:typed_data';
+import 'dart:ui';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:printing/printing.dart';
@@ -15,11 +17,21 @@ class InvoiceGenerator {
     List<T> items, {
     required InvoiceConverter<T> converter,
     PdfPageFormat format = PdfPageFormat.a4,
+    bool isArabic = true,
   }) async {
+    // Load the Arabic font
+    final fontData =
+        await rootBundle.load("assets/fonts/NotoSansArabic-Regular.ttf");
+    final ttf = pw.Font.ttf(fontData);
+
     final pdf = pw.Document();
     pdf.addPage(
       pw.Page(
         pageFormat: format,
+        theme: pw.ThemeData.withFont(
+          base: isArabic ? ttf : pw.Font.helvetica(),
+        ),
+        textDirection: isArabic ? pw.TextDirection.rtl : pw.TextDirection.ltr,
         build: (context) => converter.buildInvoice(items),
       ),
     );

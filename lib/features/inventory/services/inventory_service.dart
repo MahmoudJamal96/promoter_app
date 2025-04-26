@@ -6,48 +6,216 @@ import '../models/product_model.dart';
 class InventoryService {
   static final Random _random = Random();
   static final List<String> _categories = [
-    'أجهزة كهربائية',
-    'إلكترونيات',
-    'أدوات منزلية',
-    'مستلزمات مكتبية',
-    'أدوات صحية',
-    'غذائية'
+    'مواد غذائية',
+    'ألبان وأجبان',
+    'مشروبات',
+    'منظفات',
+    'خضروات وفواكه',
+    'مخبوزات',
+    'لحوم ودواجن',
+    'معلبات',
+    'منتجات أطفال',
+    'وجبات سريعة'
   ];
 
   static final List<String> _suppliers = [
-    'مستورد العاصمة',
-    'شركة السلام',
-    'مخازن الريادة',
-    'جملة السوق',
-    'الموزع الأول'
+    'مخازن البركة',
+    'شركة الوادي',
+    'مستورد الأمين',
+    'توزيع الشروق',
+    'مصنع السعادة'
   ];
 
   static final List<String> _locations = [
-    'مخزن رئيسي',
-    'مخزن فرعي 1',
-    'مخزن فرعي 2',
-    'رف A5',
-    'رف B2',
-    'رف C7',
-    'رف D1',
+    'رف البقالة الرئيسي',
+    'ثلاجة الألبان',
+    'قسم المشروبات',
+    'قسم المنظفات',
+    'قسم الخضروات',
+    'قسم المخبوزات',
+    'ثلاجة اللحوم',
+    'قسم المعلبات',
+    'رف الأطفال',
   ];
 
+  // Product names by category
+  static final Map<String, List<String>> _productsMap = {
+    'مواد غذائية': [
+      'أرز بسمتي',
+      'سكر ناعم',
+      'دقيق فاخر',
+      'معكرونة إسباجتي',
+      'زيت زيتون',
+      'زيت نباتي',
+      'شاي أسود',
+      'قهوة عربية',
+      'بهارات مشكلة',
+      'ملح طعام',
+      'فول مدمس',
+      'عسل طبيعي',
+      'مربى فراولة',
+      'طحينة',
+      'حلاوة طحينية'
+    ],
+    'ألبان وأجبان': [
+      'حليب طازج',
+      'حليب مبستر',
+      'لبن زبادي',
+      'جبن أبيض',
+      'جبنة شيدر',
+      'جبنة موزاريلا',
+      'جبنة قريش',
+      'قشطة طازجة',
+      'زبدة',
+      'كريمة خفق'
+    ],
+    'مشروبات': [
+      'عصير برتقال',
+      'عصير تفاح',
+      'مشروب طاقة',
+      'مياه معدنية',
+      'صودا',
+      'كولا',
+      'شاي مثلج',
+      'ليمونادة',
+      'عصير مانجو',
+      'عصير فراولة'
+    ],
+    'منظفات': [
+      'معجون أسنان',
+      'مسحوق غسيل',
+      'شامبو',
+      'بلسم شعر',
+      'صابون سائل',
+      'منظف زجاج',
+      'معطر جو',
+      'مناديل ورقية',
+      'مناديل مبللة',
+      'منظف أرضيات'
+    ],
+    'خضروات وفواكه': [
+      'طماطم',
+      'خيار',
+      'بصل',
+      'ثوم',
+      'بطاطس',
+      'جزر',
+      'موز',
+      'تفاح',
+      'برتقال',
+      'ليمون',
+      'خس',
+      'فلفل',
+      'باذنجان',
+      'كوسة',
+      'بروكلي'
+    ],
+    'مخبوزات': [
+      'خبز عربي',
+      'خبز توست',
+      'خبز بر',
+      'صامولي',
+      'كعك',
+      'بسكويت',
+      'كرواسون',
+      'فطائر',
+      'معجنات مشكلة',
+      'كيك شوكولاتة'
+    ],
+    'لحوم ودواجن': [
+      'لحم بقري',
+      'لحم ضأن',
+      'دجاج كامل',
+      'صدور دجاج',
+      'أفخاذ دجاج',
+      'كبدة',
+      'مقانق',
+      'برجر لحم',
+      'سمك فيليه',
+      'روبيان'
+    ],
+    'معلبات': [
+      'تونة معلبة',
+      'سردين معلب',
+      'ذرة معلبة',
+      'فاصوليا معلبة',
+      'فطر معلب',
+      'معجون طماطم',
+      'زيتون معلب',
+      'فول معلب',
+      'حمص معلب',
+      'فواكه معلبة'
+    ],
+    'منتجات أطفال': [
+      'حليب أطفال',
+      'حفاضات',
+      'بسكويت أطفال',
+      'طعام أطفال',
+      'شامبو أطفال',
+      'كريم أطفال',
+      'مناديل أطفال',
+      'لبن مخصص للأطفال',
+      'حبوب إفطار للأطفال',
+      'عصير أطفال'
+    ],
+    'وجبات سريعة': [
+      'نودلز سريعة',
+      'برجر جاهز',
+      'بيتزا مجمدة',
+      'ناجتس دجاج',
+      'فطائر مجمدة',
+      'أصابع بطاطس',
+      'كرات لحم',
+      'سبرنج رول',
+      'شاورما جاهزة',
+      'ساندويتشات مجمدة'
+    ]
+  };
+
   // Mock product list
-  static List<Product> products = List.generate(
-    50,
-    (index) => Product(
-      id: 'P${1000 + index}',
-      name: _generateProductName(index),
-      category: _categories[_random.nextInt(_categories.length)],
-      price: _generatePrice(),
-      quantity: _random.nextInt(200) + 1,
-      imageUrl: 'assets/images/product_placeholder.png',
-      barcode: _generateBarcode(),
-      location: _locations[_random.nextInt(_locations.length)],
-      supplier: _suppliers[_random.nextInt(_suppliers.length)],
-      lastUpdated: DateTime.now().subtract(Duration(days: _random.nextInt(30))),
-    ),
-  );
+  static List<Product> products = _generateGroceryProducts();
+
+  // Generate a list of grocery products
+  static List<Product> _generateGroceryProducts() {
+    List<Product> mockProducts = [];
+
+    // Create products for each category
+    for (String category in _categories) {
+      // Get product names for this category
+      List<String> productNames = _productsMap[category] ?? [];
+
+      // Create products for this category
+      for (int i = 0; i < productNames.length; i++) {
+        final String productName = productNames[i];
+        final String productId = 'PRD-${category.hashCode}-$i';
+        final double price = _generatePrice();
+        final int quantity = _random.nextInt(100) + 1; // 1-100 quantity
+
+        // Generate random imageUrl - using placeholder images service
+        final String imageUrl =
+            'https://via.placeholder.com/150?text=${Uri.encodeComponent(productName)}';
+
+        // Create product
+        mockProducts.add(
+          Product(
+            id: productId,
+            name: productName,
+            category: category,
+            price: price,
+            quantity: quantity,
+            imageUrl: imageUrl,
+            barcode: _generateBarcode(),
+            location: _locations[_random.nextInt(_locations.length)],
+            supplier: _suppliers[_random.nextInt(_suppliers.length)],
+            lastUpdated:
+                DateTime.now().subtract(Duration(days: _random.nextInt(30))),
+          ),
+        );
+      }
+    }
+
+    return mockProducts;
+  }
 
   // Get all products with pagination
   static Future<List<Product>> getProducts(

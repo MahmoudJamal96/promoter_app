@@ -1,10 +1,21 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:promoter_app/features/auth/screens/login_screen.dart';
+import 'package:promoter_app/features/auth/services/auth_service.dart';
 import 'package:promoter_app/features/dashboard/dashboard_screen.dart';
 
 import 'app_theme.dart';
 
-void main() {
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+
+  // Set preferred orientations
+  await SystemChrome.setPreferredOrientations([
+    DeviceOrientation.portraitUp,
+    DeviceOrientation.portraitDown,
+  ]);
+
   runApp(const MyApp());
 }
 
@@ -19,14 +30,28 @@ class MyApp extends StatelessWidget {
       minTextAdapt: true,
       splitScreenMode: true,
       // Use builder only if you need to use library outside ScreenUtilInit context
-      builder: (_, child) =>
-          SafeArea(
-            child: MaterialApp(
-              title: 'Flutter Demo',
-              theme: lightTheme(),
-              home: ZoomDrawerScreen(),
-            ),
+      builder: (_, child) => SafeArea(
+        child: MaterialApp(
+          title: 'مندوب الياسين',
+          theme: lightTheme(),
+          debugShowCheckedModeBanner: false,
+          home: FutureBuilder<bool>(
+            future: AuthService.isAuthenticated(),
+            builder: (context, snapshot) {
+              if (snapshot.connectionState == ConnectionState.waiting) {
+                return const Scaffold(
+                  body: Center(
+                    child: CircularProgressIndicator(),
+                  ),
+                );
+              }
+
+              final isLoggedIn = snapshot.data ?? false;
+              return isLoggedIn ? ZoomDrawerScreen() : const LoginScreen();
+            },
           ),
+        ),
+      ),
     );
   }
 }

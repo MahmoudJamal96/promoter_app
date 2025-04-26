@@ -2,17 +2,17 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 ThemeData lightTheme() {
-
   final ThemeData appTheme = ThemeData(
     fontFamily: GoogleFonts.cairo().fontFamily,
     brightness: Brightness.light,
-    primaryColor: const Color(0xFF4F79FF),
+    primaryColor: const Color(0xFF148ccd),
     scaffoldBackgroundColor: const Color(0xFFFFFFFF),
     cardColor: const Color(0xFFF8F9FB),
     textTheme: const TextTheme(
       bodyLarge: TextStyle(color: Color(0xFF1A1A1A)),
       bodyMedium: TextStyle(color: Color(0xFF1A1A1A)),
-      titleLarge: TextStyle(color: Color(0xFF1A1A1A), fontWeight: FontWeight.bold),
+      titleLarge:
+          TextStyle(color: Color(0xFF1A1A1A), fontWeight: FontWeight.bold),
     ),
     elevatedButtonTheme: ElevatedButtonThemeData(
       style: ElevatedButton.styleFrom(
@@ -23,8 +23,8 @@ ThemeData lightTheme() {
     ),
     outlinedButtonTheme: OutlinedButtonThemeData(
       style: OutlinedButton.styleFrom(
-        foregroundColor: const Color(0xFF4F79FF),
-        side: const BorderSide(color: Color(0xFF4F79FF)),
+        foregroundColor: const Color(0xFF148ccd),
+        side: const BorderSide(color: Color(0xFF148ccd)),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       ),
     ),
@@ -37,7 +37,7 @@ ThemeData lightTheme() {
       ),
     ),
     colorScheme: const ColorScheme.light(
-      primary: Color(0xFF4F79FF),
+      primary: Color(0xFF148ccd),
       secondary: Color(0xFFC5E850),
       surface: Color(0xFFF8F9FB),
       background: Color(0xFFFFFFFF),

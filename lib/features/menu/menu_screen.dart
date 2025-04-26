@@ -3,6 +3,8 @@ import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter_zoom_drawer/flutter_zoom_drawer.dart';
 import 'package:lottie/lottie.dart';
+import 'package:promoter_app/features/auth/screens/login_screen.dart';
+import 'package:promoter_app/features/auth/services/auth_service.dart';
 
 import 'profile/profile_screen.dart';
 import 'reports/reports_screen.dart';
@@ -98,7 +100,18 @@ class _MenuScreenState extends State<MenuScreen> {
                     MenuItem(
                       icon: Icons.logout,
                       title: 'تسجيل خروج',
-                      onTap: () {
+                      onTap: () async {
+                        // Log the user out
+                        // await AuthService.logout2();
+
+                        // Navigate to login screen
+                        if (context.mounted) {
+                          Navigator.of(context).pushAndRemoveUntil(
+                            MaterialPageRoute(
+                                builder: (_) => const LoginScreen()),
+                            (route) => false,
+                          );
+                        }
                         // Show logout confirmation dialog
                         showDialog(
                             context: context,
@@ -219,8 +232,8 @@ class MenuItem extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ListTile(
-      leading: Icon(icon, color: Colors.deepPurple),
-      title: Text(title, style: TextStyle(fontSize: 16)),
+      leading: Icon(icon, color: Colors.white),
+      title: Text(title, style: TextStyle(fontSize: 16, color: Colors.white)),
       onTap: onTap,
     );
   }

@@ -5,10 +5,12 @@ import 'package:flutter_zoom_drawer/flutter_zoom_drawer.dart';
 import 'package:promoter_app/core/constants/assets.dart';
 import 'package:promoter_app/core/utils/utils.dart';
 import 'package:promoter_app/core/view/widgets/image_loader.dart';
+import 'package:promoter_app/features/client/screens/client_screen.dart';
 import 'package:promoter_app/features/inventory/screens/inventory_screen.dart';
 import 'package:promoter_app/features/inventory/screens/product_inquiry_screen.dart';
 import 'package:promoter_app/features/inventory/screens/sales_invoice_screen.dart';
 import 'package:promoter_app/features/inventory/screens/sales_report_screen.dart';
+import 'package:promoter_app/features/salary/screens/salary_screen.dart';
 import 'package:promoter_app/features/tools/scanner/scanner_screen.dart';
 import 'package:syncfusion_flutter_gauges/gauges.dart';
 
@@ -228,8 +230,9 @@ class FeatureGrid extends StatelessWidget {
     final List<Map<String, dynamic>> features = [
       {
         'title': 'جدول المبيعات',
-        'icon': '📄',
+        'icon': Icons.bar_chart,
         'anim': Assets.invoiceLottie,
+        'color': Colors.blue.shade700,
         'action': () {
           print('جدول المبيعات tapped');
           Navigator.push(
@@ -240,8 +243,9 @@ class FeatureGrid extends StatelessWidget {
       },
       {
         'title': 'فاتورة مبيعات',
-        'icon': '✏️',
+        'icon': Icons.receipt,
         'anim': Assets.singleInvoiceLottie,
+        'color': Colors.green.shade700,
         'action': () {
           print('فاتورة مبيعات tapped');
           Navigator.push(
@@ -252,8 +256,9 @@ class FeatureGrid extends StatelessWidget {
       },
       {
         'title': 'الجرد',
-        'icon': '📏',
+        'icon': Icons.inventory,
         'anim': Assets.warehouseLottie,
+        'color': Colors.purple.shade700,
         'action': () {
           print('الجرد tapped');
           Navigator.push(
@@ -264,7 +269,9 @@ class FeatureGrid extends StatelessWidget {
       },
       {
         'title': 'استعلام عن صنف',
-        'icon': '🔍',
+        'icon': Icons.search,
+        'anim': Assets.scanLottie,
+        'color': Colors.orange.shade700,
         'action': () {
           print('استعلام عن صنف tapped');
           Navigator.push(
@@ -272,47 +279,98 @@ class FeatureGrid extends StatelessWidget {
             MaterialPageRoute(builder: (_) => const ProductInquiryScreen()),
           );
         },
-        'anim': Assets.scanLottie,
       },
       {
         'title': 'سند عميل',
-        'icon': '📄',
-        'action': () {},
+        'icon': Icons.person_outline,
+        'anim': Assets.profileLottie,
+        'color': Colors.cyan.shade700,
+        'action': () {
+          print('سند عميل tapped');
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (_) => const ClientScreen()),
+          );
+        },
       },
       {
         'title': 'سند مصروف',
-        'icon': '📄',
-        'action': () {},
+        'icon': Icons.payment,
+        'anim': Assets.singleInvoiceLottie,
+        'color': Colors.pink.shade700,
+        'action': () {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('سند مصروف')),
+          );
+        },
       },
       {
         'title': 'تحويل للمخازن',
-        'icon': '📄',
-        'action': () {},
+        'icon': Icons.swap_horiz,
+        'anim': Assets.warehouseLottie,
+        'color': Colors.teal.shade700,
+        'action': () {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('تحويل للمخازن')),
+          );
+        },
       },
       {
         'title': 'جدول تحويلات المخازن',
-        'icon': '📄',
-        'action': () {},
+        'icon': Icons.table_chart,
+        'anim': Assets.invoiceLottie,
+        'color': Colors.amber.shade700,
+        'action': () {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('جدول تحويلات المخازن')),
+          );
+        },
       },
       {
         'title': 'كميات المخازن',
-        'icon': '📄',
-        'action': () {},
+        'icon': Icons.storage,
+        'anim': Assets.warehouseLottie,
+        'color': Colors.indigo.shade700,
+        'action': () {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('كميات المخازن')),
+          );
+        },
       },
       {
         'title': 'عرض سعر',
-        'icon': '📄',
-        'action': () {},
+        'icon': Icons.price_check,
+        'anim': Assets.singleInvoiceLottie,
+        'color': Colors.deepOrange.shade700,
+        'action': () {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('عرض سعر')),
+          );
+        },
       },
       {
         'title': 'العميل',
-        'icon': '📄',
-        'action': () {},
+        'icon': Icons.person,
+        'anim': Assets.profileLottie,
+        'color': Colors.blue.shade700,
+        'action': () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (_) => const ClientScreen()),
+          );
+        },
       },
       {
         'title': 'المرتب',
-        'icon': '📄',
-        'action': () {},
+        'icon': Icons.attach_money,
+        'anim': Assets.invoiceLottie,
+        'color': Colors.green.shade700,
+        'action': () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (_) => const SalaryScreen()),
+          );
+        },
       },
     ];
 
@@ -325,11 +383,15 @@ class FeatureGrid extends StatelessWidget {
           InkWell(
             onTap: features[index]['action'] as VoidCallback,
             child: FeatureCard(
+              action: features[index]['action'] as VoidCallback,
               anim: features[index].containsKey('anim')
                   ? features[index]['anim'] as String
                   : null,
               title: features[index]['title'] as String,
-              icon: features[index]['icon'] as String,
+              icon: features[index]['icon'] as IconData,
+              color: features[index].containsKey('color')
+                  ? features[index]['color'] as Color
+                  : null,
             )
                 // Each feature card animates in with a slower fade and slide.
                 .animate(delay: Duration(milliseconds: (index * 120)))
@@ -341,55 +403,144 @@ class FeatureGrid extends StatelessWidget {
   }
 }
 
-class FeatureCard extends StatelessWidget {
+class FeatureCard extends StatefulWidget {
   final String title;
-  final String icon;
+  final IconData icon;
   final String? anim;
+  final Color? color;
+  final VoidCallback? action;
 
-  const FeatureCard(
-      {super.key, required this.title, required this.icon, this.anim});
+  const FeatureCard({
+    super.key,
+    required this.title,
+    required this.icon,
+    this.anim,
+    this.color,
+    this.action,
+  });
+
+  @override
+  State<FeatureCard> createState() => _FeatureCardState();
+}
+
+class _FeatureCardState extends State<FeatureCard>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+  bool _isHovered = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: Duration(milliseconds: 200),
+    );
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      width: .4.sw,
-      height: .22.sh,
-      margin: EdgeInsets.symmetric(horizontal: 8.w, vertical: 6.h),
-      child: Card(
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16.r),
-        ),
-        elevation: 2,
-        child: Padding(
-          padding: EdgeInsets.all(16.h),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Expanded(
-                child: (anim != null)
-                    ? ImageLoader(
-                        path: anim!,
-                        repeated: true,
-                      )
-                    : Text(
-                        icon,
-                        style: const TextStyle(fontSize: 30),
-                      ),
-              ),
-              const SizedBox(height: 10),
-              FittedBox(
-                fit: BoxFit.fitWidth,
-                child: Text(
-                  title,
-                  maxLines: 1,
-                  style: TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.bold,
-                      color: Theme.of(context).primaryColor),
-                  textAlign: TextAlign.center,
+    final Color buttonColor = widget.color ?? Theme.of(context).primaryColor;
+
+    return GestureDetector(
+      onTap: () {
+        widget.action?.call();
+      },
+      // onTapDown: (_) {
+      //   setState(() {
+      //     _isHovered = true;
+      //     _controller.forward();
+      //   });
+      // },
+      // onTapUp: (_) {
+      //   setState(() {
+      //     _isHovered = false;
+      //     _controller.reverse();
+      //   });
+      // },
+      // onTapCancel: () {
+      //   setState(() {
+      //     _isHovered = false;
+      //     _controller.reverse();
+      //   });
+      // },
+      child: AnimatedBuilder(
+        animation: _controller,
+        builder: (context, child) {
+          return Transform.scale(
+            scale: 1.0 - (_controller.value * 0.05),
+            child: child,
+          );
+        },
+        child: Container(
+          width: .41.sw,
+          height: .23.sh,
+          margin: EdgeInsets.symmetric(horizontal: 8.w, vertical: 6.h),
+          child: Card(
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(18.r),
+            ),
+            elevation: _isHovered ? 5 : 2,
+            child: Container(
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(18.r),
+                gradient: LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: _isHovered
+                      ? [buttonColor, buttonColor.withOpacity(0.8)]
+                      : [Colors.white, Colors.white],
                 ),
+                boxShadow: _isHovered
+                    ? [
+                        BoxShadow(
+                          color: buttonColor.withOpacity(0.4),
+                          blurRadius: 12,
+                          offset: Offset(0, 4),
+                        )
+                      ]
+                    : [],
               ),
-            ],
+              padding: EdgeInsets.all(16.h),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Expanded(
+                    child: (widget.anim != null)
+                        ? ImageLoader(
+                            path: widget.anim!,
+                            repeated: true,
+                          )
+                        : Icon(
+                            widget.icon is IconData
+                                ? widget.icon as IconData
+                                : Icons.circle,
+                            size: 40,
+                            color: _isHovered ? Colors.white : buttonColor,
+                          ),
+                  ),
+                  const SizedBox(height: 10),
+                  FittedBox(
+                    fit: BoxFit.fitWidth,
+                    child: Text(
+                      widget.title,
+                      maxLines: 1,
+                      style: TextStyle(
+                        fontSize: 14.sp,
+                        fontWeight: FontWeight.bold,
+                        color: _isHovered ? Colors.white : buttonColor,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                  ),
+                ],
+              ),
+            ),
           ),
         ),
       ),
