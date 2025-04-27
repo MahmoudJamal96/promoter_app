@@ -27,7 +27,7 @@ class ZoomDrawerScreen extends StatelessWidget {
       openCurve: Curves.fastOutSlowIn,
       showShadow: false,
       slideWidth: .7.sw,
-      // isRtl: !ltr,
+      isRtl: Directionality.of(context) == TextDirection.rtl,
       mainScreenTapClose: true,
       borderRadius: 36.r,
       angle: 0.0,
@@ -108,19 +108,23 @@ class DashboardScreen extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             // Animate the row container for gauge and debt card with slower animations.
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                const CircularPercentIndicator()
-                    .animate()
-                    .fade(duration: 1000.ms)
-                    .slide(begin: const Offset(-50, 0), end: Offset.zero),
-                const DebtCard()
-                    .animate()
-                    .fade(duration: 1000.ms, delay: 150.ms)
-                    .slide(begin: const Offset(50, 0), end: Offset.zero),
-              ],
-            ).animate().scale(duration: 1000.ms),
+            Center(
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const CircularPercentIndicator()
+                      .animate()
+                      .fade(duration: 1000.ms)
+                      .slide(begin: const Offset(-50, 0), end: Offset.zero),
+                  const SizedBox(width: 20),
+                  const DebtCard()
+                      .animate()
+                      .fade(duration: 1000.ms, delay: 150.ms)
+                      .slide(begin: const Offset(50, 0), end: Offset.zero),
+                ],
+              ).animate().scale(duration: 1000.ms),
+            ),
             const SizedBox(height: 20),
             const FeatureGrid()
                 .animate()
@@ -229,23 +233,10 @@ class FeatureGrid extends StatelessWidget {
     // Define a list of features with title, icon, and action.
     final List<Map<String, dynamic>> features = [
       {
-        'title': 'جدول المبيعات',
-        'icon': Icons.bar_chart,
-        'anim': Assets.invoiceLottie,
-        'color': Colors.blue.shade700,
-        'action': () {
-          print('جدول المبيعات tapped');
-          Navigator.push(
-            context,
-            MaterialPageRoute(builder: (_) => const SalesReportScreen()),
-          );
-        },
-      },
-      {
         'title': 'فاتورة مبيعات',
         'icon': Icons.receipt,
         'anim': Assets.singleInvoiceLottie,
-        'color': Colors.green.shade700,
+        'color': Colors.blue.shade700,
         'action': () {
           print('فاتورة مبيعات tapped');
           Navigator.push(
@@ -255,101 +246,7 @@ class FeatureGrid extends StatelessWidget {
         },
       },
       {
-        'title': 'الجرد',
-        'icon': Icons.inventory,
-        'anim': Assets.warehouseLottie,
-        'color': Colors.purple.shade700,
-        'action': () {
-          print('الجرد tapped');
-          Navigator.push(
-            context,
-            MaterialPageRoute(builder: (_) => const InventoryScreen()),
-          );
-        },
-      },
-      {
-        'title': 'استعلام عن صنف',
-        'icon': Icons.search,
-        'anim': Assets.scanLottie,
-        'color': Colors.orange.shade700,
-        'action': () {
-          print('استعلام عن صنف tapped');
-          Navigator.push(
-            context,
-            MaterialPageRoute(builder: (_) => const ProductInquiryScreen()),
-          );
-        },
-      },
-      {
-        'title': 'سند عميل',
-        'icon': Icons.person_outline,
-        'anim': Assets.profileLottie,
-        'color': Colors.cyan.shade700,
-        'action': () {
-          print('سند عميل tapped');
-          Navigator.push(
-            context,
-            MaterialPageRoute(builder: (_) => const ClientScreen()),
-          );
-        },
-      },
-      {
-        'title': 'سند مصروف',
-        'icon': Icons.payment,
-        'anim': Assets.singleInvoiceLottie,
-        'color': Colors.pink.shade700,
-        'action': () {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('سند مصروف')),
-          );
-        },
-      },
-      {
-        'title': 'تحويل للمخازن',
-        'icon': Icons.swap_horiz,
-        'anim': Assets.warehouseLottie,
-        'color': Colors.teal.shade700,
-        'action': () {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('تحويل للمخازن')),
-          );
-        },
-      },
-      {
-        'title': 'جدول تحويلات المخازن',
-        'icon': Icons.table_chart,
-        'anim': Assets.invoiceLottie,
-        'color': Colors.amber.shade700,
-        'action': () {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('جدول تحويلات المخازن')),
-          );
-        },
-      },
-      {
-        'title': 'كميات المخازن',
-        'icon': Icons.storage,
-        'anim': Assets.warehouseLottie,
-        'color': Colors.indigo.shade700,
-        'action': () {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('كميات المخازن')),
-          );
-        },
-      },
-      {
-        'title': 'عرض سعر',
-        'icon': Icons.price_check,
-        'anim': Assets.singleInvoiceLottie,
-        'color': Colors.deepOrange.shade700,
-        'action': () {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('عرض سعر')),
-          );
-        },
-      },
-      {
-        'title': 'العميل',
+        'title': 'العملاء',
         'icon': Icons.person,
         'anim': Assets.profileLottie,
         'color': Colors.blue.shade700,
@@ -361,44 +258,96 @@ class FeatureGrid extends StatelessWidget {
         },
       },
       {
-        'title': 'المرتب',
-        'icon': Icons.attach_money,
+        'title': 'تحصيل',
+        'icon': Icons.payments,
+        'anim': Assets.singleInvoiceLottie,
+        'color': Colors.blue.shade700,
+        'action': () {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('تحصيل')),
+          );
+        },
+      },
+      {
+        'title': 'صرف',
+        'icon': Icons.payment,
+        'anim': Assets.singleInvoiceLottie,
+        'color': Colors.blue.shade700,
+        'action': () {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('صرف')),
+          );
+        },
+      },
+      {
+        'title': 'الخزينة',
+        'icon': Icons.account_balance_wallet,
         'anim': Assets.invoiceLottie,
-        'color': Colors.green.shade700,
+        'color': Colors.blue.shade700,
+        'action': () {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('الخزينة')),
+          );
+        },
+      },
+      {
+        'title': 'تسجيل مرتجع',
+        'icon': Icons.assignment_return,
+        'anim': Assets.invoiceLottie,
+        'color': Colors.blue.shade700,
+        'action': () {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('تسجيل مرتجع')),
+          );
+        },
+      },
+      {
+        'title': 'المنتجات',
+        'icon': Icons.inventory_2,
+        'anim': Assets.scanLottie,
+        'color': Colors.blue.shade700,
         'action': () {
           Navigator.push(
             context,
-            MaterialPageRoute(builder: (_) => const SalaryScreen()),
+            MaterialPageRoute(builder: (_) => const ProductInquiryScreen()),
+          );
+        },
+      },
+      {
+        'title': 'تحويل مخزون',
+        'icon': Icons.swap_horiz,
+        'anim': Assets.warehouseLottie,
+        'color': Colors.blue.shade700,
+        'action': () {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('تحويل مخزون')),
           );
         },
       },
     ];
 
-    return Wrap(
-      alignment: WrapAlignment.center,
-      crossAxisAlignment: WrapCrossAlignment.center,
-      spacing: 0,
-      children: [
-        for (var index = 0; index < features.length; index++)
-          InkWell(
-            onTap: features[index]['action'] as VoidCallback,
-            child: FeatureCard(
+    return Center(
+      child: Wrap(
+        alignment: WrapAlignment.center,
+        spacing: 8.0.w,
+        children: [
+          for (var index = 0; index < features.length; index++)
+            FeatureCard(
               action: features[index]['action'] as VoidCallback,
               anim: features[index].containsKey('anim')
                   ? features[index]['anim'] as String
                   : null,
               title: features[index]['title'] as String,
               icon: features[index]['icon'] as IconData,
-              color: features[index].containsKey('color')
-                  ? features[index]['color'] as Color
-                  : null,
+              color: features[index]['color'] as Color,
+              withBorder: true,
             )
                 // Each feature card animates in with a slower fade and slide.
                 .animate(delay: Duration(milliseconds: (index * 120)))
                 .fade(duration: 800.ms)
                 .slide(begin: const Offset(0, 40), end: Offset.zero),
-          ),
-      ],
+        ],
+      ),
     );
   }
 }
@@ -409,6 +358,7 @@ class FeatureCard extends StatefulWidget {
   final String? anim;
   final Color? color;
   final VoidCallback? action;
+  final bool withBorder;
 
   const FeatureCard({
     super.key,
@@ -417,6 +367,7 @@ class FeatureCard extends StatefulWidget {
     this.anim,
     this.color,
     this.action,
+    this.withBorder = false,
   });
 
   @override
@@ -451,24 +402,24 @@ class _FeatureCardState extends State<FeatureCard>
       onTap: () {
         widget.action?.call();
       },
-      // onTapDown: (_) {
-      //   setState(() {
-      //     _isHovered = true;
-      //     _controller.forward();
-      //   });
-      // },
-      // onTapUp: (_) {
-      //   setState(() {
-      //     _isHovered = false;
-      //     _controller.reverse();
-      //   });
-      // },
-      // onTapCancel: () {
-      //   setState(() {
-      //     _isHovered = false;
-      //     _controller.reverse();
-      //   });
-      // },
+      onTapDown: (_) {
+        setState(() {
+          _isHovered = true;
+          _controller.forward();
+        });
+      },
+      onTapUp: (_) {
+        setState(() {
+          _isHovered = false;
+          _controller.reverse();
+        });
+      },
+      onTapCancel: () {
+        setState(() {
+          _isHovered = false;
+          _controller.reverse();
+        });
+      },
       child: AnimatedBuilder(
         animation: _controller,
         builder: (context, child) {
@@ -478,12 +429,15 @@ class _FeatureCardState extends State<FeatureCard>
           );
         },
         child: Container(
-          width: .41.sw,
+          width: .4.sw,
           height: .23.sh,
           margin: EdgeInsets.symmetric(horizontal: 8.w, vertical: 6.h),
           child: Card(
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(18.r),
+              side: widget.withBorder
+                  ? BorderSide(color: Colors.blueAccent, width: 1.5)
+                  : BorderSide.none,
             ),
             elevation: _isHovered ? 5 : 2,
             child: Container(
@@ -515,11 +469,12 @@ class _FeatureCardState extends State<FeatureCard>
                         ? ImageLoader(
                             path: widget.anim!,
                             repeated: true,
+                            fit: BoxFit.contain,
+                            height: 60.h,
+                            width: 60.w,
                           )
                         : Icon(
-                            widget.icon is IconData
-                                ? widget.icon as IconData
-                                : Icons.circle,
+                            widget.icon,
                             size: 40,
                             color: _isHovered ? Colors.white : buttonColor,
                           ),

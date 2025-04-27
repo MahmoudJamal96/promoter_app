@@ -4,6 +4,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:promoter_app/features/auth/screens/login_screen.dart';
 import 'package:promoter_app/features/auth/services/auth_service.dart';
 import 'package:promoter_app/features/dashboard/dashboard_screen.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 
 import 'app_theme.dart';
 
@@ -35,6 +36,24 @@ class MyApp extends StatelessWidget {
           title: 'مندوب الياسين',
           theme: lightTheme(),
           debugShowCheckedModeBanner: false,
+          // RTL Support
+          locale: const Locale('ar', ''), // Set Arabic as the default language
+          localizationsDelegates: const [
+            GlobalMaterialLocalizations.delegate,
+            GlobalWidgetsLocalizations.delegate,
+            GlobalCupertinoLocalizations.delegate,
+          ],
+          supportedLocales: const [
+            Locale('ar', ''), // Arabic
+            Locale('en', ''), // English
+          ],
+          // Force RTL direction for the entire app
+          builder: (context, child) {
+            return Directionality(
+              textDirection: TextDirection.rtl,
+              child: child!,
+            );
+          },
           home: FutureBuilder<bool>(
             future: AuthService.isAuthenticated(),
             builder: (context, snapshot) {

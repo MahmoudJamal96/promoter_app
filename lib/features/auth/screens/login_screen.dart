@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:promoter_app/features/auth/screens/register_screen.dart';
-import 'package:promoter_app/features/auth/services/auth_service.dart';
 import 'package:promoter_app/features/dashboard/dashboard_screen.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -71,22 +69,11 @@ class _LoginScreenState extends State<LoginScreen> {
                     'assets/images/yasin_app_logo.JPG',
                     width: 150.r,
                     height: 150.r,
+                    color: Colors.blue, // Make the logo blue
+                    colorBlendMode: BlendMode.srcIn, // Remove background
                   ).animate().fadeIn(duration: 800.ms).scale(delay: 300.ms),
 
                   SizedBox(height: 20.h),
-
-                  // Welcome Text
-                  Text(
-                    'مرحباً مجدداً',
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                      fontSize: 26.sp,
-                      fontWeight: FontWeight.bold,
-                      color: Theme.of(context).primaryColor,
-                    ),
-                  ).animate().fadeIn(delay: 300.ms, duration: 800.ms),
-
-                  SizedBox(height: 8.h),
 
                   Text(
                     'قم بتسجيل الدخول للمتابعة',
@@ -162,40 +149,10 @@ class _LoginScreenState extends State<LoginScreen> {
                               color: Colors.white,
                             ),
                           ),
-                  ).animate().fadeIn(delay: 700.ms, duration: 800.ms),
-
-                  SizedBox(height: 16.h),
-
-                  // Register Option
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Text(
-                        'ليس لديك حساب؟',
-                        style: TextStyle(
-                          fontSize: 14.sp,
-                          color: Colors.grey[600],
-                        ),
-                      ),
-                      TextButton(
-                        onPressed: () {
-                          Navigator.of(context).push(
-                            MaterialPageRoute(
-                              builder: (context) => const RegisterScreen(),
-                            ),
-                          );
-                        },
-                        child: Text(
-                          'إنشاء حساب',
-                          style: TextStyle(
-                            fontSize: 14.sp,
-                            fontWeight: FontWeight.bold,
-                            color: Theme.of(context).primaryColor,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ).animate().fadeIn(delay: 800.ms, duration: 800.ms),
+                  ).animate().fadeIn(
+                      delay: 700.ms,
+                      duration: 800
+                          .ms), // Removed register option as users will be registered through the ERP system
                 ],
               ),
             ),
