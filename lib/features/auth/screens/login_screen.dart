@@ -66,11 +66,9 @@ class _LoginScreenState extends State<LoginScreen> {
                 children: [
                   // App Logo
                   Image.asset(
-                    'assets/images/yasin_app_logo.JPG',
+                    'assets/images/logo_banner.jpg',
                     width: 150.r,
                     height: 150.r,
-                    color: Colors.blue, // Make the logo blue
-                    colorBlendMode: BlendMode.srcIn, // Remove background
                   ).animate().fadeIn(duration: 800.ms).scale(delay: 300.ms),
 
                   SizedBox(height: 20.h),

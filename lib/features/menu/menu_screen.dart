@@ -37,64 +37,69 @@ class _MenuScreenState extends State<MenuScreen> {
                   padding: EdgeInsets.symmetric(horizontal: 10.w),
                   children: [
                     MenuItem(
-                      icon: Icons.dashboard,
-                      title: 'التقارير',
-                      onTap: () => _navigateTo(context, ReportsScreen(), 0),
+                      icon: Icons.person,
+                      title: 'ملفي',
+                      onTap: () => Navigator.push(context,
+                          MaterialPageRoute(builder: (_) => ProfileScreen())),
                       isSelected: _selectedIndex == 0,
                     ),
                     MenuItem(
-                      icon: Icons.email,
-                      title: 'الرسائل',
-                      onTap: () => _navigateTo(context, MessagesScreen(), 1),
+                      icon: Icons.dashboard,
+                      title: 'التقارير',
+                      onTap: () => _navigateTo(context, ReportsScreen(), 1),
                       isSelected: _selectedIndex == 1,
                     ),
                     MenuItem(
-                      icon: Icons.request_page,
-                      title: 'طلب إجازة',
-                      onTap: () =>
-                          _navigateTo(context, LeaveRequestScreen(), 2),
+                      icon: Icons.notifications,
+                      title: 'الإشعارات',
+                      onTap: () => _navigateTo(context, MessagesScreen(), 2),
                       isSelected: _selectedIndex == 2,
-                    ),
-                    MenuItem(
-                      icon: Icons.task,
-                      title: 'مهامي',
-                      onTap: () => _navigateTo(context, TasksScreen(), 3),
-                      isSelected: _selectedIndex == 3,
-                    ),
-                    MenuItem(
-                      icon: Icons.meeting_room,
-                      title: 'مقابلات',
-                      onTap: () => _navigateTo(context, MeetingsScreen(), 4),
-                      isSelected: _selectedIndex == 4,
-                    ),
-                    MenuItem(
-                      icon: Icons.history,
-                      title: 'المقابلات السابقة',
-                      onTap: () => _navigateTo(
-                          context, MeetingsScreen(pastMeetings: true), 5),
-                      isSelected: _selectedIndex == 5,
                     ),
                     MenuItem(
                       icon: Icons.delivery_dining,
                       title: 'طلبات التوصيل',
-                      onTap: () => _navigateTo(context, DeliveryScreen(), 6),
+                      onTap: () => _navigateTo(context, DeliveryScreen(), 3),
+                      isSelected: _selectedIndex == 3,
+                    ),
+                    MenuItem(
+                      icon: Icons.route,
+                      title: 'جدول خط السير',
+                      onTap: () => _navigateTo(context, TasksScreen(), 4),
+                      isSelected: _selectedIndex == 4,
+                    ),
+                    MenuItem(
+                      icon: Icons.inventory,
+                      title: 'جرد المخزون',
+                      onTap: () => _navigateTo(context, MeetingsScreen(), 5),
+                      isSelected: _selectedIndex == 5,
+                    ),
+                    MenuItem(
+                      icon: Icons.account_balance_wallet,
+                      title: 'بيان المرتب الشهري',
+                      onTap: () => _navigateTo(
+                          context, MeetingsScreen(pastMeetings: true), 6),
                       isSelected: _selectedIndex == 6,
                     ),
                     MenuItem(
-                      icon: Icons.info,
-                      title: 'عن الشركة',
-                      onTap: () => {
-                        // _navigateTo(context, AboutScreen(), 7)
-                      },
+                      icon: Icons.request_page,
+                      title: 'تقديم طلب اجازة',
+                      onTap: () =>
+                          _navigateTo(context, LeaveRequestScreen(), 7),
                       isSelected: _selectedIndex == 7,
                     ),
                     MenuItem(
-                      icon: Icons.settings,
-                      title: 'الإعدادات',
-                      onTap: () => {
-                        // _navigateTo(context, SettingsScreen(), 8)
-                      },
+                      icon: Icons.contact_support,
+                      title: 'تواصل مع الإدارة',
+                      onTap: () => _navigateTo(context, MessagesScreen(), 8),
                       isSelected: _selectedIndex == 8,
+                    ),
+                    MenuItem(
+                      icon: Icons.settings,
+                      title: 'إعدادات التطبيق',
+                      onTap: () => {
+                        // _navigateTo(context, SettingsScreen(), 9)
+                      },
+                      isSelected: _selectedIndex == 9,
                     ),
                     SizedBox(height: 20.h),
                     MenuItem(
