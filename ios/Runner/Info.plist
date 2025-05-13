@@ -42,8 +42,15 @@
 		<string>UIInterfaceOrientationLandscapeRight</string>
 	</array>
 	<key>CADisableMinimumFrameDurationOnPhone</key>
+	<true/>	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
-	<key>UIApplicationSupportsIndirectInputEvents</key>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>This app needs access to location when open to sort clients by proximity.</string>
+	<key>NSLocationAlwaysUsageDescription</key>
+	<string>This app needs access to location when in the background to update client distances.</string>
+	<key>io.flutter.embedded_views_preview</key>
 	<true/>
+	<key>GoogleMapsApiKey</key>
+	<string>YOUR_API_KEY</string>
 </dict>
 </plist>

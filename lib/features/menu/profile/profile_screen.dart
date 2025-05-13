@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:promoter_app/features/auth/presentation/bloc/auth_bloc.dart';
 
 class ProfileScreen extends StatelessWidget {
   const ProfileScreen({super.key});
@@ -65,17 +67,33 @@ class ProfileScreen extends StatelessWidget {
                       ),
                     ),
                   ),
-                  _buildTextField(
-                      label: "Full Name", initialValue: "Jessy Prachette"),
-                  _buildTextField(label: "Username", initialValue: "@jessy_p"),
-                  _buildTextField(
-                      label: "Mobile", initialValue: "+2347011188896"),
-                  _buildTextField(
-                    label: "Bio",
-                    initialValue:
-                        "I am an avid learner here on FavYogis, UI/UX designer, brand and event designer.",
-                    maxLines: 3,
-                  ),
+                  BlocBuilder<AuthBloc, AuthState>(builder: (context, state) {
+                    String userName = "User";
+                    String userEmail = "user@example.com";
+                    String userPhone = "+000000000";
+
+                    if (state is AuthAuthenticated) {
+                      userName = state.user.name;
+                      userEmail = state.user.email;
+                      userPhone = state.user.phone ?? "+000000000";
+                    }
+
+                    return Column(
+                      children: [
+                        _buildTextField(
+                            label: "Full Name", initialValue: userName),
+                        _buildTextField(
+                            label: "Email", initialValue: userEmail),
+                        _buildTextField(
+                            label: "Mobile", initialValue: userPhone),
+                        _buildTextField(
+                          label: "Bio",
+                          initialValue: "مندوب مبيعات",
+                          maxLines: 3,
+                        ),
+                      ],
+                    );
+                  }),
                   SizedBox(height: 20.h),
                   Padding(
                     padding: EdgeInsets.only(left: 8.w, bottom: 10.h),
@@ -211,14 +229,22 @@ class ProfileScreen extends StatelessWidget {
             ],
           ),
           SizedBox(height: 15.h),
-          Text(
-            "Jessy Prachette",
-            style: TextStyle(
-              fontSize: 22.sp,
-              fontWeight: FontWeight.bold,
-              color: Colors.white,
-            ),
-          ).animate().fade(duration: 400.ms),
+          BlocBuilder<AuthBloc, AuthState>(
+            builder: (context, state) {
+              String userName = "User";
+              if (state is AuthAuthenticated) {
+                userName = state.user.name;
+              }
+              return Text(
+                userName,
+                style: TextStyle(
+                  fontSize: 22.sp,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.white,
+                ),
+              ).animate().fade(duration: 400.ms);
+            },
+          ),
           SizedBox(height: 5.h),
           Row(
             mainAxisAlignment: MainAxisAlignment.center,

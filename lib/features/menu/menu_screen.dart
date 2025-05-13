@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter_zoom_drawer/flutter_zoom_drawer.dart';
 import 'package:lottie/lottie.dart';
+import 'package:promoter_app/features/auth/presentation/bloc/auth_bloc.dart';
 import 'package:promoter_app/features/auth/screens/login_screen.dart';
 import 'package:promoter_app/features/auth/services/auth_service.dart';
 
@@ -204,14 +206,24 @@ class UserHeader extends StatelessWidget {
               child: Icon(Icons.person, color: Colors.white, size: 30),
             ),
             SizedBox(width: 10),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text('كريم',
-                    style:
-                        TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-                Text('@a', style: TextStyle(color: Colors.grey)),
-              ],
+            BlocBuilder<AuthBloc, AuthState>(
+              builder: (context, state) {
+                String userName = 'مستخدم';
+                String userEmail = '@user';
+                if (state is AuthAuthenticated) {
+                  userName = state.user.name;
+                  userEmail = '@${state.user.email.split('@')[0]}';
+                }
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(userName,
+                        style: TextStyle(
+                            fontSize: 18, fontWeight: FontWeight.bold)),
+                    Text(userEmail, style: TextStyle(color: Colors.grey)),
+                  ],
+                );
+              },
             ),
           ],
         ),

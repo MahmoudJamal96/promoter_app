@@ -1,22 +1,20 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter_zoom_drawer/flutter_zoom_drawer.dart';
 import 'package:promoter_app/core/constants/assets.dart';
-import 'package:promoter_app/core/utils/utils.dart';
 import 'package:promoter_app/core/view/widgets/image_loader.dart';
-import 'package:promoter_app/features/client/screens/client_screen.dart';
+import 'package:promoter_app/features/auth/presentation/bloc/auth_bloc.dart';
+import 'package:promoter_app/features/client/screens/enhanced_client_screen_new.dart';
 import 'package:promoter_app/features/inventory/screens/inventory_screen.dart';
 import 'package:promoter_app/features/inventory/screens/product_inquiry_screen.dart';
 import 'package:promoter_app/features/inventory/screens/sales_invoice_screen.dart';
-import 'package:promoter_app/features/inventory/screens/sales_report_screen.dart';
 import 'package:promoter_app/features/inventory/screens/warehouse_transfer_screen.dart';
 import 'package:promoter_app/features/salary/screens/salary_screen.dart';
-import 'package:promoter_app/features/tools/scanner/scanner_screen.dart';
 import 'package:syncfusion_flutter_gauges/gauges.dart';
 
 import '../menu/menu_screen.dart';
-import '../scanning/scanning_inquiry_screen.dart';
 
 class ZoomDrawerScreen extends StatelessWidget {
   static final ZoomDrawerController _drawerController = ZoomDrawerController();
@@ -84,9 +82,17 @@ class DashboardScreen extends StatelessWidget {
       appBar: AppBar(
         backgroundColor: Colors.white,
         elevation: 0,
-        title: const Text(
-          'مرحبًا كريم',
-          style: TextStyle(color: Colors.black, fontSize: 18),
+        title: BlocBuilder<AuthBloc, AuthState>(
+          builder: (context, state) {
+            String userName = 'مرحبًا';
+            if (state is AuthAuthenticated) {
+              userName = 'مرحبًا ${state.user.name}';
+            }
+            return Text(
+              userName,
+              style: const TextStyle(color: Colors.black, fontSize: 18),
+            );
+          },
         )
             // Animating the title with extended duration.
             .animate()
@@ -254,7 +260,7 @@ class FeatureGrid extends StatelessWidget {
         'action': () {
           Navigator.push(
             context,
-            MaterialPageRoute(builder: (_) => const ClientScreen()),
+            MaterialPageRoute(builder: (_) => const EnhancedClientScreen()),
           );
         },
       },
@@ -509,7 +515,6 @@ class _FeatureCardState extends State<FeatureCard>
             ),
           ),
         ),
-      ),
-    );
+      ));
   }
 }
