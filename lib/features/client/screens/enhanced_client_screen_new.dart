@@ -2,26 +2,37 @@ import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:geolocator/geolocator.dart';
-import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'package:promoter_app/features/client/cubit/client_cubit_service.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import '../../../core/di/injection_container.dart';
 import '../models/client_model.dart';
-import '../cubit/client_cubit.dart';
+import '../cubit/client_state.dart';
 import '../widgets/clients_map_view.dart';
 import '../widgets/enhanced_client_card.dart';
+import '../screens/add_client_dialog_new.dart' as add_client_dialog;
 
-class EnhancedClientScreen extends StatefulWidget {
+class EnhancedClientScreen extends StatelessWidget {
   const EnhancedClientScreen({super.key});
 
   @override
-  State<EnhancedClientScreen> createState() => _EnhancedClientScreenState();
+  Widget build(BuildContext context) {
+    return BlocProvider(
+        create: (context) => sl<ClientCubit>(),
+        child: const EnhancedClientPage());
+  }
 }
 
-class _EnhancedClientScreenState extends State<EnhancedClientScreen>
+class EnhancedClientPage extends StatefulWidget {
+  const EnhancedClientPage({super.key});
+
+  @override
+  State<EnhancedClientPage> createState() => _EnhancedClientScreenState();
+}
+
+class _EnhancedClientScreenState extends State<EnhancedClientPage>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
-  bool _isMapView = false;
 
   @override
   void initState() {
@@ -36,84 +47,8 @@ class _EnhancedClientScreenState extends State<EnhancedClientScreen>
   }
 
   void _showAddClientDialog() {
-    final nameController = TextEditingController();
-    final phoneController = TextEditingController();
-    final addressController = TextEditingController();
-
-    showDialog(
-      context: context,
-      builder: (context) {
-        return AlertDialog(
-          title: const Text('إضافة عميل جديد'),
-          content: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                TextField(
-                  controller: nameController,
-                  decoration: const InputDecoration(
-                    labelText: 'اسم العميل',
-                    border: OutlineInputBorder(),
-                  ),
-                ),
-                SizedBox(height: 16.h),
-                TextField(
-                  controller: phoneController,
-                  decoration: const InputDecoration(
-                    labelText: 'رقم الهاتف',
-                    border: OutlineInputBorder(),
-                  ),
-                  keyboardType: TextInputType.phone,
-                ),
-                SizedBox(height: 16.h),
-                TextField(
-                  controller: addressController,
-                  decoration: const InputDecoration(
-                    labelText: 'العنوان',
-                    border: OutlineInputBorder(),
-                  ),
-                ),
-              ],
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('إلغاء'),
-            ),
-            ElevatedButton(
-              onPressed: () {
-                if (nameController.text.isNotEmpty &&
-                    phoneController.text.isNotEmpty) {
-                  // Add new client logic - in a real app, we'd also get coordinates from the address
-                  // For mock purposes, we'll use Cairo coordinates
-                  final newClient = Client(
-                    id: context.read<ClientCubit>().state is ClientLoaded
-                        ? (context.read<ClientCubit>().state as ClientLoaded)
-                                .clients
-                                .length +
-                            1
-                        : 1,
-                    name: nameController.text,
-                    phone: phoneController.text,
-                    address: addressController.text,
-                    balance: 0.0,
-                    lastPurchase: DateTime.now().toString().split(' ')[0],
-                    latitude: 30.0444,
-                    longitude: 31.2357,
-                    visitStatus: VisitStatus.notVisited,
-                  );
-
-                  context.read<ClientCubit>().addClient(newClient);
-                  Navigator.pop(context);
-                }
-              },
-              child: const Text('إضافة'),
-            ),
-          ],
-        );
-      },
-    );
+    // Use the separate dialog implementation with Arabic dropdowns
+    add_client_dialog.showAddClientDialog(context, context.read<ClientCubit>());
   }
 
   void _makePhoneCall(String phoneNumber) async {
@@ -146,7 +81,8 @@ class _EnhancedClientScreenState extends State<EnhancedClientScreen>
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('العملاء', style: TextStyle(fontWeight: FontWeight.bold)),
+        title: const Text('العملاء',
+            style: TextStyle(fontWeight: FontWeight.bold)),
         centerTitle: true,
         actions: [
           IconButton(
@@ -156,11 +92,6 @@ class _EnhancedClientScreenState extends State<EnhancedClientScreen>
         ],
         bottom: TabBar(
           controller: _tabController,
-          onTap: (index) {
-            setState(() {
-              _isMapView = index == 1;
-            });
-          },
           tabs: const [
             Tab(icon: Icon(Icons.list), text: 'قائمة'),
             Tab(icon: Icon(Icons.map), text: 'خريطة'),
@@ -196,6 +127,34 @@ class _EnhancedClientScreenState extends State<EnhancedClientScreen>
     );
   }
 
+  List<Client> _getFilteredClients(ClientLoaded state) {
+    // Start with base list - use sortedClients if available, otherwise use clients
+    List<Client> result =
+        state.sortedClients.isEmpty ? state.clients : state.sortedClients;
+
+    // Apply search filter if query exists
+    if (state.searchQuery.isNotEmpty) {
+      final query = state.searchQuery.toLowerCase();
+      result = result.where((client) {
+        final name = client.name.toLowerCase();
+        final phone = client.phone.toLowerCase();
+        final address = client.address.toLowerCase();
+        return name.contains(query) ||
+            phone.contains(query) ||
+            address.contains(query);
+      }).toList();
+    }
+
+    // Apply status filter if not null (i.e., not "All")
+    if (state.filterStatus != null) {
+      result = result
+          .where((client) => client.visitStatus == state.filterStatus)
+          .toList();
+    }
+
+    return result;
+  }
+
   Widget _buildMapView(BuildContext context, ClientLoaded state) {
     final filteredClients = _getFilteredClients(state);
     if (state.promoterPosition == null) {
@@ -206,8 +165,6 @@ class _EnhancedClientScreenState extends State<EnhancedClientScreen>
       promoterPosition: state.promoterPosition!,
       clients: filteredClients,
       onClientSelected: (client) {
-        //   final client = filteredClients.firstWhere((c) => c.id
-        //  == client!.id);
         _showClientDetails(context, client);
       },
     );
@@ -233,16 +190,6 @@ class _EnhancedClientScreenState extends State<EnhancedClientScreen>
         return EnhancedClientCard(
           client: client,
           onTap: () => _showClientDetails(context, client),
-          // onCall: () => _makePhoneCall(client.phone),
-          // onMap: () => _openMap(client.latitude, client.longitude),
-          // distance: state.promoterPosition != null
-          //     ? Geolocator.distanceBetween(
-          //         state.promoterPosition!.latitude,
-          //         state.promoterPosition!.longitude,
-          //         client.latitude,
-          //         client.longitude,
-          //       )
-          //     : null,
         ).animate().fadeIn(duration: 300.ms, delay: (50 * index).ms);
       },
     );
@@ -267,7 +214,7 @@ class _EnhancedClientScreenState extends State<EnhancedClientScreen>
                 },
                 decoration: InputDecoration(
                   hintText: 'ابحث عن عميل...',
-                  prefixIcon: Icon(Icons.search),
+                  prefixIcon: const Icon(Icons.search),
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(16.r),
                   ),
@@ -349,7 +296,13 @@ class _EnhancedClientScreenState extends State<EnhancedClientScreen>
       label: Text(label),
       selectedColor: Theme.of(context).primaryColor.withOpacity(0.2),
       onSelected: (_) {
-        context.read<ClientCubit>().setFilterStatus(status);
+        final cubit = context.read<ClientCubit>();
+        if (status == null) {
+          // Reset to "All" by explicitly setting null
+          cubit.setFilterStatus(null);
+        } else {
+          cubit.setFilterStatus(status);
+        }
       },
     );
   }
@@ -542,30 +495,5 @@ class _EnhancedClientScreenState extends State<EnhancedClientScreen>
         ),
       ],
     );
-  }
-
-  List<Client> _getFilteredClients(ClientLoaded state) {
-    List<Client> result =
-        state.sortedClients.isEmpty ? state.clients : state.sortedClients;
-
-    if (state.searchQuery.isNotEmpty) {
-      result = result.where((client) {
-        final name = client.name.toLowerCase();
-        final phone = client.phone.toLowerCase();
-        final address = client.address.toLowerCase();
-        final query = state.searchQuery.toLowerCase();
-        return name.contains(query) ||
-            phone.contains(query) ||
-            address.contains(query);
-      }).toList();
-    }
-
-    if (state.filterStatus != null) {
-      result = result
-          .where((client) => client.visitStatus == state.filterStatus)
-          .toList();
-    }
-
-    return result;
   }
 }

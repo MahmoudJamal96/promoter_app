@@ -13,6 +13,17 @@ abstract class ClientRemoteDataSource {
   ///
   /// Throws a [ServerException], or [ApiException] for all error codes.
   Future<void> updateClientStatus(int clientId, VisitStatus status);
+
+  /// Creates a new client
+  ///
+  /// Throws a [ServerException], or [ApiException] for all error codes.
+  Future<ClientModel> createClient(
+      {required String name,
+      required String phone,
+      required String address,
+      required String email,
+      required double latitude,
+      required double longitude});
 }
 
 class ClientRemoteDataSourceImpl implements ClientRemoteDataSource {
@@ -52,6 +63,41 @@ class ClientRemoteDataSourceImpl implements ClientRemoteDataSource {
           visitStatus: VisitStatus.completed,
         ),
       ];
+    }
+  }
+
+  @override
+  Future<ClientModel> createClient(
+      {required String name,
+      required String phone,
+      required String address,
+      required String email,
+      required double latitude,
+      required double longitude}) async {
+    try {
+      final data = {
+        'name': name,
+        'phone': phone,
+        'address': address,
+        'email': email,
+        'latitude': latitude,
+        'longitude': longitude,
+      };
+
+      final response = await client.post('/clients', data: data);
+      return ClientModel.fromJson(response);
+    } catch (e) {
+      // For now, return mock data
+      // In production, this would throw an appropriate exception
+      return ClientModel(
+        id: DateTime.now().millisecondsSinceEpoch,
+        name: name,
+        address: address,
+        phone: phone,
+        email: email,
+        latitude: latitude,
+        longitude: longitude,
+      );
     }
   }
 

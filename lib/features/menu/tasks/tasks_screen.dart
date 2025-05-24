@@ -1,6 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:get_it/get_it.dart';
+
+import 'models/task_model.dart';
+import 'cubit/task_cubit.dart';
+import 'cubit/task_state.dart';
+import 'widgets/task_form_dialog.dart';
+import 'widgets/task_item.dart';
 
 class TasksScreen extends StatefulWidget {
   const TasksScreen({Key? key}) : super(key: key);
@@ -10,127 +18,138 @@ class TasksScreen extends StatefulWidget {
 }
 
 class _TasksScreenState extends State<TasksScreen> {
-  List<Task> tasks = [
-    Task(
-      id: '1',
-      title: 'زيارة عميل الشركة الكبرى',
-      description: 'متابعة طلب عميل الشركة الكبرى وتقديم عرض جديد',
-      deadline: DateTime.now().add(Duration(days: 2)),
-      priority: TaskPriority.high,
-      status: TaskStatus.inProgress,
-    ),
-    Task(
-      id: '2',
-      title: 'إعداد تقرير المبيعات الشهري',
-      description: 'تجهيز وتقديم تقرير المبيعات الشهري للمدير',
-      deadline: DateTime.now().add(Duration(days: 5)),
-      priority: TaskPriority.medium,
-      status: TaskStatus.notStarted,
-    ),
-    Task(
-      id: '3',
-      title: 'متابعة طلب السوبر ماركت',
-      description: 'متابعة الطلب والتأكد من وصول البضاعة',
-      deadline: DateTime.now().add(Duration(days: 1)),
-      priority: TaskPriority.high,
-      status: TaskStatus.inProgress,
-    ),
-    Task(
-      id: '4',
-      title: 'تحديث قائمة العملاء',
-      description: 'تحديث معلومات العملاء وإضافة العملاء الجدد',
-      deadline: DateTime.now().add(Duration(days: 7)),
-      priority: TaskPriority.low,
-      status: TaskStatus.notStarted,
-    ),
-    Task(
-      id: '5',
-      title: 'تقديم تقرير الزيارات الأسبوعي',
-      description: 'إعداد وتقديم تقرير الزيارات الأسبوعي للمشرف',
-      deadline: DateTime.now(),
-      priority: TaskPriority.medium,
-      status: TaskStatus.completed,
-    ),
-  ];
+  late TaskCubit _taskCubit;
 
-  TaskStatus _selectedFilterStatus = TaskStatus.all;
+  @override
+  void initState() {
+    super.initState();
+    _initializeTaskCubit();
+  }
 
-  List<Task> get filteredTasks {
-    if (_selectedFilterStatus == TaskStatus.all) {
-      return tasks;
-    }
-    return tasks.where((task) => task.status == _selectedFilterStatus).toList();
+  @override
+  void dispose() {
+    _taskCubit.close();
+    super.dispose();
+  }
+
+  void _initializeTaskCubit() {
+    // Get the TaskCubit from GetIt service locator
+    _taskCubit = GetIt.instance<TaskCubit>();
+
+    // Initial load of tasks
+    _taskCubit.fetchTasks();
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: Text('مهامي', style: TextStyle(fontWeight: FontWeight.bold)),
-        centerTitle: true,
-        actions: [
-          IconButton(
-            icon: Icon(Icons.filter_list),
-            onPressed: _showFilterDialog,
-          ),
-        ],
-      ),
-      body: SafeArea(
-        child: Padding(
-          padding: EdgeInsets.all(16.w),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              _buildStatusFilter(),
-              SizedBox(height: 16.h),
-              _buildTaskCountWidget(),
-              SizedBox(height: 16.h),
-              Expanded(
-                child: filteredTasks.isEmpty
-                    ? _buildEmptyState()
-                    : ListView.builder(
-                        itemCount: filteredTasks.length,
-                        itemBuilder: (context, index) {
-                          return _buildTaskItem(filteredTasks[index])
-                              .animate()
-                              .fadeIn(
-                                duration: 300.ms,
-                                delay: (50 * index).ms,
-                              );
-                        },
+    return BlocProvider.value(
+      value: _taskCubit,
+      child: Scaffold(
+        appBar: AppBar(
+          title: Text('مهامي', style: TextStyle(fontWeight: FontWeight.bold)),
+          centerTitle: true,
+          actions: [
+            IconButton(
+              icon: Icon(Icons.refresh),
+              onPressed: () => _taskCubit.fetchTasks(),
+            ),
+            IconButton(
+              icon: Icon(Icons.filter_list),
+              onPressed: _showFilterDialog,
+            ),
+          ],
+        ),
+        body: SafeArea(
+          child: Padding(
+            padding: EdgeInsets.all(16.w),
+            child: BlocBuilder<TaskCubit, TaskState>(
+              builder: (context, state) {
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _buildStatusFilter(state),
+                    SizedBox(height: 16.h),
+                    _buildTaskCountWidget(state),
+                    SizedBox(height: 16.h),
+                    Expanded(
+                      child: state.status == TaskStateStatus.loading
+                          ? Center(child: CircularProgressIndicator())
+                          : state.filteredTasks.isEmpty
+                              ? _buildEmptyState()
+                              : ListView.builder(
+                                  itemCount: state.filteredTasks.length,
+                                  itemBuilder: (context, index) {
+                                    final task = state.filteredTasks[index];
+                                    return TaskItem(
+                                      task: task,
+                                      onEdit: _editTask,
+                                      onDelete: _deleteTask,
+                                    ).animate().fadeIn(
+                                          duration: 300.ms,
+                                          delay: (50 * index).ms,
+                                        );
+                                  },
+                                ),
+                    ),
+                    if (state.errorMessage.isNotEmpty)
+                      Container(
+                        padding: EdgeInsets.all(8.w),
+                        margin: EdgeInsets.only(bottom: 16.h),
+                        decoration: BoxDecoration(
+                          color: Colors.red.withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(8.r),
+                        ),
+                        child: Row(
+                          children: [
+                            Icon(Icons.error_outline, color: Colors.red),
+                            SizedBox(width: 8.w),
+                            Expanded(
+                              child: Text(
+                                state.errorMessage,
+                                style: TextStyle(color: Colors.red),
+                              ),
+                            ),
+                            IconButton(
+                              icon: Icon(Icons.close, size: 16.sp),
+                              onPressed: () => _taskCubit.clearError(),
+                            ),
+                          ],
+                        ),
                       ),
-              ),
-            ],
+                  ],
+                );
+              },
+            ),
           ),
         ),
-      ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: _showAddTaskDialog,
-        backgroundColor: Theme.of(context).primaryColor,
-        child: Icon(Icons.add, color: Colors.white),
+        floatingActionButton: FloatingActionButton(
+          onPressed: _showAddTaskDialog,
+          backgroundColor: Theme.of(context).primaryColor,
+          child: Icon(Icons.add, color: Colors.white),
+        ),
       ),
     );
   }
 
-  Widget _buildStatusFilter() {
+  Widget _buildStatusFilter(TaskState state) {
     return SingleChildScrollView(
       scrollDirection: Axis.horizontal,
       child: Row(
         children: [
-          _buildFilterChip(TaskStatus.all, 'الكل'),
+          _buildFilterChip(TaskStatus.all, 'الكل', state),
           SizedBox(width: 8.w),
-          _buildFilterChip(TaskStatus.notStarted, 'لم تبدأ'),
+          _buildFilterChip(TaskStatus.notStarted, 'لم تبدأ', state),
           SizedBox(width: 8.w),
-          _buildFilterChip(TaskStatus.inProgress, 'قيد التنفيذ'),
+          _buildFilterChip(TaskStatus.inProgress, 'قيد التنفيذ', state),
           SizedBox(width: 8.w),
-          _buildFilterChip(TaskStatus.completed, 'مكتملة'),
+          _buildFilterChip(TaskStatus.completed, 'مكتملة', state),
         ],
       ),
     );
   }
 
-  Widget _buildFilterChip(TaskStatus status, String label) {
-    final isSelected = _selectedFilterStatus == status;
+  Widget _buildFilterChip(TaskStatus status, String label, TaskState state) {
+    final isSelected = state.filterStatus == status;
     return ChoiceChip(
       label: Text(label),
       selected: isSelected,
@@ -141,21 +160,16 @@ class _TasksScreenState extends State<TasksScreen> {
       ),
       onSelected: (selected) {
         if (selected) {
-          setState(() {
-            _selectedFilterStatus = status;
-          });
+          _taskCubit.setFilterStatus(status);
         }
       },
     );
   }
 
-  Widget _buildTaskCountWidget() {
-    final inProgressCount =
-        tasks.where((task) => task.status == TaskStatus.inProgress).length;
-    final completedCount =
-        tasks.where((task) => task.status == TaskStatus.completed).length;
-    final notStartedCount =
-        tasks.where((task) => task.status == TaskStatus.notStarted).length;
+  Widget _buildTaskCountWidget(TaskState state) {
+    final inProgressCount = state.inProgressCount;
+    final completedCount = state.completedCount;
+    final notStartedCount = state.notStartedCount;
 
     return Container(
       padding: EdgeInsets.all(16.w),
@@ -246,158 +260,7 @@ class _TasksScreenState extends State<TasksScreen> {
       ),
     );
   }
-
-  Widget _buildTaskItem(Task task) {
-    Color priorityColor;
-    switch (task.priority) {
-      case TaskPriority.high:
-        priorityColor = Colors.red;
-        break;
-      case TaskPriority.medium:
-        priorityColor = Colors.orange;
-        break;
-      case TaskPriority.low:
-        priorityColor = Colors.green;
-        break;
-    }
-
-    IconData statusIcon;
-    Color statusColor;
-    switch (task.status) {
-      case TaskStatus.completed:
-        statusIcon = Icons.check_circle;
-        statusColor = Colors.green;
-        break;
-      case TaskStatus.inProgress:
-        statusIcon = Icons.timelapse;
-        statusColor = Colors.blue;
-        break;
-      case TaskStatus.notStarted:
-        statusIcon = Icons.pending;
-        statusColor = Colors.orange;
-        break;
-      default:
-        statusIcon = Icons.circle;
-        statusColor = Colors.grey;
-    }
-
-    final daysLeft = task.deadline.difference(DateTime.now()).inDays;
-
-    return Card(
-      margin: EdgeInsets.only(bottom: 16.h),
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12.r),
-      ),
-      elevation: 2,
-      child: Padding(
-        padding: EdgeInsets.all(16.w),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Container(
-                  width: 12.w,
-                  height: 12.w,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: priorityColor,
-                  ),
-                ),
-                SizedBox(width: 8.w),
-                Text(
-                  task.title,
-                  style: TextStyle(
-                    fontSize: 16.sp,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                Spacer(),
-                Icon(statusIcon, color: statusColor, size: 18),
-              ],
-            ),
-            SizedBox(height: 12.h),
-            Text(
-              task.description,
-              style: TextStyle(
-                color: Colors.grey.shade700,
-                fontSize: 14.sp,
-              ),
-            ),
-            SizedBox(height: 16.h),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Row(
-                  children: [
-                    Icon(Icons.calendar_today, size: 14.sp, color: Colors.grey),
-                    SizedBox(width: 4.w),
-                    Text(
-                      '${task.deadline.day}/${task.deadline.month}/${task.deadline.year}',
-                      style: TextStyle(
-                        fontSize: 12.sp,
-                        color: Colors.grey,
-                      ),
-                    ),
-                  ],
-                ),
-                daysLeft < 0
-                    ? Container(
-                        padding: EdgeInsets.symmetric(
-                            horizontal: 8.w, vertical: 4.h),
-                        decoration: BoxDecoration(
-                          color: Colors.red.withOpacity(0.1),
-                          borderRadius: BorderRadius.circular(4.r),
-                        ),
-                        child: Text(
-                          'متأخرة',
-                          style: TextStyle(
-                            color: Colors.red,
-                            fontSize: 12.sp,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      )
-                    : daysLeft == 0
-                        ? Container(
-                            padding: EdgeInsets.symmetric(
-                                horizontal: 8.w, vertical: 4.h),
-                            decoration: BoxDecoration(
-                              color: Colors.orange.withOpacity(0.1),
-                              borderRadius: BorderRadius.circular(4.r),
-                            ),
-                            child: Text(
-                              'اليوم',
-                              style: TextStyle(
-                                color: Colors.orange,
-                                fontSize: 12.sp,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                          )
-                        : Container(
-                            padding: EdgeInsets.symmetric(
-                                horizontal: 8.w, vertical: 4.h),
-                            decoration: BoxDecoration(
-                              color: Colors.grey.withOpacity(0.1),
-                              borderRadius: BorderRadius.circular(4.r),
-                            ),
-                            child: Text(
-                              'متبقي $daysLeft يوم',
-                              style: TextStyle(
-                                color: Colors.grey.shade700,
-                                fontSize: 12.sp,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                          ),
-              ],
-            ),
-          ],
-        ),
-      ),
-    );
-  }
+  // TaskItem Widget is now separated into its own file
 
   void _showFilterDialog() {
     showModalBottomSheet(
@@ -445,38 +308,24 @@ class _TasksScreenState extends State<TasksScreen> {
   void _showAddTaskDialog() {
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: Text('إضافة مهمة جديدة'),
-        content: Text('سيتم إضافة ميزة إنشاء المهام قريباً'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: Text('حسناً'),
-          ),
-        ],
+      builder: (context) => BlocProvider.value(
+        value: _taskCubit,
+        child: TaskFormDialog(),
       ),
     );
   }
-}
 
-enum TaskPriority { high, medium, low }
+  void _editTask(Task task) {
+    showDialog(
+      context: context,
+      builder: (context) => BlocProvider.value(
+        value: _taskCubit,
+        child: TaskFormDialog(task: task),
+      ),
+    );
+  }
 
-enum TaskStatus { notStarted, inProgress, completed, all }
-
-class Task {
-  final String id;
-  final String title;
-  final String description;
-  final DateTime deadline;
-  final TaskPriority priority;
-  final TaskStatus status;
-
-  Task({
-    required this.id,
-    required this.title,
-    required this.description,
-    required this.deadline,
-    required this.priority,
-    required this.status,
-  });
+  void _deleteTask(String taskId) {
+    _taskCubit.deleteTask(taskId);
+  }
 }

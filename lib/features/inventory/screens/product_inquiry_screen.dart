@@ -1,10 +1,19 @@
+import 'dart:math';
 import 'package:flutter/material.dart';
-import 'package:flutter_animate/flutter_animate.dart';
-import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:fl_chart/fl_chart.dart';
 import '../models/product_model.dart';
 import '../services/inventory_service.dart';
-import 'package:fl_chart/fl_chart.dart';
-import 'dart:math';
+import 'package:flutter_animate/flutter_animate.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:promoter_app/features/products/services/products_service.dart';
+import 'package:promoter_app/core/di/injection_container.dart';
+import 'package:mobile_scanner/mobile_scanner.dart';
+import 'package:promoter_app/features/products/models/product_model.dart'
+    as ApiProduct;
+import 'package:promoter_app/core/di/injection_container.dart';
+import 'package:promoter_app/features/tools/scanner/scanner_screen.dart';
+import 'package:promoter_app/features/products/models/product_model.dart'
+    as ApiProduct;
 
 class ProductInquiryScreen extends StatefulWidget {
   const ProductInquiryScreen({super.key});
@@ -19,6 +28,9 @@ class _ProductInquiryScreenState extends State<ProductInquiryScreen> {
   bool _isScanning = false;
   Product? _selectedProduct;
   String _selectedTimeRange = 'شهر'; // Default time range
+  final ProductsService _productsService = sl<ProductsService>();
+  List<ApiProduct.Product> _relatedProducts = [];
+  bool _isLoadingRelatedProducts = false;
 
   // Mock data for charts
   List<double> _salesData = [];
@@ -59,6 +71,35 @@ class _ProductInquiryScreenState extends State<ProductInquiryScreen> {
     });
   }
 
+  // Load related products for a given product ID
+  Future<void> _loadRelatedProducts(int productId) async {
+    if (mounted) {
+      setState(() {
+        _isLoadingRelatedProducts = true;
+      });
+    }
+
+    try {
+      final productsService = sl<ProductsService>();
+      final relatedProductsList =
+          await productsService.getRelatedProducts(productId);
+
+      if (mounted) {
+        setState(() {
+          _relatedProducts = relatedProductsList;
+          _isLoadingRelatedProducts = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _isLoadingRelatedProducts = false;
+        });
+      }
+      _showErrorSnackBar('تعذر تحميل المنتجات المرتبطة');
+    }
+  }
+
   // Search products by name, id, or barcode
   Future<void> _searchProduct(String query) async {
     if (query.isEmpty) {
@@ -73,18 +114,39 @@ class _ProductInquiryScreenState extends State<ProductInquiryScreen> {
     });
 
     try {
-      final results = await InventoryService.searchProducts(query);
+      // Use the ProductsService to search for real products
+      final productsService = sl<ProductsService>();
+      final apiResults = await productsService.scanProduct(name: query);
 
-      setState(() {
-        _isSearching = false;
-        if (results.isNotEmpty) {
-          _selectedProduct = results.first;
-          _generateMockChartData(); // Generate new data for selected product
-        } else {
+      if (apiResults.isNotEmpty) {
+        // Convert API product to inventory product
+        final product = apiResults.first;
+        final inventoryProduct = Product(
+          id: product.id.toString(),
+          name: product.name,
+          category: product.categoryName,
+          price: product.price,
+          quantity: product.quantity,
+          imageUrl: product.imageUrl ?? 'assets/images/yasin_app_logo.JPG',
+          barcode: product.barcode,
+          location: 'الرف ${product.categoryId}',
+          supplier: product.companyName ?? 'المورد الرئيسي',
+          lastUpdated: DateTime.parse(product.updatedAt),
+        );
+
+        setState(() {
+          _isSearching = false;
+          _selectedProduct = inventoryProduct;
+          _generateMockChartData();
+          _loadRelatedProducts(product.id);
+        });
+      } else {
+        setState(() {
+          _isSearching = false;
           _selectedProduct = null;
           _showInfoSnackBar('لم يتم العثور على نتائج');
-        }
-      });
+        });
+      }
     } catch (e) {
       setState(() {
         _isSearching = false;
@@ -93,54 +155,119 @@ class _ProductInquiryScreenState extends State<ProductInquiryScreen> {
     }
   }
 
-  // Mock barcode scanning
+  // Real barcode scanning with MobileScanner
   Future<void> _scanBarcode() async {
     setState(() {
       _isScanning = true;
     });
 
-    // Show scanning animation dialog
-    showDialog(
+    // Show scanning dialog with live camera feed
+    final result = await showDialog<String>(
       context: context,
       builder: (BuildContext context) {
-        return AlertDialog(
-          title: const Text('جاري المسح...'),
-          content: SizedBox(
-            height: 100.h,
-            child: Center(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  const CircularProgressIndicator(),
-                  SizedBox(height: 16.h),
-                  const Text('قم بتوجيه الكاميرا نحو الباركود'),
-                ],
+        return Dialog(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Padding(
+                padding: EdgeInsets.all(16.w),
+                child: Text(
+                  'مسح الباركود',
+                  style: TextStyle(
+                    fontSize: 18.sp,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
               ),
-            ),
+              SizedBox(
+                height: 300.h,
+                width: double.infinity,
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(8.r),
+                  child: MobileScanner(
+                    controller: MobileScannerController(
+                      detectionSpeed: DetectionSpeed.normal,
+                      facing: CameraFacing.back,
+                    ),
+                    onDetect: (capture) {
+                      final List<Barcode> barcodes = capture.barcodes;
+                      if (barcodes.isNotEmpty &&
+                          barcodes.first.rawValue != null) {
+                        Navigator.pop(context, barcodes.first.rawValue);
+                      }
+                    },
+                  ),
+                ),
+              ),
+              SizedBox(height: 16.h),
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: Text('إلغاء'),
+              ),
+              SizedBox(height: 8.h),
+            ],
           ),
         );
       },
     );
 
-    // Simulate delay
-    await Future.delayed(const Duration(seconds: 1));
-
-    // Dismiss dialog
-    Navigator.pop(context);
-
-    // Get random product as mock scan result
-    final randomIndex =
-        DateTime.now().millisecond % InventoryService.products.length;
-    final scannedProduct = InventoryService.products[randomIndex];
-
     setState(() {
-      _selectedProduct = scannedProduct;
       _isScanning = false;
-      _searchController.text = scannedProduct.name;
-      _generateMockChartData(); // Generate new data for scanned product
     });
 
-    _showSuccessSnackBar('تم العثور على المنتج بنجاح');
+    if (result != null) {
+      _searchController.text = result;
+      await _processScannedBarcode(result);
+    }
+  }
+
+  // Process scanned barcode
+  Future<void> _processScannedBarcode(String barcode) async {
+    setState(() {
+      _isSearching = true;
+    });
+
+    try {
+      final productsService = sl<ProductsService>();
+      final List<ApiProduct.Product> apiResults =
+          await productsService.scanProduct(barcode: barcode);
+
+      if (apiResults.isNotEmpty) {
+        final product = apiResults.first;
+        final inventoryProduct = Product(
+          id: product.id.toString(),
+          name: product.name,
+          category: product.categoryName,
+          price: product.price,
+          quantity: product.quantity,
+          imageUrl: product.imageUrl ?? 'assets/images/yasin_app_logo.JPG',
+          barcode: product.barcode,
+          location: 'الرف ${product.categoryId}',
+          supplier: product.companyName ?? 'المورد الرئيسي',
+          lastUpdated: DateTime.parse(product.updatedAt),
+        );
+
+        setState(() {
+          _isSearching = false;
+          _selectedProduct = inventoryProduct;
+          _generateMockChartData();
+          _loadRelatedProducts(product.id);
+        });
+
+        _showSuccessSnackBar('تم العثور على المنتج بنجاح');
+      } else {
+        setState(() {
+          _isSearching = false;
+          _selectedProduct = null;
+        });
+        _showInfoSnackBar('لم يتم العثور على منتج بهذا الباركود');
+      }
+    } catch (e) {
+      setState(() {
+        _isSearching = false;
+      });
+      _showErrorSnackBar('حدث خطأ أثناء معالجة الباركود');
+    }
   }
 
   // Show error snackbar
@@ -1150,13 +1277,16 @@ class _ProductInquiryScreenState extends State<ProductInquiryScreen> {
   Widget _buildRelatedProducts(BuildContext context) {
     final theme = Theme.of(context);
 
-    // Mock related products (just random products)
-    final random = Random();
-    final randomProducts = List.generate(
-      4,
-      (index) => InventoryService
-          .products[random.nextInt(InventoryService.products.length)],
-    );
+    // Use either API related products or fallback to mock data if API call failed
+    final List<dynamic> productsToShow = _relatedProducts.isNotEmpty
+        ? _relatedProducts
+        : List.generate(
+            4,
+            (index) => InventoryService
+                .products[Random().nextInt(InventoryService.products.length)],
+          );
+
+    final bool usingApiData = _relatedProducts.isNotEmpty;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -1184,90 +1314,108 @@ class _ProductInquiryScreenState extends State<ProductInquiryScreen> {
           ],
         ),
         SizedBox(height: 8.h),
-        SizedBox(
-          height: 170.h,
-          child: ListView.builder(
-            scrollDirection: Axis.horizontal,
-            itemCount: randomProducts.length,
-            itemBuilder: (context, index) {
-              final product = randomProducts[index];
+        _isLoadingRelatedProducts
+            ? Center(child: CircularProgressIndicator())
+            : SizedBox(
+                height: 170.h,
+                child: ListView.builder(
+                  scrollDirection: Axis.horizontal,
+                  itemCount: productsToShow.length,
+                  itemBuilder: (context, index) {
+                    // Handle both API product and inventory product types
+                    final dynamic productItem = productsToShow[index];
+                    final dynamic product = productsToShow[index];
 
-              return Container(
-                width: 140.w,
-                margin: EdgeInsets.only(right: 12.w),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(12.r),
-                  border: Border.all(color: Colors.grey.shade200),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // Product image
-                    Container(
-                      height: 80.h,
+                    // Extract product display info based on type
+                    final String name = usingApiData
+                        ? (productItem as ApiProduct.Product).name
+                        : (productItem as Product).name;
+
+                    final String imageUrl = usingApiData
+                        ? ((productItem as ApiProduct.Product).imageUrl ??
+                            'assets/images/yasin_app_logo.JPG')
+                        : (productItem as Product).imageUrl;
+
+                    final double price = usingApiData
+                        ? (productItem as ApiProduct.Product).price
+                        : (productItem as Product).price;
+
+                    return Container(
+                      width: 140.w,
+                      margin: EdgeInsets.only(right: 12.w),
                       decoration: BoxDecoration(
-                        borderRadius: BorderRadius.vertical(
-                          top: Radius.circular(12.r),
-                        ),
-                        color: Colors.grey.shade200,
-                        image: DecorationImage(
-                          image: AssetImage(product.imageUrl),
-                          fit: BoxFit.cover,
-                        ),
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(12.r),
+                        border: Border.all(color: Colors.grey.shade200),
                       ),
-                    ),
-
-                    // Product info
-                    Padding(
-                      padding: EdgeInsets.all(8.w),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text(
-                            product.name,
-                            style: TextStyle(
-                              fontWeight: FontWeight.w600,
-                              fontSize: 12.sp,
-                            ),
-                            maxLines: 2,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                          SizedBox(height: 4.h),
-                          Text(
-                            '${product.price.toStringAsFixed(2)} ر.س',
-                            style: TextStyle(
-                              fontSize: 12.sp,
-                              color: theme.colorScheme.primary,
-                              fontWeight: FontWeight.bold,
+                          // Product image
+                          Container(
+                            height: 80.h,
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.vertical(
+                                top: Radius.circular(12.r),
+                              ),
+                              color: Colors.grey.shade200,
+                              image: DecorationImage(
+                                image: AssetImage(product.imageUrl),
+                                fit: BoxFit.cover,
+                              ),
                             ),
                           ),
-                          SizedBox(height: 2.h),
-                          Text(
-                            'المتاح: ${product.quantity}',
-                            style: TextStyle(
-                              fontSize: 11.sp,
-                              color: Colors.grey.shade600,
+
+                          // Product info
+                          Padding(
+                            padding: EdgeInsets.all(8.w),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  product.name,
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.w600,
+                                    fontSize: 12.sp,
+                                  ),
+                                  maxLines: 2,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                                SizedBox(height: 4.h),
+                                Text(
+                                  '${product.price.toStringAsFixed(2)} ر.س',
+                                  style: TextStyle(
+                                    fontSize: 12.sp,
+                                    color: theme.colorScheme.primary,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                                SizedBox(height: 2.h),
+                                Text(
+                                  'المتاح: ${product.quantity}',
+                                  style: TextStyle(
+                                    fontSize: 11.sp,
+                                    color: Colors.grey.shade600,
+                                  ),
+                                ),
+                              ],
                             ),
                           ),
                         ],
                       ),
-                    ),
-                  ],
+                    ).animate().fade(
+                          duration: 300.ms,
+                          delay: Duration(milliseconds: 300 + (index * 100)),
+                        );
+                    // .slideX(
+                    //   begin: 0.3,
+                    //   end: 0,
+                    //   duration: 300.ms,
+                    //   delay: Duration(milliseconds: 300 + (index * 100)),
+                    // );
+                  },
                 ),
-              ).animate().fade(
-                    duration: 300.ms,
-                    delay: Duration(milliseconds: 300 + (index * 100)),
-                  );
-              // .slideX(
-              //   begin: 0.3,
-              //   end: 0,
-              //   duration: 300.ms,
-              //   delay: Duration(milliseconds: 300 + (index * 100)),
-              // );
-            },
-          ),
-        ),
+              ),
       ],
     );
   }

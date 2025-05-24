@@ -7,11 +7,12 @@ import 'package:lottie/lottie.dart';
 import 'package:promoter_app/features/auth/presentation/bloc/auth_bloc.dart';
 import 'package:promoter_app/features/auth/screens/login_screen.dart';
 import 'package:promoter_app/features/auth/services/auth_service.dart';
+import 'package:promoter_app/features/inventory/screens/inventory_screen.dart';
 
 import 'profile/profile_screen.dart';
 import 'reports/reports_screen.dart';
 import 'messages/messages_screen.dart';
-import 'leave_request/leave_request_screen.dart';
+import 'leave_request/leave_request_screen_new.dart';
 import 'tasks/tasks_screen.dart';
 import 'meetings/meetings_screen.dart';
 import 'delivery/delivery_screen.dart';
@@ -72,7 +73,8 @@ class _MenuScreenState extends State<MenuScreen> {
                     MenuItem(
                       icon: Icons.inventory,
                       title: 'جرد المخزون',
-                      onTap: () => _navigateTo(context, MeetingsScreen(), 5),
+                      onTap: () =>
+                          _navigateTo(context, const InventoryScreen(), 5),
                       isSelected: _selectedIndex == 5,
                     ),
                     MenuItem(

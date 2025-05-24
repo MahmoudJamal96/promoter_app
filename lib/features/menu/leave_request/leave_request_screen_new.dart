@@ -6,6 +6,11 @@ import 'package:pdf/widgets.dart' as pw;
 import 'package:printing/printing.dart';
 import 'package:intl/intl.dart';
 import 'dart:typed_data';
+import 'package:provider/provider.dart';
+import '../../../core/di/injection_container.dart';
+import 'providers/leave_request_provider.dart';
+import 'models/leave_request_model.dart';
+import 'controllers/leave_request_controller.dart';
 
 class LeaveRequestScreen extends StatefulWidget {
   const LeaveRequestScreen({Key? key}) : super(key: key);
@@ -20,6 +25,8 @@ class _LeaveRequestScreenState extends State<LeaveRequestScreen> {
   DateTime? _endDate;
   String _leaveType = 'إجازة سنوية';
   final TextEditingController _reasonController = TextEditingController();
+  late final LeaveRequestProvider _leaveRequestProvider;
+  bool _isSubmitting = false;
 
   final List<String> _leaveTypes = [
     'إجازة سنوية',
@@ -30,6 +37,15 @@ class _LeaveRequestScreenState extends State<LeaveRequestScreen> {
   ];
 
   @override
+  void initState() {
+    super.initState();
+    // Initialize the provider
+    _leaveRequestProvider = LeaveRequestProvider(
+      leaveRequestController: sl<LeaveRequestController>(),
+    );
+  }
+
+  @override
   void dispose() {
     _reasonController.dispose();
     super.dispose();
@@ -37,48 +53,87 @@ class _LeaveRequestScreenState extends State<LeaveRequestScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: Text('طلب إجازة', style: TextStyle(fontWeight: FontWeight.bold)),
-        centerTitle: true,
-      ),
-      body: SafeArea(
-        child: SingleChildScrollView(
-          padding: EdgeInsets.all(16.w),
-          child: Form(
-            key: _formKey,
-            child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  SizedBox(height: 16.h),
-                  _buildSectionTitle('معلومات الإجازة'),
-                  SizedBox(height: 16.h),
-                  _buildLeaveTypeDropdown(),
-                  SizedBox(height: 16.h),
-                  Row(
+    return ChangeNotifierProvider.value(
+      value: _leaveRequestProvider,
+      child: Scaffold(
+        appBar: AppBar(
+          title:
+              Text('طلب إجازة', style: TextStyle(fontWeight: FontWeight.bold)),
+          centerTitle: true,
+        ),
+        body: SafeArea(
+          child: Consumer<LeaveRequestProvider>(
+            builder: (context, provider, _) {
+              if (provider.status == LoadingStatus.loading &&
+                  provider.leaveRequests.isEmpty) {
+                return Center(child: CircularProgressIndicator());
+              }
+
+              if (provider.status == LoadingStatus.error &&
+                  provider.leaveRequests.isEmpty) {
+                return Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Expanded(
-                          child: _buildDatePicker(
-                              'تاريخ البدء', _startDate, _selectStartDate)),
-                      SizedBox(width: 16.w),
-                      Expanded(
-                          child: _buildDatePicker(
-                              'تاريخ الانتهاء', _endDate, _selectEndDate)),
+                      Text('حدث خطأ أثناء تحميل البيانات'),
+                      SizedBox(height: 16.h),
+                      ElevatedButton(
+                        onPressed: () => provider.fetchLeaveRequests(),
+                        child: Text('إعادة المحاولة'),
+                      ),
                     ],
                   ),
-                  SizedBox(height: 24.h),
-                  _buildSectionTitle('سبب الإجازة'),
-                  SizedBox(height: 16.h),
-                  _buildReasonField(),
-                  SizedBox(height: 32.h),
-                  _buildSubmitButton(),
-                  SizedBox(height: 16.h),
-                  _buildLeaveHistory(),
-                ].animate(interval: 50.ms).fadeIn(duration: 300.ms).slide(
-                    begin: Offset(0, 0.5),
-                    end: Offset(0, 0),
-                    duration: 300.ms,
-                    curve: Curves.easeOut)),
+                );
+              }
+
+              return SingleChildScrollView(
+                padding: EdgeInsets.all(16.w),
+                child: Form(
+                  key: _formKey,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      SizedBox(height: 16.h),
+                      _buildSectionTitle('معلومات الإجازة'),
+                      SizedBox(height: 16.h),
+                      _buildLeaveTypeDropdown(),
+                      SizedBox(height: 16.h),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: _buildDatePicker(
+                              'تاريخ البدء',
+                              _startDate,
+                              _selectStartDate,
+                            ),
+                          ),
+                          SizedBox(width: 16.w),
+                          Expanded(
+                            child: _buildDatePicker(
+                              'تاريخ الانتهاء',
+                              _endDate,
+                              _selectEndDate,
+                            ),
+                          ),
+                        ],
+                      ),
+                      SizedBox(height: 24.h),
+                      _buildSectionTitle('سبب الإجازة'),
+                      SizedBox(height: 16.h),
+                      _buildReasonField(),
+                      SizedBox(height: 32.h),
+                      _buildSubmitButton(provider),
+                      SizedBox(height: 16.h),
+                      _buildLeaveHistory(provider),
+                    ].animate(interval: 50.ms).fadeIn(duration: 300.ms).slide(
+                        begin: Offset(0, 0.5),
+                        end: Offset(0, 0),
+                        duration: 300.ms,
+                        curve: Curves.easeOut),
+                  ),
+                ),
+              );
+            },
           ),
         ),
       ),
@@ -181,7 +236,7 @@ class _LeaveRequestScreenState extends State<LeaveRequestScreen> {
     );
   }
 
-  Widget _buildSubmitButton() {
+  Widget _buildSubmitButton(LeaveRequestProvider provider) {
     return Column(
       children: [
         SizedBox(
@@ -194,15 +249,26 @@ class _LeaveRequestScreenState extends State<LeaveRequestScreen> {
               ),
               backgroundColor: Theme.of(context).primaryColor,
             ),
-            onPressed: _submitLeaveRequest,
-            child: Text(
-              'تقديم الطلب',
-              style: TextStyle(
-                fontSize: 16.sp,
-                fontWeight: FontWeight.bold,
-                color: Colors.white,
-              ),
-            ),
+            onPressed: provider.isSubmitting
+                ? null
+                : () => _submitLeaveRequest(provider),
+            child: provider.isSubmitting
+                ? SizedBox(
+                    height: 20.h,
+                    width: 20.h,
+                    child: CircularProgressIndicator(
+                      color: Colors.white,
+                      strokeWidth: 2,
+                    ),
+                  )
+                : Text(
+                    'تقديم الطلب',
+                    style: TextStyle(
+                      fontSize: 16.sp,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
+                    ),
+                  ),
           ),
         ),
         SizedBox(height: 12.h),
@@ -232,7 +298,9 @@ class _LeaveRequestScreenState extends State<LeaveRequestScreen> {
     );
   }
 
-  Widget _buildLeaveHistory() {
+  Widget _buildLeaveHistory(LeaveRequestProvider provider) {
+    final leaveRequests = provider.leaveRequests;
+
     return Card(
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(12.r),
@@ -242,40 +310,62 @@ class _LeaveRequestScreenState extends State<LeaveRequestScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              'سجل الإجازات السابقة',
-              style: TextStyle(
-                fontSize: 16.sp,
-                fontWeight: FontWeight.bold,
-              ),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  'سجل الإجازات السابقة',
+                  style: TextStyle(
+                    fontSize: 16.sp,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                if (provider.status == LoadingStatus.loaded ||
+                    provider.status == LoadingStatus.error)
+                  IconButton(
+                    icon: Icon(Icons.refresh),
+                    onPressed: () => provider.fetchLeaveRequests(),
+                    tooltip: 'تحديث',
+                  ),
+              ],
             ),
             SizedBox(height: 12.h),
-            _buildLeaveHistoryItem(
-              '10/03/2025 - 15/03/2025',
-              'إجازة سنوية',
-              LeaveStatus.approved,
-            ),
-            _buildLeaveHistoryItem(
-              '20/01/2025 - 22/01/2025',
-              'إجازة مرضية',
-              LeaveStatus.approved,
-            ),
-            _buildLeaveHistoryItem(
-              '05/04/2025 - 07/04/2025',
-              'إجازة طارئة',
-              LeaveStatus.pending,
-            ),
+            if (provider.status == LoadingStatus.loading &&
+                leaveRequests.isNotEmpty)
+              Center(
+                child: Padding(
+                  padding: EdgeInsets.symmetric(vertical: 16.h),
+                  child: CircularProgressIndicator(),
+                ),
+              )
+            else if (leaveRequests.isEmpty)
+              Center(
+                child: Padding(
+                  padding: EdgeInsets.symmetric(vertical: 16.h),
+                  child: Text(
+                    'لا توجد إجازات سابقة',
+                    style: TextStyle(
+                      color: Colors.grey,
+                      fontSize: 14.sp,
+                    ),
+                  ),
+                ),
+              )
+            else
+              ...leaveRequests
+                  .map((request) => _buildLeaveHistoryItemFromRequest(request))
+                  .toList(),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildLeaveHistoryItem(String date, String type, LeaveStatus status) {
+  Widget _buildLeaveHistoryItemFromRequest(LeaveRequest request) {
     Color statusColor;
     String statusText;
 
-    switch (status) {
+    switch (request.status) {
       case LeaveStatus.approved:
         statusColor = Colors.green;
         statusText = 'تمت الموافقة';
@@ -299,7 +389,7 @@ class _LeaveRequestScreenState extends State<LeaveRequestScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  type,
+                  request.leaveType,
                   style: TextStyle(
                     fontWeight: FontWeight.bold,
                     fontSize: 14.sp,
@@ -307,7 +397,7 @@ class _LeaveRequestScreenState extends State<LeaveRequestScreen> {
                 ),
                 SizedBox(height: 4.h),
                 Text(
-                  date,
+                  request.dateRangeString,
                   style: TextStyle(
                     color: Colors.grey,
                     fontSize: 12.sp,
@@ -368,7 +458,7 @@ class _LeaveRequestScreenState extends State<LeaveRequestScreen> {
     }
   }
 
-  void _submitLeaveRequest() {
+  void _submitLeaveRequest(LeaveRequestProvider provider) async {
     if (_formKey.currentState!.validate()) {
       if (_startDate == null) {
         _showErrorMessage('الرجاء اختيار تاريخ البدء');
@@ -379,8 +469,36 @@ class _LeaveRequestScreenState extends State<LeaveRequestScreen> {
         return;
       }
 
-      // Process the leave request
-      _showSuccessMessage();
+      // Set submitting state
+      setState(() {
+        _isSubmitting = true;
+      });
+
+      // Submit the leave request
+      final success = await provider.submitLeaveRequest(
+        leaveType: _leaveType,
+        startDate: _startDate!,
+        endDate: _endDate!,
+        reason: _reasonController.text,
+      );
+
+      // Reset submitting state
+      setState(() {
+        _isSubmitting = false;
+      });
+
+      if (success) {
+        _showSuccessMessage('تم تقديم طلب الإجازة بنجاح');
+        // Reset form
+        setState(() {
+          _startDate = null;
+          _endDate = null;
+          _leaveType = 'إجازة سنوية';
+          _reasonController.clear();
+        });
+      } else {
+        _showErrorMessage(provider.errorMessage ?? 'حدث خطأ أثناء تقديم الطلب');
+      }
     }
   }
 
@@ -393,20 +511,13 @@ class _LeaveRequestScreenState extends State<LeaveRequestScreen> {
     );
   }
 
-  void _showSuccessMessage() {
+  void _showSuccessMessage(String message) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text('تم تقديم طلب الإجازة بنجاح'),
+        content: Text(message),
         backgroundColor: Colors.green,
       ),
     );
-    // Reset form
-    setState(() {
-      _startDate = null;
-      _endDate = null;
-      _leaveType = 'إجازة سنوية';
-      _reasonController.clear();
-    });
   }
 
   void _printLeaveRequest() async {
@@ -720,5 +831,3 @@ class _LeaveRequestScreenState extends State<LeaveRequestScreen> {
     return pdf.save();
   }
 }
-
-enum LeaveStatus { approved, rejected, pending }

@@ -2,8 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter/services.dart';
+import '../../client/services/client_service.dart';
 import '../models/product_model.dart';
 import '../services/inventory_service.dart';
+import '../../sales_invoice/services/sales_service.dart' as api;
+import '../../sales_invoice/models/sales_invoice_model.dart' as invoice_model;
 
 class SalesInvoiceScreen extends StatefulWidget {
   const SalesInvoiceScreen({super.key});
@@ -22,11 +25,15 @@ class _SalesInvoiceScreenState extends State<SalesInvoiceScreen> {
   List<Product> _searchResults = [];
   List<SalesItem> _cartItems = [];
   PaymentMethod _selectedPaymentMethod = PaymentMethod.cash;
+  int _selectedClientId = 1; // Default client ID
+  bool _isLoadingClients = false;
+  List<Map<String, dynamic>> _clients = []; // To store available clients
 
   @override
   void initState() {
     super.initState();
     _discountController.text = '0';
+    _loadClients();
   }
 
   @override
@@ -36,6 +43,30 @@ class _SalesInvoiceScreenState extends State<SalesInvoiceScreen> {
     _customerPhoneController.dispose();
     _discountController.dispose();
     super.dispose();
+  }
+
+  // Load available clients
+  Future<void> _loadClients() async {
+    setState(() {
+      _isLoadingClients = true;
+    });
+
+    try {
+      final clients = await ClientService().getClients();
+      setState(() {
+        _clients = clients.map((client) => {
+          'id': client.id,
+          'name': client.name,
+          'phone': client.phone,
+        }).toList();
+        _isLoadingClients = false;
+      });
+    } catch (e) {
+      setState(() {
+        _isLoadingClients = false;
+      });
+      _showErrorSnackBar('حدث خطأ أثناء تحميل العملاء');
+    }
   }
 
   // Search products by name or barcode
@@ -199,24 +230,26 @@ class _SalesInvoiceScreenState extends State<SalesInvoiceScreen> {
         ),
       ),
     );
-
     try {
-      // Create invoice
-      final invoice = await SalesService.createInvoice(
-        _cartItems,
-        _customerNameController.text,
-        _customerPhoneController.text.isEmpty
+      // Create invoice using API service
+      final salesService = api.SalesService();
+      final invoice = await salesService.createInvoice(
+        items: _cartItems,
+        customerName: _customerNameController.text,
+        customerPhone: _customerPhoneController.text.isEmpty
             ? 'غير محدد'
             : _customerPhoneController.text,
-        _selectedPaymentMethod,
-        _discount,
-      );
-
-      // Close loading dialog
+        paymentMethod: _selectedPaymentMethod,
+        discount: _discount,
+      ); // Close loading dialog
       Navigator.pop(context);
 
+      // Convert to the type expected by _showInvoiceCreatedDialog
+      invoice_model.SalesInvoice convertedInvoice =
+          invoice as invoice_model.SalesInvoice;
+
       // Show success and navigate to invoice details
-      _showInvoiceCreatedDialog(invoice);
+      _showInvoiceCreatedDialog(convertedInvoice);
     } catch (e) {
       // Close loading dialog
       Navigator.pop(context);
@@ -226,7 +259,7 @@ class _SalesInvoiceScreenState extends State<SalesInvoiceScreen> {
   }
 
   // Show invoice created dialog
-  void _showInvoiceCreatedDialog(SalesInvoice invoice) {
+  void _showInvoiceCreatedDialog(invoice_model.SalesInvoice invoice) {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -245,7 +278,7 @@ class _SalesInvoiceScreenState extends State<SalesInvoiceScreen> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('رقم الفاتورة: ${invoice.invoiceId}'),
+            Text('رقم الفاتورة: ${invoice.invoiceNumber}'),
             SizedBox(height: 8.h),
             Text('إجمالي الفاتورة: ${invoice.total.toStringAsFixed(2)} ر.س'),
           ],
@@ -282,6 +315,7 @@ class _SalesInvoiceScreenState extends State<SalesInvoiceScreen> {
       _customerPhoneController.clear();
       _discountController.text = '0';
       _selectedPaymentMethod = PaymentMethod.cash;
+      _selectedClientId = 1; // Reset to default client ID
     });
   }
 

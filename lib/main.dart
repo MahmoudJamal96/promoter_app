@@ -6,15 +6,14 @@ import 'package:logger/logger.dart';
 import 'package:promoter_app/core/di/injection_container.dart' as di;
 import 'package:promoter_app/features/auth/presentation/bloc/auth_bloc.dart';
 import 'package:promoter_app/features/auth/screens/login_screen.dart';
-import 'package:promoter_app/features/client/data/repositories/client_repository_impl.dart';
-import 'package:promoter_app/features/client/domain/repositories/client_repository.dart';
-import 'package:promoter_app/features/client/presentation/bloc/client_bloc.dart';
-import 'package:promoter_app/features/client/cubit/client_cubit.dart';
 import 'package:promoter_app/features/dashboard/dashboard_screen.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 
 import 'app_theme.dart';
 import 'core/usecases/usecase.dart';
+import 'features/client/cubit/client_cubit_service.dart';
+import 'features/menu/leave_request/leave_request_setup.dart';
+import 'features/menu/tasks/di/setup_tasks.dart';
 
 final logger = Logger();
 
@@ -25,10 +24,11 @@ void main() async {
   await SystemChrome.setPreferredOrientations([
     DeviceOrientation.portraitUp,
     DeviceOrientation.portraitDown,
-  ]);
-
-  // Initialize dependency injection
+  ]); // Initialize dependency injection
   await di.init();
+
+  // Register feature dependencies
+  setupTasksDependencies();
 
   runApp(const MyApp());
 }
@@ -48,11 +48,9 @@ class MyApp extends StatelessWidget {
           BlocProvider<AuthBloc>(
             create: (_) => di.sl<AuthBloc>()..add(CheckAuthStatusEvent()),
           ),
-          BlocProvider<ClientBloc>(
-            create: (_) => di.sl<ClientBloc>()..add(LoadClientsEvent()),
-          ),
-          BlocProvider<ClientCubit>(
-            create: (_) => ClientCubit(),
+          // Use API connected ClientCubit
+          BlocProvider(
+            create: (_) => di.sl<ClientCubit>(),
           ),
         ],
         child: SafeArea(

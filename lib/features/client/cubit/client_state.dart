@@ -1,4 +1,9 @@
-part of 'client_cubit.dart';
+import 'package:equatable/equatable.dart';
+import 'package:geolocator/geolocator.dart'; // Added for Position
+import '../models/client_model.dart'; // Added for Client and VisitStatus
+
+// Sentinel value to distinguish between null and undefined parameters
+const _undefined = Object();
 
 abstract class ClientState extends Equatable {
   final bool isLoading;
@@ -59,7 +64,7 @@ class ClientLoaded extends ClientState {
     List<Client>? sortedClients,
     Position? promoterPosition,
     String? searchQuery,
-    VisitStatus? filterStatus,
+    Object? filterStatus = _undefined,
     bool? isLoading,
     String? error,
   }) {
@@ -68,7 +73,9 @@ class ClientLoaded extends ClientState {
       sortedClients: sortedClients ?? this.sortedClients,
       promoterPosition: promoterPosition ?? this.promoterPosition,
       searchQuery: searchQuery ?? this.searchQuery,
-      filterStatus: filterStatus ?? this.filterStatus,
+      filterStatus: filterStatus == _undefined
+          ? this.filterStatus
+          : (filterStatus as VisitStatus?),
       isLoading: isLoading ?? this.isLoading,
       error: error ?? this.error,
     );

@@ -1,6 +1,7 @@
 import 'dart:math';
 
 import '../models/product_model.dart';
+import '../models/inventory_item.dart';
 
 // Mock data service to simulate API responses
 class InventoryService {
@@ -292,6 +293,84 @@ class InventoryService {
     } catch (e) {
       return false;
     }
+  }
+
+  // Get inventory items for counting (static method)
+  static List<InventoryItem> _mockInventoryItems = [];
+
+  // Initialize mock inventory items
+  static void _initInventoryItems() {
+    if (_mockInventoryItems.isEmpty) {
+      _mockInventoryItems = [
+        InventoryItem(
+          id: '1',
+          name: 'أرز بسمتي',
+          primaryUnitCount: 100,
+          secondaryUnitCount: 10,
+          primaryUnit: 'كيلو',
+          secondaryUnit: 'كرتون',
+          price: 25.0,
+        ),
+        InventoryItem(
+          id: '2',
+          name: 'زيت طبخ',
+          primaryUnitCount: 50,
+          secondaryUnitCount: 5,
+          primaryUnit: 'لتر',
+          secondaryUnit: 'كرتون',
+          price: 35.0,
+        ),
+        InventoryItem(
+          id: '3',
+          name: 'سكر',
+          primaryUnitCount: 200,
+          secondaryUnitCount: 20,
+          primaryUnit: 'كيلو',
+          secondaryUnit: 'كرتون',
+          price: 15.0,
+        ),
+        InventoryItem(
+          id: '4',
+          name: 'معكرونة',
+          primaryUnitCount: 75,
+          secondaryUnitCount: 3,
+          primaryUnit: 'كيس',
+          secondaryUnit: 'كرتون',
+          price: 40.0,
+        ),
+        InventoryItem(
+          id: '5',
+          name: 'حليب',
+          primaryUnitCount: 150,
+          secondaryUnitCount: 15,
+          primaryUnit: 'علبة',
+          secondaryUnit: 'كرتون',
+          price: 30.0,
+        ),
+      ];
+    }
+  }
+
+  // Get inventory items for counting
+  Future<List<InventoryItem>> getInventoryItems() async {
+    // Simulate API delay
+    await Future.delayed(Duration(milliseconds: 800));
+
+    // Initialize inventory items if needed
+    _initInventoryItems();
+
+    return _mockInventoryItems;
+  }
+
+  // Save updated inventory counts
+  static Future<bool> saveInventoryCount(List<InventoryItem> items) async {
+    // Simulate API delay
+    await Future.delayed(Duration(milliseconds: 1000));
+
+    // Update our mock items
+    _mockInventoryItems = items;
+
+    return true;
   }
 
   // Helper methods for generating mock data

@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import '../models/inventory_item.dart';
 import '../models/product_model.dart';
 import '../services/inventory_service.dart';
+import 'package:pdf/widgets.dart' as pw;
+import 'package:printing/printing.dart';
 import 'product_detail_screen.dart';
 
 class InventoryScreen extends StatefulWidget {
@@ -12,16 +15,28 @@ class InventoryScreen extends StatefulWidget {
   State<InventoryScreen> createState() => _InventoryScreenState();
 }
 
-class _InventoryScreenState extends State<InventoryScreen> {
+class _InventoryScreenState extends State<InventoryScreen>
+    with SingleTickerProviderStateMixin {
   final TextEditingController _searchController = TextEditingController();
   final ScrollController _scrollController = ScrollController();
-
+  late TabController _tabController;
+  // For product list view
   List<Product> _products = [];
   bool _isLoading = true;
-  bool _isSearching = false;
   String _selectedCategory = 'الكل';
   int _currentPage = 0;
   bool _hasMoreData = true;
+
+  // For inventory management
+  List<InventoryItem> _inventoryItems = [];
+  List<InventoryItem> _filteredInventoryItems = [];
+  bool _countingMode = false;
+  bool _showDifferencesOnly = false;
+  bool _isInventorySaving = false;
+  String _inventorySearchQuery = '';
+
+  // Unit display selection
+  bool _showPrimaryUnits = true;
 
   final List<String> _categories = [
     'الكل',
@@ -32,14 +47,17 @@ class _InventoryScreenState extends State<InventoryScreen> {
     'أدوات صحية',
     'غذائية'
   ];
-
   @override
   void initState() {
     super.initState();
     _loadProducts();
+    _loadInventoryItems();
 
     // Set up pagination
     _scrollController.addListener(_scrollListener);
+
+    // Initialize tab controller
+    _tabController = TabController(length: 2, vsync: this);
   }
 
   @override
@@ -47,10 +65,104 @@ class _InventoryScreenState extends State<InventoryScreen> {
     _searchController.dispose();
     _scrollController.removeListener(_scrollListener);
     _scrollController.dispose();
+    _tabController.dispose();
     super.dispose();
+  } // Load inventory items for counting
+
+  Future<void> _loadInventoryItems() async {
+    try {
+      final inventoryService = InventoryService();
+      final items = await inventoryService.getInventoryItems();
+
+      setState(() {
+        _inventoryItems = items;
+        _filteredInventoryItems = items;
+        _isLoading = false;
+      });
+    } catch (e) {
+      setState(() {
+        _isLoading = false;
+      });
+      _showErrorSnackbar('فشل تحميل بيانات المخزون');
+    }
   }
 
-  // Load initial products or next page
+  // Calculate total inventory value
+  double get _totalInventoryValue {
+    return _filteredInventoryItems.fold(
+        0, (sum, item) => sum + item.totalValue);
+  }
+
+  // Filter inventory items based on search
+  void _filterInventoryItems() {
+    if (_inventorySearchQuery.isEmpty) {
+      setState(() {
+        _filteredInventoryItems = _inventoryItems;
+      });
+      return;
+    }
+
+    setState(() {
+      _filteredInventoryItems = _inventoryItems.where((item) {
+        return item.name.contains(_inventorySearchQuery);
+      }).toList();
+    });
+  } // Save counted inventory
+
+  Future<void> _saveInventoryCounts() async {
+    setState(() {
+      _isInventorySaving = true;
+    });
+
+    try {
+      await InventoryService.saveInventoryCount(_inventoryItems);
+
+      setState(() {
+        _isInventorySaving = false;
+        _countingMode = false;
+      });
+
+      _showSuccessSnackbar('تم حفظ تعديلات الجرد بنجاح');
+    } catch (e) {
+      setState(() {
+        _isInventorySaving = false;
+      });
+      _showErrorSnackbar('فشل حفظ بيانات الجرد');
+    }
+  }
+
+  // Update actual count for an item
+  void _updateActualCount(String id, double value) {
+    final index = _inventoryItems.indexWhere((item) => item.id == id);
+    if (index != -1) {
+      setState(() {
+        _inventoryItems[index] =
+            _inventoryItems[index].copyWith(actualCount: value);
+        _filterInventoryItems();
+      });
+    }
+  }
+
+  // Show error snackbar
+  void _showErrorSnackbar(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: Colors.red,
+      ),
+    );
+  }
+
+  // Show success snackbar
+  void _showSuccessSnackbar(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: Colors.green,
+      ),
+    );
+  } // Load initial products or next page
+
   Future<void> _loadProducts() async {
     if (!_hasMoreData) return;
 
@@ -77,12 +189,11 @@ class _InventoryScreenState extends State<InventoryScreen> {
       });
       _showErrorSnackBar('حدث خطأ أثناء تحميل المنتجات');
     }
-  }
+  } // Search for products
 
-  // Search for products
   Future<void> _searchProducts(String query) async {
     setState(() {
-      _isSearching = true;
+      _isLoading = true; // Use _isLoading instead of _isSearching
     });
 
     try {
@@ -90,12 +201,12 @@ class _InventoryScreenState extends State<InventoryScreen> {
 
       setState(() {
         _products = results;
-        _isSearching = false;
+        _isLoading = false;
         _hasMoreData = false; // Disable pagination during search
       });
     } catch (e) {
       setState(() {
-        _isSearching = false;
+        _isLoading = false;
       });
       _showErrorSnackBar('حدث خطأ أثناء البحث');
     }
@@ -149,6 +260,15 @@ class _InventoryScreenState extends State<InventoryScreen> {
             fontSize: 18.sp,
           ),
         ),
+        bottom: TabBar(
+          controller: _tabController,
+          tabs: [
+            Tab(text: 'المنتجات'),
+            Tab(text: 'جرد المخزون'),
+          ],
+          labelColor: theme.colorScheme.primary,
+          unselectedLabelColor: theme.colorScheme.onSurface.withOpacity(0.7),
+        ),
         actions: [
           IconButton(
             icon: Icon(Icons.filter_list, color: theme.colorScheme.onSurface),
@@ -165,173 +285,194 @@ class _InventoryScreenState extends State<InventoryScreen> {
           ),
         ],
       ),
-      body: Column(
+      body: TabBarView(
+        controller: _tabController,
         children: [
-          // Search bar
-          Padding(
-            padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 8.h),
-            child: TextFormField(
-              controller: _searchController,
-              decoration: InputDecoration(
-                hintText: 'ابحث عن منتج...',
-                prefixIcon: const Icon(Icons.search),
-                suffixIcon: _searchController.text.isNotEmpty
-                    ? IconButton(
-                        icon: const Icon(Icons.clear),
-                        onPressed: () {
-                          setState(() {
-                            _searchController.clear();
-                            _products = [];
-                            _currentPage = 0;
-                            _hasMoreData = true;
-                          });
-                          _loadProducts();
-                        },
-                      )
-                    : null,
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12.r),
-                  borderSide: BorderSide(color: Colors.grey.shade300),
-                ),
-                contentPadding:
-                    EdgeInsets.symmetric(vertical: 12.h, horizontal: 16.w),
-              ),
-              onFieldSubmitted: (value) {
-                if (value.isEmpty) {
-                  setState(() {
-                    _products = [];
-                    _currentPage = 0;
-                    _hasMoreData = true;
-                  });
-                  _loadProducts();
-                } else {
-                  _searchProducts(value);
-                }
-              },
-            ),
-          ),
-
-          // Category chips
-          SizedBox(
-            height: 50.h,
-            child: ListView.builder(
-              scrollDirection: Axis.horizontal,
-              padding: EdgeInsets.symmetric(horizontal: 16.w),
-              itemCount: _categories.length,
-              itemBuilder: (context, index) {
-                final category = _categories[index];
-                final isSelected = category == _selectedCategory;
-
-                return Padding(
-                  padding: EdgeInsets.only(right: 8.w),
-                  child: ChoiceChip(
-                    label: Text(category),
-                    selected: isSelected,
-                    selectedColor: theme.colorScheme.primary.withOpacity(0.2),
-                    backgroundColor: Colors.white,
-                    labelStyle: TextStyle(
-                      color: isSelected
-                          ? theme.colorScheme.primary
-                          : theme.colorScheme.onSurface,
-                      fontWeight:
-                          isSelected ? FontWeight.bold : FontWeight.normal,
+          // Tab 1: Products listing (existing functionality)
+          Column(
+            children: [
+              // Search bar
+              Padding(
+                padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 8.h),
+                child: TextFormField(
+                  controller: _searchController,
+                  decoration: InputDecoration(
+                    hintText: 'ابحث عن منتج...',
+                    prefixIcon: const Icon(Icons.search),
+                    suffixIcon: _searchController.text.isNotEmpty
+                        ? IconButton(
+                            icon: const Icon(Icons.clear),
+                            onPressed: () {
+                              setState(() {
+                                _searchController.clear();
+                                _products = [];
+                                _currentPage = 0;
+                                _hasMoreData = true;
+                              });
+                              _loadProducts();
+                            },
+                          )
+                        : null,
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12.r),
+                      borderSide: BorderSide(color: Colors.grey.shade300),
                     ),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(20.r),
-                      side: BorderSide(
-                        color: isSelected
-                            ? theme.colorScheme.primary
-                            : Colors.grey.shade300,
-                      ),
-                    ),
-                    onSelected: (_) => _filterByCategory(category),
+                    contentPadding:
+                        EdgeInsets.symmetric(vertical: 12.h, horizontal: 16.w),
                   ),
-                );
-              },
-            ),
-          ),
+                  onFieldSubmitted: (value) {
+                    if (value.isEmpty) {
+                      setState(() {
+                        _products = [];
+                        _currentPage = 0;
+                        _hasMoreData = true;
+                      });
+                      _loadProducts();
+                    } else {
+                      _searchProducts(value);
+                    }
+                  },
+                ),
+              ),
 
-          // Products grid
-          Expanded(
-            child: _isLoading && _products.isEmpty
-                ? Center(
-                    child: CircularProgressIndicator(
-                      color: theme.colorScheme.primary,
-                    ),
-                  )
-                : _products.isEmpty
-                    ? Center(
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Icon(
-                              Icons.inventory,
-                              size: 72.sp,
-                              color: Colors.grey.shade400,
-                            ),
-                            SizedBox(height: 16.h),
-                            Text(
-                              'لا توجد منتجات',
-                              style: TextStyle(
-                                fontSize: 18.sp,
-                                color: Colors.grey.shade600,
-                              ),
-                            ),
-                          ],
-                        ).animate().fade(duration: 300.ms),
-                      )
-                    : RefreshIndicator(
-                        color: theme.colorScheme.primary,
-                        onRefresh: () async {
-                          setState(() {
-                            _products = [];
-                            _currentPage = 0;
-                            _hasMoreData = true;
-                          });
-                          await _loadProducts();
-                        },
-                        child: GridView.builder(
-                          controller: _scrollController,
-                          padding: EdgeInsets.all(16.w),
-                          gridDelegate:
-                              SliverGridDelegateWithFixedCrossAxisCount(
-                            crossAxisCount: 2,
-                            childAspectRatio: 0.75,
-                            crossAxisSpacing: 16.w,
-                            mainAxisSpacing: 16.h,
-                          ),
-                          itemCount: _products.length + (_hasMoreData ? 1 : 0),
-                          itemBuilder: (context, index) {
-                            // Show loading indicator at the end if more data is available
-                            if (index == _products.length) {
-                              return Center(
-                                child: CircularProgressIndicator(
-                                  color: theme.colorScheme.primary,
-                                ),
-                              );
-                            }
+              // Category chips
+              SizedBox(
+                height: 50.h,
+                child: ListView.builder(
+                  scrollDirection: Axis.horizontal,
+                  padding: EdgeInsets.symmetric(horizontal: 16.w),
+                  itemCount: _categories.length,
+                  itemBuilder: (context, index) {
+                    final category = _categories[index];
+                    final isSelected = category == _selectedCategory;
 
-                            final product = _products[index];
-                            return _buildProductCard(context, product)
-                                .animate()
-                                .fadeIn(
-                                  duration: 300.ms,
-                                  delay: Duration(milliseconds: index * 50),
-                                );
-                          },
+                    return Padding(
+                      padding: EdgeInsets.only(right: 8.w),
+                      child: ChoiceChip(
+                        label: Text(category),
+                        selected: isSelected,
+                        selectedColor:
+                            theme.colorScheme.primary.withOpacity(0.2),
+                        backgroundColor: Colors.white,
+                        labelStyle: TextStyle(
+                          color: isSelected
+                              ? theme.colorScheme.primary
+                              : theme.colorScheme.onSurface,
+                          fontWeight:
+                              isSelected ? FontWeight.bold : FontWeight.normal,
                         ),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(20.r),
+                          side: BorderSide(
+                            color: isSelected
+                                ? theme.colorScheme.primary
+                                : Colors.grey.shade300,
+                          ),
+                        ),
+                        onSelected: (_) => _filterByCategory(category),
                       ),
+                    );
+                  },
+                ),
+              ),
+
+              // Products grid
+              Expanded(
+                child: _isLoading && _products.isEmpty
+                    ? Center(
+                        child: CircularProgressIndicator(
+                          color: theme.colorScheme.primary,
+                        ),
+                      )
+                    : _products.isEmpty
+                        ? Center(
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(
+                                  Icons.inventory,
+                                  size: 72.sp,
+                                  color: Colors.grey.shade400,
+                                ),
+                                SizedBox(height: 16.h),
+                                Text(
+                                  'لا توجد منتجات',
+                                  style: TextStyle(
+                                    fontSize: 18.sp,
+                                    color: Colors.grey.shade600,
+                                  ),
+                                ),
+                              ],
+                            ).animate().fade(duration: 300.ms),
+                          )
+                        : RefreshIndicator(
+                            color: theme.colorScheme.primary,
+                            onRefresh: () async {
+                              setState(() {
+                                _products = [];
+                                _currentPage = 0;
+                                _hasMoreData = true;
+                              });
+                              await _loadProducts();
+                            },
+                            child: GridView.builder(
+                              controller: _scrollController,
+                              padding: EdgeInsets.all(16.w),
+                              gridDelegate:
+                                  SliverGridDelegateWithFixedCrossAxisCount(
+                                crossAxisCount: 2,
+                                childAspectRatio: 0.75,
+                                crossAxisSpacing: 16.w,
+                                mainAxisSpacing: 16.h,
+                              ),
+                              itemCount:
+                                  _products.length + (_hasMoreData ? 1 : 0),
+                              itemBuilder: (context, index) {
+                                // Show loading indicator at the end if more data is available
+                                if (index == _products.length) {
+                                  return Center(
+                                    child: CircularProgressIndicator(
+                                      color: theme.colorScheme.primary,
+                                    ),
+                                  );
+                                }
+
+                                final product = _products[index];
+                                return _buildProductCard(context, product)
+                                    .animate()
+                                    .fadeIn(
+                                      duration: 300.ms,
+                                      delay: Duration(milliseconds: index * 50),
+                                    );
+                              },
+                            ),
+                          ),
+              ),
+            ],
           ),
+          // Tab 2: Inventory Count
+          _buildInventoryCountTab(theme),
         ],
       ),
-      floatingActionButton: FloatingActionButton(
-        backgroundColor: theme.colorScheme.primary,
-        foregroundColor: theme.colorScheme.onPrimary,
-        onPressed: () {
-          // TODO: Add new product
-        },
-        child: const Icon(Icons.add),
-      ),
+      floatingActionButton: _tabController.index == 0
+          ? FloatingActionButton(
+              backgroundColor: theme.colorScheme.primary,
+              foregroundColor: theme.colorScheme.onPrimary,
+              onPressed: () {
+                // Add new product functionality
+              },
+              child: Icon(Icons.add),
+            )
+          : FloatingActionButton(
+              backgroundColor: theme.colorScheme.secondary,
+              foregroundColor: theme.colorScheme.onSecondary,
+              onPressed: () {
+                setState(() {
+                  _countingMode = !_countingMode;
+                });
+              },
+              child: Icon(_countingMode ? Icons.check : Icons.edit),
+            ),
     );
   }
 
@@ -647,6 +788,416 @@ class _InventoryScreenState extends State<InventoryScreen> {
           ],
         ),
       ),
+    );
+  }
+
+  // Build the inventory count tab
+  Widget _buildInventoryCountTab(ThemeData theme) {
+    return Column(
+      children: [
+        // Search and filter bar
+        Padding(
+          padding: EdgeInsets.all(16.w),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Header with total value
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    'إجمالي قيمة المخزون:',
+                    style: TextStyle(
+                      fontSize: 16.sp,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  Text(
+                    '${_totalInventoryValue.toStringAsFixed(2)} ريال',
+                    style: TextStyle(
+                      fontSize: 16.sp,
+                      fontWeight: FontWeight.bold,
+                      color: theme.colorScheme.primary,
+                    ),
+                  ),
+                ],
+              ),
+              SizedBox(height: 16.h),
+
+              // Search field
+              TextField(
+                decoration: InputDecoration(
+                  hintText: 'بحث في المخزون...',
+                  prefixIcon: Icon(Icons.search),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12.r),
+                  ),
+                ),
+                onChanged: (value) {
+                  setState(() {
+                    _inventorySearchQuery = value;
+                    _filterInventoryItems();
+                  });
+                },
+              ),
+
+              SizedBox(height: 16.h),
+
+              // Control buttons
+              Row(
+                children: [
+                  // Unit display toggle
+                  Expanded(
+                    child: ElevatedButton.icon(
+                      icon: Icon(_showPrimaryUnits
+                          ? Icons.view_list
+                          : Icons.view_module),
+                      label: Text(_showPrimaryUnits
+                          ? 'عرض الوحدة الأساسية'
+                          : 'عرض الوحدة الفرعية'),
+                      onPressed: () {
+                        setState(() {
+                          _showPrimaryUnits = !_showPrimaryUnits;
+                        });
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: theme.colorScheme.secondary,
+                        foregroundColor: theme.colorScheme.onSecondary,
+                      ),
+                    ),
+                  ),
+                  SizedBox(width: 8.w),
+                  // Print button
+                  IconButton(
+                    onPressed: _generatePdf,
+                    icon: Icon(Icons.print),
+                    tooltip: 'طباعة تقرير المخزون',
+                    color: theme.colorScheme.primary,
+                  ),
+                ],
+              ),
+
+              // Count mode controls
+              if (_countingMode)
+                Padding(
+                  padding: EdgeInsets.only(top: 16.h),
+                  child: Row(
+                    children: [
+                      // Show differences toggle
+                      Expanded(
+                        child: CheckboxListTile(
+                          title: Text('عرض الفروقات فقط'),
+                          value: _showDifferencesOnly,
+                          controlAffinity: ListTileControlAffinity.leading,
+                          onChanged: (value) {
+                            setState(() {
+                              _showDifferencesOnly = value ?? false;
+                            });
+                          },
+                          dense: true,
+                          contentPadding: EdgeInsets.zero,
+                        ),
+                      ),
+                      // Save button
+                      ElevatedButton(
+                        onPressed:
+                            _isInventorySaving ? null : _saveInventoryCounts,
+                        child: _isInventorySaving
+                            ? SizedBox(
+                                width: 20.w,
+                                height: 20.h,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  color: Colors.white,
+                                ),
+                              )
+                            : Text('حفظ الجرد'),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: theme.colorScheme.primary,
+                          foregroundColor: theme.colorScheme.onPrimary,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+            ],
+          ),
+        ),
+
+        // Inventory items list
+        Expanded(
+          child: _isLoading
+              ? Center(child: CircularProgressIndicator())
+              : _filteredInventoryItems.isEmpty
+                  ? Center(child: Text('لا توجد عناصر مخزون'))
+                  : ListView.builder(
+                      itemCount: _filteredInventoryItems.length,
+                      itemBuilder: (context, index) {
+                        final item = _filteredInventoryItems[index];
+
+                        // Skip items with no difference if filter is on
+                        if (_showDifferencesOnly &&
+                            _countingMode &&
+                            !item.hasDifference) {
+                          return SizedBox.shrink();
+                        }
+
+                        return Card(
+                          margin: EdgeInsets.symmetric(
+                              horizontal: 16.w, vertical: 4.h),
+                          child: Padding(
+                            padding: EdgeInsets.all(16.r),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                // Item name and details
+                                Row(
+                                  children: [
+                                    Expanded(
+                                      child: Text(
+                                        item.name,
+                                        style: TextStyle(
+                                          fontWeight: FontWeight.bold,
+                                          fontSize: 16.sp,
+                                        ),
+                                      ),
+                                    ),
+                                    Text(
+                                      '${item.price.toStringAsFixed(2)} ريال',
+                                      style: TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                        color: theme.colorScheme.primary,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                SizedBox(height: 8.h),
+
+                                // Quantity info
+                                Row(
+                                  children: [
+                                    Expanded(
+                                      child: Text(
+                                        'الكمية في النظام: ${_showPrimaryUnits ? '${item.primaryUnitCount} ${item.primaryUnit}' : '${item.secondaryUnitCount} ${item.secondaryUnit}'}',
+                                      ),
+                                    ),
+                                    if (_countingMode && item.hasDifference)
+                                      Container(
+                                        padding: EdgeInsets.symmetric(
+                                            horizontal: 8.w, vertical: 2.h),
+                                        decoration: BoxDecoration(
+                                          borderRadius:
+                                              BorderRadius.circular(12.r),
+                                          color: item.difference > 0
+                                              ? Colors.green.shade100
+                                              : Colors.red.shade100,
+                                        ),
+                                        child: Text(
+                                          item.difference > 0
+                                              ? '+${item.difference}'
+                                              : '${item.difference}',
+                                          style: TextStyle(
+                                            color: item.difference > 0
+                                                ? Colors.green.shade800
+                                                : Colors.red.shade800,
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                        ),
+                                      ),
+                                  ],
+                                ),
+
+                                // Actual count input field (visible only in count mode)
+                                if (_countingMode)
+                                  Padding(
+                                    padding: EdgeInsets.only(top: 8.h),
+                                    child: Row(
+                                      children: [
+                                        Expanded(
+                                          child: TextFormField(
+                                            initialValue: item.actualCount > 0
+                                                ? item.actualCount.toString()
+                                                : '',
+                                            keyboardType: TextInputType.number,
+                                            decoration: InputDecoration(
+                                              labelText: 'الجرد الفعلي',
+                                              border: OutlineInputBorder(),
+                                              contentPadding:
+                                                  EdgeInsets.symmetric(
+                                                horizontal: 12.w,
+                                                vertical: 8.h,
+                                              ),
+                                            ),
+                                            onChanged: (value) {
+                                              final count =
+                                                  double.tryParse(value);
+                                              if (count != null) {
+                                                _updateActualCount(
+                                                    item.id, count);
+                                              }
+                                            },
+                                          ),
+                                        ),
+                                        SizedBox(width: 8.w),
+                                        Text(_showPrimaryUnits
+                                            ? item.primaryUnit
+                                            : item.secondaryUnit),
+                                      ],
+                                    ),
+                                  ),
+                              ],
+                            ),
+                          ),
+                        ).animate().fadeIn(
+                              duration: 300.ms,
+                              delay: Duration(milliseconds: index * 50),
+                            );
+                      },
+                    ),
+        ),
+      ],
+    );
+  }
+
+  // Generate PDF for printing
+  Future<void> _generatePdf() async {
+    final pdf = pw.Document();
+
+    pdf.addPage(
+      pw.Page(
+        build: (pw.Context context) {
+          return pw.Column(
+            crossAxisAlignment: pw.CrossAxisAlignment.start,
+            children: [
+              // Header
+              pw.Center(
+                child: pw.Text(
+                  'تقرير جرد المخزون',
+                  style: pw.TextStyle(
+                    fontSize: 24,
+                    fontWeight: pw.FontWeight.bold,
+                  ),
+                ),
+              ),
+              pw.SizedBox(height: 20),
+              pw.Text(
+                  'تاريخ الطباعة: ${DateTime.now().toString().split(' ')[0]}'),
+              pw.SizedBox(height: 10),
+              pw.Text(
+                  'إجمالي قيمة المخزون: ${_totalInventoryValue.toStringAsFixed(2)} ريال'),
+              pw.SizedBox(height: 20),
+
+              // Table header
+              pw.Table(
+                border: pw.TableBorder.all(),
+                columnWidths: {
+                  0: pw.FlexColumnWidth(1),
+                  1: pw.FlexColumnWidth(3),
+                  2: pw.FlexColumnWidth(2),
+                  3: pw.FlexColumnWidth(2),
+                  4: pw.FlexColumnWidth(2),
+                },
+                children: [
+                  pw.TableRow(
+                    children: [
+                      pw.Padding(
+                        padding: pw.EdgeInsets.all(5),
+                        child: pw.Text(
+                          '#',
+                          textAlign: pw.TextAlign.center,
+                          style: pw.TextStyle(fontWeight: pw.FontWeight.bold),
+                        ),
+                      ),
+                      pw.Padding(
+                        padding: pw.EdgeInsets.all(5),
+                        child: pw.Text(
+                          'اسم المنتج',
+                          textAlign: pw.TextAlign.center,
+                          style: pw.TextStyle(fontWeight: pw.FontWeight.bold),
+                        ),
+                      ),
+                      pw.Padding(
+                        padding: pw.EdgeInsets.all(5),
+                        child: pw.Text(
+                          'الكمية',
+                          textAlign: pw.TextAlign.center,
+                          style: pw.TextStyle(fontWeight: pw.FontWeight.bold),
+                        ),
+                      ),
+                      pw.Padding(
+                        padding: pw.EdgeInsets.all(5),
+                        child: pw.Text(
+                          'السعر',
+                          textAlign: pw.TextAlign.center,
+                          style: pw.TextStyle(fontWeight: pw.FontWeight.bold),
+                        ),
+                      ),
+                      pw.Padding(
+                        padding: pw.EdgeInsets.all(5),
+                        child: pw.Text(
+                          'القيمة الإجمالية',
+                          textAlign: pw.TextAlign.center,
+                          style: pw.TextStyle(fontWeight: pw.FontWeight.bold),
+                        ),
+                      ),
+                    ],
+                  ),
+
+                  // Table data
+                  ..._filteredInventoryItems.asMap().entries.map((entry) {
+                    final index = entry.key;
+                    final item = entry.value;
+
+                    return pw.TableRow(
+                      children: [
+                        pw.Padding(
+                          padding: pw.EdgeInsets.all(5),
+                          child: pw.Text(
+                            '${index + 1}',
+                            textAlign: pw.TextAlign.center,
+                          ),
+                        ),
+                        pw.Padding(
+                          padding: pw.EdgeInsets.all(5),
+                          child: pw.Text(item.name),
+                        ),
+                        pw.Padding(
+                          padding: pw.EdgeInsets.all(5),
+                          child: pw.Text(
+                            _showPrimaryUnits
+                                ? '${item.primaryUnitCount} ${item.primaryUnit}'
+                                : '${item.secondaryUnitCount} ${item.secondaryUnit}',
+                            textAlign: pw.TextAlign.center,
+                          ),
+                        ),
+                        pw.Padding(
+                          padding: pw.EdgeInsets.all(5),
+                          child: pw.Text(
+                            '${item.price.toStringAsFixed(2)}',
+                            textAlign: pw.TextAlign.center,
+                          ),
+                        ),
+                        pw.Padding(
+                          padding: pw.EdgeInsets.all(5),
+                          child: pw.Text(
+                            '${item.totalValue.toStringAsFixed(2)}',
+                            textAlign: pw.TextAlign.center,
+                          ),
+                        ),
+                      ],
+                    );
+                  }).toList(),
+                ],
+              ),
+            ],
+          );
+        },
+      ),
+    );
+
+    // Print the document
+    await Printing.layoutPdf(
+      onLayout: (format) async => pdf.save(),
     );
   }
 }

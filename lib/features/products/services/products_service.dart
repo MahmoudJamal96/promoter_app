@@ -32,12 +32,36 @@ class ProductsService {
     return products.map((json) => Product.fromJson(json)).toList();
   }
 
-  Future<List<Product>> searchProducts(String query) async {
+  /*Future<List<Product>> searchProducts(String query) async {
     final response = await _apiClient.post(
       '/products/search',
       data: {'query': query},
     );
 
+    final List<dynamic> products = response['data'] ?? [];
+    return products.map((json) => Product.fromJson(json)).toList();
+  }*/
+
+  // Scan product by barcode/sku/name
+  Future<List<Product>> scanProduct(
+      {String? sku, String? name, String? barcode}) async {
+    final formData = <String, dynamic>{};
+    if (sku != null && sku.isNotEmpty) formData['sku'] = sku;
+    if (name != null && name.isNotEmpty) formData['name'] = name;
+    if (barcode != null && barcode.isNotEmpty) formData['barcode'] = barcode;
+
+    final response = await _apiClient.post(
+      '/products/scan',
+      data: formData,
+    );
+
+    final List<dynamic> products = response['data'] ?? [];
+    return products.map((json) => Product.fromJson(json)).toList();
+  }
+
+  // Get related products for a specific product
+  Future<List<Product>> getRelatedProducts(int productId) async {
+    final response = await _apiClient.get('/products/$productId/related');
     final List<dynamic> products = response['data'] ?? [];
     return products.map((json) => Product.fromJson(json)).toList();
   }

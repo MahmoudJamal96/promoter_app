@@ -7,49 +7,163 @@ class Client {
   final String name;
   final String phone;
   final String address;
+  final String? email; // Added email field
   final double balance;
   final String lastPurchase;
   final double latitude;
   final double longitude;
   final VisitStatus visitStatus;
   final double distanceToPromoter; // in km
-
+  final String? code; // Code for client
+  final int? stateId; // State/Governorate ID
+  final int? cityId; // City ID
+  final int? typeOfWorkId; // Type of work ID
+  final int? responsibleId; // Responsible ID
   const Client({
     required this.id,
     required this.name,
     required this.phone,
     required this.address,
+    this.email,
     required this.balance,
     required this.lastPurchase,
     required this.latitude,
     required this.longitude,
     this.visitStatus = VisitStatus.notVisited,
     this.distanceToPromoter = 0,
+    this.code,
+    this.stateId,
+    this.cityId,
+    this.typeOfWorkId,
+    this.responsibleId,
   });
+  factory Client.fromJson(Map<String, dynamic> json) {
+    // Parse visit status from string or int
+    VisitStatus parseVisitStatus(dynamic status) {
+      if (status == null) return VisitStatus.notVisited;
+
+      if (status is String) {
+        switch (status.toLowerCase()) {
+          case 'visited':
+            return VisitStatus.visited;
+          case 'postponed':
+            return VisitStatus.postponed;
+          default:
+            return VisitStatus.notVisited;
+        }
+      } else if (status is int) {
+        switch (status) {
+          case 1:
+            return VisitStatus.visited;
+          case 2:
+            return VisitStatus.postponed;
+          default:
+            return VisitStatus.notVisited;
+        }
+      }
+      return VisitStatus.notVisited;
+    }
+
+    return Client(
+      id: json['id'] ?? 0,
+      name: json['name'] ?? '',
+      phone: json['phone'] ?? '',
+      address: json['address'] ?? '',
+      email: json['email'],
+      balance: (json['balance'] != null)
+          ? (json['balance'] is int
+              ? (json['balance'] as int).toDouble()
+              : (json['balance'] as num?)?.toDouble() ?? 0.0)
+          : 0.0,
+      lastPurchase: json['last_purchase'] ?? json['lastPurchase'] ?? '',
+      latitude: (json['latitude'] != null)
+          ? (json['latitude'] is int
+              ? (json['latitude'] as int).toDouble()
+              : (json['latitude'] as num?)?.toDouble() ?? 0.0)
+          : 0.0,
+      longitude: (json['longitude'] != null)
+          ? (json['longitude'] is int
+              ? (json['longitude'] as int).toDouble()
+              : (json['longitude'] as num?)?.toDouble() ?? 0.0)
+          : 0.0,
+      visitStatus:
+          parseVisitStatus(json['visit_status'] ?? json['visitStatus']),
+      distanceToPromoter: (json['distance_to_promoter'] != null ||
+              json['distanceToPromoter'] != null)
+          ? ((json['distance_to_promoter'] ?? json['distanceToPromoter']) is int
+              ? (json['distance_to_promoter'] ??
+                      json['distanceToPromoter'] as int)
+                  .toDouble()
+              : (json['distance_to_promoter'] ??
+                          json['distanceToPromoter'] as num?)
+                      ?.toDouble() ??
+                  0.0)
+          : 0.0,
+      code: json['code'],
+      stateId: json['state_id'] ?? json['stateId'],
+      cityId: json['city_id'] ?? json['cityId'],
+      typeOfWorkId: json['type_of_work_id'] ?? json['typeOfWorkId'],
+      responsibleId: json['responsible_id'] ?? json['responsibleId'],
+    );
+  }
+
+  // Convert Client object to JSON
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'name': name,
+      'phone': phone,
+      'address': address,
+      'email': email,
+      'balance': balance,
+      'last_purchase': lastPurchase,
+      'latitude': latitude,
+      'longitude': longitude,
+      'visit_status': visitStatus.index,
+      'distance_to_promoter': distanceToPromoter,
+      'code': code,
+      'state_id': stateId,
+      'city_id': cityId,
+      'type_of_work_id': typeOfWorkId,
+      'responsible_id': responsibleId,
+    };
+  }
 
   Client copyWith({
     int? id,
     String? name,
     String? phone,
     String? address,
+    String? email,
     double? balance,
     String? lastPurchase,
     double? latitude,
     double? longitude,
     VisitStatus? visitStatus,
     double? distanceToPromoter,
+    String? code,
+    int? stateId,
+    int? cityId,
+    int? typeOfWorkId,
+    int? responsibleId,
   }) {
     return Client(
       id: id ?? this.id,
       name: name ?? this.name,
       phone: phone ?? this.phone,
       address: address ?? this.address,
+      email: email ?? this.email,
       balance: balance ?? this.balance,
       lastPurchase: lastPurchase ?? this.lastPurchase,
       latitude: latitude ?? this.latitude,
       longitude: longitude ?? this.longitude,
       visitStatus: visitStatus ?? this.visitStatus,
       distanceToPromoter: distanceToPromoter ?? this.distanceToPromoter,
+      code: code ?? this.code,
+      stateId: stateId ?? this.stateId,
+      cityId: cityId ?? this.cityId,
+      typeOfWorkId: typeOfWorkId ?? this.typeOfWorkId,
+      responsibleId: responsibleId ?? this.responsibleId,
     );
   }
 

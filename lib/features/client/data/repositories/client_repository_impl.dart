@@ -34,6 +34,38 @@ class ClientRepositoryImpl implements ClientRepository {
   }
 
   @override
+  Future<Either<Failure, Client>> createClient({
+    required String name,
+    required String phone,
+    required String address,
+    required String email,
+    required double latitude,
+    required double longitude,
+  }) async {
+    if (await networkInfo.isConnected) {
+      try {
+        final client = await remoteDataSource.createClient(
+          name: name,
+          phone: phone,
+          address: address,
+          email: email,
+          latitude: latitude,
+          longitude: longitude,
+        );
+        return Right(client);
+      } on ServerException {
+        return Left(ServerFailure());
+      } on TimeoutException {
+        return Left(TimeoutFailure());
+      } on ApiException catch (e) {
+        return Left(ApiFailure(message: e.message, code: e.code));
+      }
+    } else {
+      return Left(NoInternetFailure());
+    }
+  }
+
+  @override
   Future<Either<Failure, void>> updateClientStatus(
     int clientId,
     VisitStatus status,

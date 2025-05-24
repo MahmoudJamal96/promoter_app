@@ -4,16 +4,21 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter_zoom_drawer/flutter_zoom_drawer.dart';
 import 'package:promoter_app/core/constants/assets.dart';
+import 'package:promoter_app/core/di/injection_container.dart';
 import 'package:promoter_app/core/view/widgets/image_loader.dart';
 import 'package:promoter_app/features/auth/presentation/bloc/auth_bloc.dart';
 import 'package:promoter_app/features/client/screens/enhanced_client_screen_new.dart';
+import 'package:promoter_app/features/collection/screens/collection_screen.dart'; // Added import
+import 'package:promoter_app/features/dashboard/controllers/dashboard_controller.dart';
 import 'package:promoter_app/features/inventory/screens/inventory_screen.dart';
 import 'package:promoter_app/features/inventory/screens/product_inquiry_screen.dart';
 import 'package:promoter_app/features/inventory/screens/sales_invoice_screen.dart';
 import 'package:promoter_app/features/inventory/screens/warehouse_transfer_screen.dart';
+import 'package:promoter_app/features/returns/screens/return_transaction_screen.dart';
 import 'package:promoter_app/features/salary/screens/salary_screen.dart';
 import 'package:syncfusion_flutter_gauges/gauges.dart';
 
+import '../collection/cubit/collection_cubit.dart';
 import '../menu/menu_screen.dart';
 
 class ZoomDrawerScreen extends StatelessWidget {
@@ -143,68 +148,158 @@ class DashboardScreen extends StatelessWidget {
   }
 }
 
-class CircularPercentIndicator extends StatelessWidget {
+class CircularPercentIndicator extends StatefulWidget {
   const CircularPercentIndicator({super.key});
+
+  @override
+  State<CircularPercentIndicator> createState() =>
+      _CircularPercentIndicatorState();
+}
+
+class _CircularPercentIndicatorState extends State<CircularPercentIndicator> {
+  bool _isLoading = true;
+  double _completionPercentage = 0.0;
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchCompletionPercentage();
+  }
+
+  Future<void> _fetchCompletionPercentage() async {
+    try {
+      final dashboardController = sl<DashboardController>();
+      final dashboardInfo = await dashboardController.getDashboardInfo();
+
+      if (mounted) {
+        setState(() {
+          // Calculate completion percentage based on current debt vs target debt
+          // If target is 0, set percentage to 0 to avoid division by zero
+          if (dashboardInfo.completionPercentage > 0) {
+            _completionPercentage =
+                (dashboardInfo.totalDebt / dashboardInfo.completionPercentage) *
+                    100;
+            // Limit to 100% maximum
+            _completionPercentage =
+                _completionPercentage > 100 ? 100 : _completionPercentage;
+          } else {
+            _completionPercentage = 0;
+          }
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _completionPercentage = 0.0;
+          _isLoading = false;
+        });
+      }
+      print('Error fetching completion percentage: $e');
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     return SizedBox(
       width: .3.sw,
       height: .2.sh,
-      child: SfRadialGauge(
-        axes: <RadialAxis>[
-          RadialAxis(
-            showLabels: false,
-            showTicks: false,
-            startAngle: 270,
-            endAngle: 270,
-            radiusFactor: 0.8,
-            axisLineStyle: const AxisLineStyle(
-              thicknessUnit: GaugeSizeUnit.factor,
-              thickness: 0.15,
-            ),
-            annotations: <GaugeAnnotation>[
-              GaugeAnnotation(
-                angle: 180,
-                widget: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: <Widget>[
-                    Text(
-                      '9.99%',
-                      style: TextStyle(
-                        fontSize: 16.sp,
-                        fontWeight: FontWeight.w400,
-                        fontStyle: FontStyle.italic,
+      child: _isLoading
+          ? const Center(
+              child: CircularProgressIndicator(),
+            )
+          : SfRadialGauge(
+              axes: <RadialAxis>[
+                RadialAxis(
+                  showLabels: false,
+                  showTicks: false,
+                  startAngle: 270,
+                  endAngle: 270,
+                  radiusFactor: 0.8,
+                  axisLineStyle: const AxisLineStyle(
+                    thicknessUnit: GaugeSizeUnit.factor,
+                    thickness: 0.15,
+                  ),
+                  annotations: <GaugeAnnotation>[
+                    GaugeAnnotation(
+                      angle: 180,
+                      widget: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: <Widget>[
+                          Text(
+                            '${_completionPercentage.toStringAsFixed(2)}%',
+                            style: TextStyle(
+                              fontSize: 16.sp,
+                              fontWeight: FontWeight.w400,
+                              fontStyle: FontStyle.italic,
+                            ),
+                          ),
+                        ],
                       ),
                     ),
                   ],
+                  pointers: <GaugePointer>[
+                    RangePointer(
+                      value: _completionPercentage,
+                      cornerStyle: CornerStyle.bothCurve,
+                      enableAnimation: true,
+                      animationDuration: 1500,
+                      sizeUnit: GaugeSizeUnit.factor,
+                      gradient: const SweepGradient(
+                        colors: <Color>[Color(0xFF6A6EF6), Color(0xFFDB82F5)],
+                        stops: <double>[0.25, 0.75],
+                      ),
+                      color: const Color(0xFF00A8B5),
+                      width: 0.15,
+                    ),
+                  ],
                 ),
-              ),
-            ],
-            pointers: const <GaugePointer>[
-              RangePointer(
-                value: 50,
-                cornerStyle: CornerStyle.bothCurve,
-                enableAnimation: true,
-                animationDuration: 1500,
-                sizeUnit: GaugeSizeUnit.factor,
-                gradient: SweepGradient(
-                  colors: <Color>[Color(0xFF6A6EF6), Color(0xFFDB82F5)],
-                  stops: <double>[0.25, 0.75],
-                ),
-                color: Color(0xFF00A8B5),
-                width: 0.15,
-              ),
-            ],
-          ),
-        ],
-      ),
+              ],
+            ),
     );
   }
 }
 
-class DebtCard extends StatelessWidget {
+class DebtCard extends StatefulWidget {
   const DebtCard({super.key});
+
+  @override
+  State<DebtCard> createState() => _DebtCardState();
+}
+
+class _DebtCardState extends State<DebtCard> {
+  bool _isLoading = true;
+  String _totalDebt = '0.0';
+  String _currencySymbol = 'ر.س';
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchDebtInfo();
+  }
+
+  Future<void> _fetchDebtInfo() async {
+    try {
+      final dashboardController = sl<DashboardController>();
+      final dashboardInfo = await dashboardController.getDashboardInfo();
+
+      if (mounted) {
+        setState(() {
+          _totalDebt = dashboardInfo.totalDebt.toStringAsFixed(2);
+          _currencySymbol = dashboardInfo.currencySymbol;
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _totalDebt = '0.0';
+          _isLoading = false;
+        });
+      }
+      print('Error fetching debt info: $e');
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -214,18 +309,30 @@ class DebtCard extends StatelessWidget {
         border: Border.all(color: Colors.blueAccent),
         borderRadius: BorderRadius.circular(10),
       ),
-      child: const Column(
+      child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Text(
+          const Text(
             'إجمالي الديون',
             style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
           ),
-          Text(
-            '1690.0',
-            style: TextStyle(
-                fontSize: 18, fontWeight: FontWeight.bold, color: Colors.blue),
-          ),
+          if (_isLoading)
+            const SizedBox(
+              height: 20,
+              width: 20,
+              child: CircularProgressIndicator(
+                strokeWidth: 2,
+                valueColor: AlwaysStoppedAnimation<Color>(Colors.blue),
+              ),
+            )
+          else
+            Text(
+              '$_totalDebt $_currencySymbol',
+              style: const TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.blue),
+            ),
         ],
       ),
     );
@@ -270,11 +377,12 @@ class FeatureGrid extends StatelessWidget {
         'anim': Assets.singleInvoiceLottie,
         'color': Colors.blue.shade700,
         'action': () {
-          // TODO: Create a collection screen and update the navigation
-          // For now, showing a SnackBar message
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-                content: Text('سيتم التنقل إلى شاشة التحصيل قريباً')),
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+                builder: (_) => BlocProvider(
+                    create: (context) => sl<CollectionCubit>(),
+                    child: const CollectionScreen())), // Updated navigation
           );
         },
       },
@@ -313,7 +421,7 @@ class FeatureGrid extends StatelessWidget {
         'action': () {
           Navigator.push(
             context,
-            MaterialPageRoute(builder: (_) => const WarehouseTransferScreen()),
+            MaterialPageRoute(builder: (_) => const ReturnTransactionScreen()),
           );
         },
       },
@@ -416,105 +524,105 @@ class _FeatureCardState extends State<FeatureCard>
     final Color buttonColor = widget.color ?? Theme.of(context).primaryColor;
 
     return GestureDetector(
-      onTap: () {
-        widget.action?.call();
-      },
-      onTapDown: (_) {
-        setState(() {
-          _isHovered = true;
-          _controller.forward();
-        });
-      },
-      onTapUp: (_) {
-        setState(() {
-          _isHovered = false;
-          _controller.reverse();
-        });
-      },
-      onTapCancel: () {
-        setState(() {
-          _isHovered = false;
-          _controller.reverse();
-        });
-      },
-      child: AnimatedBuilder(
-        animation: _controller,
-        builder: (context, child) {
-          return Transform.scale(
-            scale: 1.0 - (_controller.value * 0.05),
-            child: child,
-          );
+        onTap: () {
+          widget.action?.call();
         },
-        child: Container(
-          width: .4.sw,
-          height: .23.sh,
-          margin: EdgeInsets.symmetric(horizontal: 8.w, vertical: 6.h),
-          child: Card(
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(18.r),
-              side: widget.withBorder
-                  ? BorderSide(color: Colors.blueAccent, width: 1.5)
-                  : BorderSide.none,
-            ),
-            elevation: _isHovered ? 5 : 2,
-            child: Container(
-              decoration: BoxDecoration(
+        onTapDown: (_) {
+          setState(() {
+            _isHovered = true;
+            _controller.forward();
+          });
+        },
+        onTapUp: (_) {
+          setState(() {
+            _isHovered = false;
+            _controller.reverse();
+          });
+        },
+        onTapCancel: () {
+          setState(() {
+            _isHovered = false;
+            _controller.reverse();
+          });
+        },
+        child: AnimatedBuilder(
+          animation: _controller,
+          builder: (context, child) {
+            return Transform.scale(
+              scale: 1.0 - (_controller.value * 0.05),
+              child: child,
+            );
+          },
+          child: Container(
+            width: .4.sw,
+            height: .23.sh,
+            margin: EdgeInsets.symmetric(horizontal: 8.w, vertical: 6.h),
+            child: Card(
+              shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(18.r),
-                gradient: LinearGradient(
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                  colors: _isHovered
-                      ? [buttonColor, buttonColor.withOpacity(0.8)]
-                      : [Colors.white, Colors.white],
-                ),
-                boxShadow: _isHovered
-                    ? [
-                        BoxShadow(
-                          color: buttonColor.withOpacity(0.4),
-                          blurRadius: 12,
-                          offset: Offset(0, 4),
-                        )
-                      ]
-                    : [],
+                side: widget.withBorder
+                    ? BorderSide(color: Colors.blueAccent, width: 1.5)
+                    : BorderSide.none,
               ),
-              padding: EdgeInsets.all(16.h),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Expanded(
-                    child: (widget.anim != null)
-                        ? ImageLoader(
-                            path: widget.anim!,
-                            repeated: true,
-                            fit: BoxFit.contain,
-                            height: 60.h,
-                            width: 60.w,
+              elevation: _isHovered ? 5 : 2,
+              child: Container(
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(18.r),
+                  gradient: LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: _isHovered
+                        ? [buttonColor, buttonColor.withOpacity(0.8)]
+                        : [Colors.white, Colors.white],
+                  ),
+                  boxShadow: _isHovered
+                      ? [
+                          BoxShadow(
+                            color: buttonColor.withOpacity(0.4),
+                            blurRadius: 12,
+                            offset: Offset(0, 4),
                           )
-                        : Icon(
-                            widget.icon,
-                            size: 40,
-                            color: _isHovered ? Colors.white : buttonColor,
-                          ),
-                  ),
-                  const SizedBox(height: 10),
-                  FittedBox(
-                    fit: BoxFit.fitWidth,
-                    child: Text(
-                      widget.title,
-                      maxLines: 1,
-                      style: TextStyle(
-                        fontSize: 14.sp,
-                        fontWeight: FontWeight.bold,
-                        color: _isHovered ? Colors.white : buttonColor,
-                      ),
-                      textAlign: TextAlign.center,
+                        ]
+                      : [],
+                ),
+                padding: EdgeInsets.all(16.h),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Expanded(
+                      child: (widget.anim != null)
+                          ? ImageLoader(
+                              path: widget.anim!,
+                              repeated: true,
+                              fit: BoxFit.contain,
+                              height: 60.h,
+                              width: 60.w,
+                            )
+                          : Icon(
+                              widget.icon,
+                              size: 40,
+                              color: _isHovered ? Colors.white : buttonColor,
+                            ),
                     ),
-                  ),
-                ],
+                    const SizedBox(height: 10),
+                    FittedBox(
+                      fit: BoxFit.fitWidth,
+                      child: Text(
+                        widget.title,
+                        maxLines: 1,
+                        style: TextStyle(
+                          fontSize: 14.sp,
+                          fontWeight: FontWeight.bold,
+                          color: _isHovered ? Colors.white : buttonColor,
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
           ),
-        ),
-      ));
+        ));
   }
 }
