@@ -746,57 +746,57 @@ class _ReturnTransactionScreenState extends State<ReturnTransactionScreen>
                   },
                 ),
               ),
-            ).animate().fade(duration: 200.ms)
-          else if (_searchController.text.isEmpty && _recentSearches.isNotEmpty)
-            Container(
-              padding: EdgeInsets.symmetric(horizontal: 16.w),
-              constraints: BoxConstraints(maxHeight: 180.h),
-              child: Card(
-                elevation: 2,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12.r),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Padding(
-                      padding: EdgeInsets.all(12.w),
-                      child: Text(
-                        'عمليات البحث السابقة',
-                        style: TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 14.sp,
-                          color: Colors.grey.shade700,
-                        ),
-                      ),
-                    ),
-                    Flexible(
-                      child: ListView.builder(
-                        shrinkWrap: true,
-                        padding: EdgeInsets.zero,
-                        itemCount: _recentSearches.length,
-                        itemBuilder: (context, index) {
-                          final query = _recentSearches[index];
-                          return ListTile(
-                            leading: Icon(Icons.history, color: Colors.grey),
-                            title: Text(
-                              query,
-                              style: TextStyle(fontSize: 14.sp),
-                            ),
-                            onTap: () {
-                              _searchController.text = query;
-                              _searchProducts(query);
-                            },
-                            dense: true,
-                          );
-                        },
-                      ),
-                    ),
-                  ],
-                ),
-              ),
             ).animate().fade(duration: 200.ms),
+          // else if (_searchController.text.isEmpty && _recentSearches.isNotEmpty)
+          //   Container(
+          //     padding: EdgeInsets.symmetric(horizontal: 16.w),
+          //     constraints: BoxConstraints(maxHeight: 180.h),
+          //     child: Card(
+          //       elevation: 2,
+          //       shape: RoundedRectangleBorder(
+          //         borderRadius: BorderRadius.circular(12.r),
+          //       ),
+          //       child: Column(
+          //         crossAxisAlignment: CrossAxisAlignment.start,
+          //         mainAxisSize: MainAxisSize.min,
+          //         children: [
+          //           Padding(
+          //             padding: EdgeInsets.all(12.w),
+          //             child: Text(
+          //               'عمليات البحث السابقة',
+          //               style: TextStyle(
+          //                 fontWeight: FontWeight.bold,
+          //                 fontSize: 14.sp,
+          //                 color: Colors.grey.shade700,
+          //               ),
+          //             ),
+          //           ),
+          //           Flexible(
+          //             child: ListView.builder(
+          //               shrinkWrap: true,
+          //               padding: EdgeInsets.zero,
+          //               itemCount: _recentSearches.length,
+          //               itemBuilder: (context, index) {
+          //                 final query = _recentSearches[index];
+          //                 return ListTile(
+          //                   leading: Icon(Icons.history, color: Colors.grey),
+          //                   title: Text(
+          //                     query,
+          //                     style: TextStyle(fontSize: 14.sp),
+          //                   ),
+          //                   onTap: () {
+          //                     _searchController.text = query;
+          //                     _searchProducts(query);
+          //                   },
+          //                   dense: true,
+          //                 );
+          //               },
+          //             ),
+          //           ),
+          //         ],
+          //       ),
+          //     ),
+          //   ).animate().fade(duration: 200.ms),
 
           // Tab content
           Expanded(

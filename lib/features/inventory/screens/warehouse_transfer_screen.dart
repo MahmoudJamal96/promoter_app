@@ -42,15 +42,34 @@ class _WarehouseTransferScreenState extends State<WarehouseTransferScreen>
       'itemsCount': 16,
     },
   ];
+  // Default destination warehouse for all transfers
+  final Map<String, dynamic> defaultDestinationWarehouse = {
+    'name': 'المخزن الرئيسي',
+    'code': 'WH001',
+    'itemsCount': 120,
+  };
 
+  // Default source warehouse (since you have only one warehouse)
+  final Map<String, dynamic> defaultSourceWarehouse = {
+    'name': 'مخزن الفرع',
+    'code': 'WH002',
+    'itemsCount': 85,
+  };
   final TextEditingController _searchController = TextEditingController();
   String _searchQuery = '';
-  bool _isLoading = false;
-
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 2, vsync: this);
+
+    // Navigate directly to transfer form since you have only one warehouse
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _navigateToTransferForm(
+        defaultSourceWarehouse,
+        defaultDestinationWarehouse,
+        isTransferRequest: true,
+      );
+    });
   }
 
   @override
@@ -115,65 +134,127 @@ class _WarehouseTransferScreenState extends State<WarehouseTransferScreen>
   // Transfer Request Tab
   Widget _buildTransferRequestTab(
       List<Map<String, dynamic>> filteredWarehouses) {
+    // Filter out the default destination warehouse from source options
+    final sourceWarehouses = filteredWarehouses.where((warehouse) {
+      return warehouse['code'] != defaultDestinationWarehouse['code'];
+    }).toList();
+
     return Column(
       children: [
         Padding(
           padding: EdgeInsets.all(16.r),
-          child: TextField(
-            controller: _searchController,
-            decoration: InputDecoration(
-              hintText: 'بحث عن مخزن...',
-              prefixIcon: Icon(Icons.search, color: Colors.grey),
-              suffixIcon: _searchQuery.isNotEmpty
-                  ? IconButton(
-                      icon: Icon(Icons.clear, color: Colors.grey),
-                      onPressed: () {
-                        setState(() {
-                          _searchController.clear();
-                          _searchQuery = '';
-                        });
-                      },
-                    )
-                  : null,
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(15.r),
-                borderSide: BorderSide(color: Colors.grey.shade300),
+          child: Column(
+            children: [
+              // Show destination warehouse info
+              Container(
+                padding: EdgeInsets.all(16.r),
+                decoration: BoxDecoration(
+                  color: Colors.green.shade50,
+                  borderRadius: BorderRadius.circular(15.r),
+                  border: Border.all(color: Colors.green.shade200),
+                ),
+                child: Row(
+                  children: [
+                    Icon(
+                      Icons.warehouse,
+                      color: Colors.green.shade700,
+                      size: 24.sp,
+                    ),
+                    SizedBox(width: 12.w),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'المخزن المستهدف للتحويل',
+                            style: TextStyle(
+                              fontSize: 14.sp,
+                              color: Colors.green.shade700,
+                            ),
+                          ),
+                          SizedBox(height: 4.h),
+                          Text(
+                            defaultDestinationWarehouse['name'],
+                            style: TextStyle(
+                              fontSize: 16.sp,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          Text(
+                            'كود: ${defaultDestinationWarehouse['code']}',
+                            style: TextStyle(
+                              fontSize: 12.sp,
+                              color: Colors.grey[600],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
               ),
-              enabledBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(15.r),
-                borderSide: BorderSide(color: Colors.grey.shade300),
+              SizedBox(height: 16.h),
+              TextField(
+                controller: _searchController,
+                decoration: InputDecoration(
+                  hintText: 'بحث عن مخزن مصدر...',
+                  prefixIcon: Icon(Icons.search, color: Colors.grey),
+                  suffixIcon: _searchQuery.isNotEmpty
+                      ? IconButton(
+                          icon: Icon(Icons.clear, color: Colors.grey),
+                          onPressed: () {
+                            setState(() {
+                              _searchController.clear();
+                              _searchQuery = '';
+                            });
+                          },
+                        )
+                      : null,
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(15.r),
+                    borderSide: BorderSide(color: Colors.grey.shade300),
+                  ),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(15.r),
+                    borderSide: BorderSide(color: Colors.grey.shade300),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(15.r),
+                    borderSide:
+                        BorderSide(color: Theme.of(context).primaryColor),
+                  ),
+                  contentPadding:
+                      EdgeInsets.symmetric(vertical: 12.h, horizontal: 16.w),
+                  filled: true,
+                  fillColor: Colors.grey.shade100,
+                ),
+                onChanged: (value) {
+                  setState(() {
+                    _searchQuery = value;
+                  });
+                },
               ),
-              focusedBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(15.r),
-                borderSide: BorderSide(color: Theme.of(context).primaryColor),
-              ),
-              contentPadding:
-                  EdgeInsets.symmetric(vertical: 12.h, horizontal: 16.w),
-              filled: true,
-              fillColor: Colors.grey.shade100,
-            ),
-            onChanged: (value) {
-              setState(() {
-                _searchQuery = value;
-              });
-            },
+            ],
           ),
         ),
         Expanded(
-          child: filteredWarehouses.isEmpty
+          child: sourceWarehouses.isEmpty
               ? _buildEmptyState('لا توجد مخازن مطابقة للبحث',
                   'حاول البحث بكلمات أخرى أو أضف مخزن جديد')
               : ListView.builder(
                   padding: EdgeInsets.all(16.r),
-                  itemCount: filteredWarehouses.length,
+                  itemCount: sourceWarehouses.length,
                   itemBuilder: (context, index) {
-                    final warehouse = filteredWarehouses[index];
+                    final warehouse = sourceWarehouses[index];
                     return WarehouseCard(
                       name: warehouse['name'],
                       code: warehouse['code'],
                       itemsCount: warehouse['itemsCount'],
-                      onTap: () => _showTransferDialog(warehouse,
-                          isTransferRequest: true),
+                      onTap: () => _navigateToTransferForm(
+                        warehouse,
+                        defaultDestinationWarehouse,
+                        isTransferRequest: true,
+                      ),
                     );
                   },
                 ),
@@ -188,44 +269,98 @@ class _WarehouseTransferScreenState extends State<WarehouseTransferScreen>
       children: [
         Padding(
           padding: EdgeInsets.all(16.r),
-          child: TextField(
-            decoration: InputDecoration(
-              hintText: 'بحث عن مخزن...',
-              prefixIcon: Icon(Icons.search, color: Colors.grey),
-              suffixIcon: _searchQuery.isNotEmpty
-                  ? IconButton(
-                      icon: Icon(Icons.clear, color: Colors.grey),
-                      onPressed: () {
-                        setState(() {
-                          _searchController.clear();
-                          _searchQuery = '';
-                        });
-                      },
-                    )
-                  : null,
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(15.r),
-                borderSide: BorderSide(color: Colors.grey.shade300),
+          child: Column(
+            children: [
+              // Show destination warehouse info for returns
+              Container(
+                padding: EdgeInsets.all(16.r),
+                decoration: BoxDecoration(
+                  color: Colors.amber.shade50,
+                  borderRadius: BorderRadius.circular(15.r),
+                  border: Border.all(color: Colors.amber.shade200),
+                ),
+                child: Row(
+                  children: [
+                    Icon(
+                      Icons.keyboard_return,
+                      color: Colors.amber.shade700,
+                      size: 24.sp,
+                    ),
+                    SizedBox(width: 12.w),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'مخزن استقبال المرتجعات',
+                            style: TextStyle(
+                              fontSize: 14.sp,
+                              color: Colors.amber.shade700,
+                            ),
+                          ),
+                          SizedBox(height: 4.h),
+                          Text(
+                            defaultDestinationWarehouse['name'],
+                            style: TextStyle(
+                              fontSize: 16.sp,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          Text(
+                            'كود: ${defaultDestinationWarehouse['code']}',
+                            style: TextStyle(
+                              fontSize: 12.sp,
+                              color: Colors.grey[600],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
               ),
-              enabledBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(15.r),
-                borderSide: BorderSide(color: Colors.grey.shade300),
+              SizedBox(height: 16.h),
+              TextField(
+                decoration: InputDecoration(
+                  hintText: 'بحث عن مخزن مصدر...',
+                  prefixIcon: Icon(Icons.search, color: Colors.grey),
+                  suffixIcon: _searchQuery.isNotEmpty
+                      ? IconButton(
+                          icon: Icon(Icons.clear, color: Colors.grey),
+                          onPressed: () {
+                            setState(() {
+                              _searchController.clear();
+                              _searchQuery = '';
+                            });
+                          },
+                        )
+                      : null,
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(15.r),
+                    borderSide: BorderSide(color: Colors.grey.shade300),
+                  ),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(15.r),
+                    borderSide: BorderSide(color: Colors.grey.shade300),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(15.r),
+                    borderSide:
+                        BorderSide(color: Theme.of(context).primaryColor),
+                  ),
+                  contentPadding:
+                      EdgeInsets.symmetric(vertical: 12.h, horizontal: 16.w),
+                  filled: true,
+                  fillColor: Colors.grey.shade100,
+                ),
+                controller: _searchController,
+                onChanged: (value) {
+                  setState(() {
+                    _searchQuery = value;
+                  });
+                },
               ),
-              focusedBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(15.r),
-                borderSide: BorderSide(color: Theme.of(context).primaryColor),
-              ),
-              contentPadding:
-                  EdgeInsets.symmetric(vertical: 12.h, horizontal: 16.w),
-              filled: true,
-              fillColor: Colors.grey.shade100,
-            ),
-            controller: _searchController,
-            onChanged: (value) {
-              setState(() {
-                _searchQuery = value;
-              });
-            },
+            ],
           ),
         ),
         Expanded(
@@ -237,22 +372,21 @@ class _WarehouseTransferScreenState extends State<WarehouseTransferScreen>
                   itemCount: filteredWarehouses.length,
                   itemBuilder: (context, index) {
                     final warehouse = filteredWarehouses[index];
-                    // Only show the main warehouse as a destination for returns
-                    if (warehouse['name'] == 'المخزن الرئيسي') {
-                      return WarehouseCard(
-                        name: warehouse['name'],
-                        code: warehouse['code'],
-                        itemsCount: warehouse['itemsCount'],
-                        onTap: () => _showTransferDialog(warehouse,
-                            isTransferRequest: false),
-                      );
+                    // Filter out the destination warehouse from source options for returns
+                    if (warehouse['code'] ==
+                        defaultDestinationWarehouse['code']) {
+                      return SizedBox
+                          .shrink(); // Don't show the destination warehouse as source
                     }
                     return WarehouseCard(
                       name: warehouse['name'],
                       code: warehouse['code'],
                       itemsCount: warehouse['itemsCount'],
-                      onTap: () => _showTransferDialog(warehouse,
-                          isTransferRequest: false),
+                      onTap: () => _navigateToTransferForm(
+                        warehouse,
+                        defaultDestinationWarehouse,
+                        isTransferRequest: false,
+                      ),
                     );
                   },
                 ),
@@ -293,98 +427,6 @@ class _WarehouseTransferScreenState extends State<WarehouseTransferScreen>
           ),
         ],
       ),
-    );
-  }
-
-  void _showTransferDialog(Map<String, dynamic> sourceWarehouse,
-      {required bool isTransferRequest}) {
-    final dialogTitle = isTransferRequest
-        ? 'اختر المخزن المستهدف للتحويل'
-        : 'اختر المخزن المصدر للمرتجع';
-
-    final fromText = isTransferRequest ? 'من' : 'إلى';
-
-    // For transfer requests: destination can't be the source
-    // For return requests: source can't be the main warehouse
-    final destinationWarehouses = warehouses.where((warehouse) {
-      if (isTransferRequest) {
-        return warehouse['code'] != sourceWarehouse['code'];
-      } else {
-        // For return requests, the destination is always the main warehouse
-        return warehouse['name'] == 'المخزن الرئيسي';
-      }
-    }).toList();
-
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20.r)),
-      ),
-      builder: (BuildContext context) {
-        return Container(
-          padding: EdgeInsets.all(16.r),
-          height: 0.6.sh,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Center(
-                child: Container(
-                  width: 40.w,
-                  height: 4.h,
-                  decoration: BoxDecoration(
-                    color: Colors.grey[300],
-                    borderRadius: BorderRadius.circular(10.r),
-                  ),
-                ),
-              ),
-              SizedBox(height: 16.h),
-              Text(
-                dialogTitle,
-                style: TextStyle(
-                  fontSize: 18.sp,
-                  fontWeight: FontWeight.bold,
-                ),
-                textAlign: TextAlign.center,
-              ),
-              SizedBox(height: 8.h),
-              Text(
-                '$fromText: ${sourceWarehouse['name']}',
-                style: TextStyle(
-                  fontSize: 16.sp,
-                  color: Colors.blue.shade700,
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
-              SizedBox(height: 16.h),
-              Expanded(
-                child: ListView.builder(
-                  itemCount: destinationWarehouses.length,
-                  itemBuilder: (context, index) {
-                    final warehouse = destinationWarehouses[index];
-                    return WarehouseCard(
-                      name: warehouse['name'],
-                      code: warehouse['code'],
-                      itemsCount: warehouse['itemsCount'],
-                      onTap: () {
-                        Navigator.pop(context);
-                        if (isTransferRequest) {
-                          _navigateToTransferForm(sourceWarehouse, warehouse,
-                              isTransferRequest: true);
-                        } else {
-                          // For return requests, the source is what user selected and destination is the main warehouse
-                          _navigateToTransferForm(sourceWarehouse, warehouse,
-                              isTransferRequest: false);
-                        }
-                      },
-                    );
-                  },
-                ),
-              ),
-            ],
-          ),
-        );
-      },
     );
   }
 

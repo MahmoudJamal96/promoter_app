@@ -4,15 +4,13 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import '../models/product_model.dart';
 import '../services/inventory_service.dart';
 import '../../../core/constants/strings.dart';
-import '../../../features/products/services/products_service.dart';
-import '../../../core/di/injection_container.dart';
 
 class ProductDetailScreen extends StatefulWidget {
-  final String productId;
+  final Product product;
 
   const ProductDetailScreen({
     Key? key,
-    required this.productId,
+    required this.product,
   }) : super(key: key);
 
   @override
@@ -20,68 +18,21 @@ class ProductDetailScreen extends StatefulWidget {
 }
 
 class _ProductDetailScreenState extends State<ProductDetailScreen> {
-  Product? _product;
-  bool _isLoading = true;
+  late Product _product;
+  bool _isLoading = false;
   final TextEditingController _quantityController = TextEditingController();
-  late ProductsService _productsService;
 
   @override
   void initState() {
     super.initState();
-    _productsService = sl<ProductsService>();
-    _loadProductDetails();
+    _product = widget.product;
+    _quantityController.text = _product.quantity.toString();
   }
 
   @override
   void dispose() {
     _quantityController.dispose();
     super.dispose();
-  }
-
-  Future<void> _loadProductDetails() async {
-    try {
-      // First try to get the product from the API
-      try {
-        final apiProduct =
-            await _productsService.getProductById(int.parse(widget.productId));
-
-        // Convert API product to inventory product model
-        final inventoryProduct = Product(
-          id: apiProduct.id.toString(),
-          name: apiProduct.name,
-          category: apiProduct.categoryName,
-          price: apiProduct.price,
-          quantity: apiProduct.quantity,
-          imageUrl: apiProduct.imageUrl ?? 'assets/images/yasin_app_logo.JPG',
-          barcode: apiProduct.barcode,
-          location: 'الرف ${apiProduct.categoryId}',
-          supplier: apiProduct.companyName ?? 'غير محدد',
-          lastUpdated:
-              DateTime.tryParse(apiProduct.updatedAt) ?? DateTime.now(),
-        );
-
-        setState(() {
-          _product = inventoryProduct;
-          _quantityController.text = inventoryProduct.quantity.toString();
-          _isLoading = false;
-        });
-      } catch (apiError) {
-        // Fallback to local inventory service if API fails
-        final product = await InventoryService.getProductById(widget.productId);
-        setState(() {
-          _product = product;
-          if (product != null) {
-            _quantityController.text = product.quantity.toString();
-          }
-          _isLoading = false;
-        });
-      }
-    } catch (e) {
-      setState(() {
-        _isLoading = false;
-      });
-      _showErrorSnackBar('حدث خطأ أثناء تحميل بيانات المنتج');
-    }
   }
 
   void _showErrorSnackBar(String message) {
@@ -94,8 +45,6 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
   }
 
   Future<void> _updateProductQuantity() async {
-    if (_product == null) return;
-
     final newQuantity = int.tryParse(_quantityController.text);
     if (newQuantity == null) {
       _showErrorSnackBar('الرجاء إدخال رقم صحيح');
@@ -108,18 +57,17 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
 
     try {
       await InventoryService.updateProductQuantity(
-        _product!.id,
+        _product.id,
         newQuantity,
       );
 
+      // Update the local product object
       setState(() {
+        _product = _product.copyWith(quantity: newQuantity);
         _isLoading = false;
       });
 
       _showSuccessSnackBar('تم تحديث الكمية بنجاح');
-
-      // Refresh product details after successful update
-      _loadProductDetails();
     } catch (e) {
       setState(() {
         _isLoading = false;
@@ -149,20 +97,6 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
         ),
         body: const Center(
           child: CircularProgressIndicator(),
-        ),
-      );
-    }
-
-    if (_product == null) {
-      return Scaffold(
-        appBar: AppBar(
-          title: const Text('تفاصيل المنتج'),
-          backgroundColor: Colors.white,
-          foregroundColor: Colors.black,
-          elevation: 0,
-        ),
-        body: const Center(
-          child: Text('المنتج غير موجود'),
         ),
       );
     }
@@ -208,9 +142,9 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
       child: ClipRRect(
         borderRadius: BorderRadius.circular(16.r),
         child: Hero(
-          tag: 'product_image_${_product!.id}',
+          tag: 'product_image_${_product.id}',
           child: Image.asset(
-            _product!.imageUrl,
+            _product.imageUrl,
             fit: BoxFit.cover,
             errorBuilder: (context, error, stackTrace) {
               return Container(
@@ -250,7 +184,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
             children: [
               Expanded(
                 child: Text(
-                  '${_product!.price.toStringAsFixed(2)} ${Strings.CURRENCY}',
+                  '${_product.price.toStringAsFixed(2)} ${Strings.CURRENCY}',
                   style: TextStyle(
                     fontSize: 24.sp,
                     fontWeight: FontWeight.bold,
@@ -263,7 +197,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
           ),
           SizedBox(height: 16.h),
           Text(
-            _product!.name,
+            _product.name,
             style: TextStyle(
               fontSize: 20.sp,
               fontWeight: FontWeight.bold,
@@ -271,7 +205,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
           ),
           SizedBox(height: 8.h),
           Text(
-            _product!.category,
+            _product.category,
             style: TextStyle(
               fontSize: 16.sp,
               color: Colors.grey[600],
@@ -287,7 +221,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
               ),
               SizedBox(width: 8.w),
               Text(
-                _product!.quantity > 0 ? 'متوفر في المخزن' : 'غير متوفر',
+                _product.quantity > 0 ? 'متوفر في المخزن' : 'غير متوفر',
                 style: TextStyle(
                   fontSize: 14.sp,
                   color: _getStockColor(),
@@ -296,7 +230,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
               ),
               SizedBox(width: 8.w),
               Text(
-                '(${_product!.quantity} قطعة)',
+                '(${_product.quantity} قطعة)',
                 style: TextStyle(
                   fontSize: 14.sp,
                   color: Colors.grey[600],
@@ -332,11 +266,11 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
   }
 
   Color _getStockColor() {
-    if (_product!.quantity > 20) {
+    if (_product.quantity > 20) {
       return Colors.green;
-    } else if (_product!.quantity > 5) {
+    } else if (_product.quantity > 5) {
       return Colors.orange;
-    } else if (_product!.quantity > 0) {
+    } else if (_product.quantity > 0) {
       return Colors.red;
     } else {
       return Colors.grey;
@@ -344,11 +278,11 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
   }
 
   String _getStockText() {
-    if (_product!.quantity > 20) {
+    if (_product.quantity > 20) {
       return 'مخزون جيد';
-    } else if (_product!.quantity > 5) {
+    } else if (_product.quantity > 5) {
       return 'مخزون منخفض';
-    } else if (_product!.quantity > 0) {
+    } else if (_product.quantity > 0) {
       return 'مخزون محدود';
     } else {
       return 'نفذ المخزون';
@@ -382,20 +316,20 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
           SizedBox(height: 16.h),
           _buildDetailRow(
             'الباركود',
-            value: _product!.barcode,
+            value: _product.barcode,
           ),
           _buildDetailRow(
             'الموقع',
-            value: _product!.location,
+            value: _product.location,
           ),
           _buildDetailRow(
             'المورد',
-            value: _product!.supplier,
+            value: _product.supplier,
           ),
           _buildDetailRow(
             'آخر تحديث',
             value:
-                '${_product!.lastUpdated.day}/${_product!.lastUpdated.month}/${_product!.lastUpdated.year}',
+                '${_product.lastUpdated.day}/${_product.lastUpdated.month}/${_product.lastUpdated.year}',
           ),
         ],
       ),

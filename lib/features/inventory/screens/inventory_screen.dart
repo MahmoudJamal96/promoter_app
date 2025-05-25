@@ -491,10 +491,10 @@ class _InventoryScreenState extends State<InventoryScreen>
               Expanded(
                 child: _isLoading && _products.isEmpty
                     ? Center(
-                        child: CircularProgressIndicator(
-                          color: theme.colorScheme.primary,
-                        ),
-                      )
+                        // child: CircularProgressIndicator(
+                        //   color: theme.colorScheme.primary,
+                        // ),
+                        )
                     : _products.isEmpty
                         ? Center(
                             child: Column(
@@ -542,10 +542,10 @@ class _InventoryScreenState extends State<InventoryScreen>
                                 // Show loading indicator at the end if more data is available
                                 if (index == _products.length) {
                                   return Center(
-                                    child: CircularProgressIndicator(
-                                      color: theme.colorScheme.primary,
-                                    ),
-                                  );
+                                      // child: CircularProgressIndicator(
+                                      //   color: theme.colorScheme.primary,
+                                      // ),
+                                      );
                                 }
 
                                 final product = _products[index];
@@ -605,7 +605,7 @@ class _InventoryScreenState extends State<InventoryScreen>
         Navigator.push(
           context,
           MaterialPageRoute(
-            builder: (_) => ProductDetailScreen(productId: product.id),
+            builder: (_) => ProductDetailScreen(product: product),
           ),
         );
       },
@@ -1019,10 +1019,10 @@ class _InventoryScreenState extends State<InventoryScreen>
                             ? SizedBox(
                                 width: 20.w,
                                 height: 20.h,
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 2,
-                                  color: Colors.white,
-                                ),
+                                // child: CircularProgressIndicator(
+                                //   strokeWidth: 2,
+                                //   color: Colors.white,
+                                // ),
                               )
                             : Text('حفظ الجرد'),
                         style: ElevatedButton.styleFrom(

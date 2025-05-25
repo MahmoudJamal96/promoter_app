@@ -17,12 +17,12 @@ class ProductsService {
       {int page = 1, int? categoryId, int? companyId, String? search}) async {
     final queryParams = <String, dynamic>{'page': page};
 
-    if (categoryId != null) queryParams['category_id'] = categoryId;
+    // if (categoryId != null) queryParams['category_id'] = categoryId;
     if (companyId != null) queryParams['company_id'] = companyId;
     if (search != null && search.isNotEmpty) queryParams['search'] = search;
 
     final response = await _apiClient.get(
-      '/products',
+      categoryId != null ? '/products/$categoryId/related' : '/products',
       queryParameters: queryParams,
     );
 
@@ -77,12 +77,12 @@ class ProductsService {
   }
 
   Future<Product> getProductById(int productId) async {
-    final response = await _apiClient.get('/products/$productId');
+    final response = await _apiClient.get('/products/$productId/related');
     return Product.fromJson(response);
   }
 
   Future<List<Map<String, dynamic>>> getCategories() async {
-    final response = await _apiClient.get('/categories');
+    final response = await _apiClient.get('/get-categories');
     return List<Map<String, dynamic>>.from(response['data'] ?? []);
   }
 

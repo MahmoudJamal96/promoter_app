@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import '../../../core/constants/strings.dart';
 import '../../../core/di/injection_container.dart';
 import 'models/delivery_order_model.dart';
 import 'services/delivery_service.dart';
@@ -108,33 +109,21 @@ class _DeliveryScreenState extends State<DeliveryScreen>
 
   Widget _buildOrdersList(List<DeliveryOrder> orders, bool isActive) {
     if (orders.isEmpty) {
-      return RefreshIndicator(
-        onRefresh: _loadOrders,
-        child: SingleChildScrollView(
-          physics: AlwaysScrollableScrollPhysics(),
-          child: Container(
-            height: MediaQuery.of(context).size.height * 0.7,
-            child: _buildEmptyState(),
-          ),
-        ),
-      );
+      return _buildEmptyState();
     }
-    return RefreshIndicator(
-      onRefresh: _loadOrders,
-      child: ListView.builder(
-        padding: EdgeInsets.all(16.w),
-        itemCount: orders.length,
-        itemBuilder: (context, index) {
-          return _buildOrderCard(orders[index], isActive)
-              .animate()
-              .fadeIn(duration: 300.ms, delay: (50 * index).ms)
-              .slide(
-                  begin: Offset(0, 10),
-                  end: Offset(0, 0),
-                  duration: 300.ms,
-                  curve: Curves.easeOut);
-        },
-      ),
+    return ListView.builder(
+      padding: EdgeInsets.all(16.w),
+      itemCount: orders.length,
+      itemBuilder: (context, index) {
+        return _buildOrderCard(orders[index], isActive)
+            .animate()
+            .fadeIn(duration: 300.ms, delay: (50 * index).ms)
+            .slide(
+                begin: Offset(0, 10),
+                end: Offset(0, 0),
+                duration: 300.ms,
+                curve: Curves.easeOut);
+      },
     );
   }
 

@@ -63,7 +63,7 @@ class _MeetingsScreenState extends State<MeetingsScreen> {
       endTime: TimeOfDay(hour: 12, minute: 30),
       participants: ['فهد عمر', 'خالد محمد'],
       agenda: 'متابعة الطلبيات السابقة وعرض المنتجات الجديدة',
-      notes: 'تم الاتفاق على طلبية جديدة بقيمة 50,000 ريال',
+      notes: 'تم الاتفاق على طلبية جديدة بقيمة 50,000 جنيه',
       outcome: MeetingOutcome.successful,
     ),
     Meeting(

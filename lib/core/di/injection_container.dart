@@ -37,6 +37,10 @@ import 'package:promoter_app/features/products/services/products_service.dart';
 import 'package:promoter_app/features/inventory_transfer/services/inventory_transfer_service.dart';
 import 'package:promoter_app/features/menu/leave_request/services/leave_request_service.dart';
 import 'package:promoter_app/features/menu/leave_request/controllers/leave_request_controller.dart';
+import 'package:promoter_app/features/menu/delivery/services/delivery_service.dart';
+import 'package:promoter_app/features/menu/messages/services/notification_service.dart';
+import 'package:promoter_app/features/salary/services/salary_service.dart';
+import 'package:promoter_app/features/salary/cubit/salary_cubit.dart';
 
 // Feature controllers imports
 import 'package:promoter_app/features/sales_invoice/controllers/sales_invoice_controller.dart';
@@ -212,6 +216,21 @@ void _registerFeatureServices() {
     () => InventoryTransferService(apiClient: sl()),
   );
 
+  // Register Delivery Service
+  sl.registerLazySingleton(
+    () => DeliveryService(apiClient: sl()),
+  );
+
+  // Register Notification Service
+  sl.registerLazySingleton(
+    () => NotificationService(apiClient: sl()),
+  );
+
+  // Register Salary Service
+  sl.registerLazySingleton(
+    () => SalaryService(apiClient: sl()),
+  );
+
   // Register Cubits
   _registerCubits(); // Added call to register cubits
 
@@ -224,6 +243,11 @@ void _registerCubits() {
   sl.registerFactory(
     () => CollectionCubit(
         collectionService: sl<CollectionService>()), // Corrected argument
+  );
+
+  // Register Salary Cubit
+  sl.registerFactory(
+    () => SalaryCubit(salaryService: sl<SalaryService>()),
   );
 }
 

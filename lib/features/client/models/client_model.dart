@@ -86,7 +86,10 @@ class Client {
       longitude: (json['longitude'] ?? json['lon'] != null)
           ? (json['longitude'] ?? json['lon'] is int
               ? (json['longitude'] ?? json['lon'] as int).toDouble()
-              : (json['longitude'] ?? json['lon'] as num?)?.toDouble() ?? 0.0)
+                  ? (json['Long'] ?? json['Long'] as int).toDouble()
+                  : (json['longitude'] ?? json['lon'] as num?)?.toDouble() ??
+                      0.0
+              : 0.0)
           : 0.0,
       visitStatus:
           parseVisitStatus(json['visit_status'] ?? json['visitStatus']),

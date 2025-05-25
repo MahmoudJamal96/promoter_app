@@ -441,44 +441,10 @@ class _ProductInquiryScreenState extends State<ProductInquiryScreen> {
 
                               SizedBox(height: 16.h),
 
-                              // Sales chart
-                              _buildChartCard(
-                                context: context,
-                                title: 'إحصائيات المبيعات',
-                                subtitle: 'آخر 30 يوم',
-                                chartData: _salesData,
-                                color: theme.colorScheme.primary,
-                                label: 'المبيعات',
-                                yAxisLabel: 'الكمية',
-                                gradientColors: [
-                                  theme.colorScheme.primary,
-                                  theme.colorScheme.primary.withOpacity(0.5),
-                                ],
-                              ),
+                              // // Related products
+                              // _buildRelatedProducts(context),
 
-                              SizedBox(height: 16.h),
-
-                              // Stock level chart
-                              _buildChartCard(
-                                context: context,
-                                title: 'حركة المخزون',
-                                subtitle: 'آخر 30 يوم',
-                                chartData: _stockData,
-                                color: Colors.amber,
-                                label: 'المخزون',
-                                yAxisLabel: 'الكمية',
-                                gradientColors: [
-                                  Colors.amber,
-                                  Colors.amber.withOpacity(0.5),
-                                ],
-                              ),
-
-                              SizedBox(height: 16.h),
-
-                              // Related products
-                              _buildRelatedProducts(context),
-
-                              SizedBox(height: 16.h),
+                              // SizedBox(height: 16.h),
                             ],
                           ),
                         ),

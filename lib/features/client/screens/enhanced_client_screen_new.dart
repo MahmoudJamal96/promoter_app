@@ -484,8 +484,11 @@ class _EnhancedClientScreenState extends State<EnhancedClientPage>
                       backgroundColor: Colors.blue,
                       padding: EdgeInsets.symmetric(vertical: 12.h),
                     ),
-                    onPressed: () =>
-                        _openMap(client.latitude, client.longitude),
+                    onPressed: () {
+                      print(
+                          'Opening map for ${client.name}  ${client.latitude}, ${client.longitude}');
+                      _openMap(client.latitude, client.longitude);
+                    },
                     icon: const Icon(Icons.map),
                     label: const Text('خريطة'),
                   ),
