@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'core/constants/strings.dart';
+import 'core/extensions/price_extension.dart';
 
 ThemeData lightTheme() {
   final ThemeData appTheme = ThemeData(

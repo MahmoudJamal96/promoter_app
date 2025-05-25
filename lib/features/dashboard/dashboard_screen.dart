@@ -4,6 +4,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter_zoom_drawer/flutter_zoom_drawer.dart';
 import 'package:promoter_app/core/constants/assets.dart';
+import 'package:promoter_app/core/constants/strings.dart';
 import 'package:promoter_app/core/di/injection_container.dart';
 import 'package:promoter_app/core/view/widgets/image_loader.dart';
 import 'package:promoter_app/features/auth/presentation/bloc/auth_bloc.dart';
@@ -270,7 +271,7 @@ class DebtCard extends StatefulWidget {
 class _DebtCardState extends State<DebtCard> {
   bool _isLoading = true;
   String _totalDebt = '0.0';
-  String _currencySymbol = 'ر.س';
+  String _currencySymbol = Strings.CURRENCY;
 
   @override
   void initState() {

@@ -1,4 +1,3 @@
-// filepath: f:\Flutter_Projects\promoter_app\lib\features\client\screens\add_client_dialog_new.dart
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
@@ -9,9 +8,20 @@ import '../models/location_models.dart' as loc;
 import '../services/client_service.dart';
 import '../cubit/client_cubit_service.dart';
 
-// Helper function to show the add client dialog
-Future<void> showAddClientDialog(
-    BuildContext context, ClientCubit clientCubit) async {
+class AddClientPage extends StatefulWidget {
+  final ClientCubit clientCubit;
+
+  const AddClientPage({
+    super.key,
+    required this.clientCubit,
+  });
+
+  @override
+  State<AddClientPage> createState() => _AddClientPageState();
+}
+
+class _AddClientPageState extends State<AddClientPage> {
+  // Text controllers
   final nameController = TextEditingController();
   final phoneController = TextEditingController();
   final codeController = TextEditingController();
@@ -19,56 +29,9 @@ Future<void> showAddClientDialog(
   final latitudeController = TextEditingController();
   final longitudeController = TextEditingController();
 
-  // Get service instance
-  final clientService = sl<ClientService>();
+  // Service instance
+  late final ClientService clientService;
 
-  return showDialog<void>(
-    context: context,
-    barrierDismissible: false,
-    builder: (BuildContext context) {
-      return _AddClientDialogContent(
-        context: context,
-        nameController: nameController,
-        phoneController: phoneController,
-        codeController: codeController,
-        addressController: addressController,
-        latitudeController: latitudeController,
-        longitudeController: longitudeController,
-        clientService: clientService,
-        clientCubit: clientCubit,
-      );
-    },
-  );
-}
-
-class _AddClientDialogContent extends StatefulWidget {
-  final BuildContext context;
-  final TextEditingController nameController;
-  final TextEditingController phoneController;
-  final TextEditingController codeController;
-  final TextEditingController addressController;
-  final TextEditingController latitudeController;
-  final TextEditingController longitudeController;
-  final ClientService clientService;
-  final ClientCubit clientCubit;
-
-  const _AddClientDialogContent({
-    required this.context,
-    required this.nameController,
-    required this.phoneController,
-    required this.codeController,
-    required this.addressController,
-    required this.latitudeController,
-    required this.longitudeController,
-    required this.clientService,
-    required this.clientCubit,
-  });
-
-  @override
-  _AddClientDialogContentState createState() => _AddClientDialogContentState();
-}
-
-class _AddClientDialogContentState extends State<_AddClientDialogContent> {
   // State management
   loc.State? selectedState;
   loc.City? selectedCity;
@@ -85,8 +48,19 @@ class _AddClientDialogContentState extends State<_AddClientDialogContent> {
   @override
   void initState() {
     super.initState();
+    clientService = sl<ClientService>();
     _loadInitialData();
-    _getCurrentLocation();
+  }
+
+  @override
+  void dispose() {
+    nameController.dispose();
+    phoneController.dispose();
+    codeController.dispose();
+    addressController.dispose();
+    latitudeController.dispose();
+    longitudeController.dispose();
+    super.dispose();
   }
 
   // Load data from API or fallback to hardcoded data
@@ -96,15 +70,15 @@ class _AddClientDialogContentState extends State<_AddClientDialogContent> {
     });
 
     // Start with hardcoded data
-    states = widget.clientService.getEgyptStates();
-    workTypes = widget.clientService.getWorkTypes();
+    states = clientService.getEgyptStates();
+    workTypes = clientService.getWorkTypes();
     responsibles = [];
 
     try {
       // Try to load data from API
-      final apiStates = await widget.clientService.fetchStates();
-      final apiWorkTypes = await widget.clientService.fetchWorkTypes();
-      final apiResponsibles = await widget.clientService.fetchResponsibles();
+      final apiStates = await clientService.fetchStates();
+      final apiWorkTypes = await clientService.fetchWorkTypes();
+      final apiResponsibles = await clientService.fetchResponsibles();
 
       // Update state with API data if available
       if (apiStates.isNotEmpty) {
@@ -135,11 +109,11 @@ class _AddClientDialogContentState extends State<_AddClientDialogContent> {
     setState(() {
       selectedState = state;
       selectedCity = null;
-      availableCities = widget.clientService.getCitiesByState(state.id);
+      availableCities = clientService.getCitiesByState(state.id);
     });
 
     try {
-      final apiCities = await widget.clientService.fetchCitiesByState(state.id);
+      final apiCities = await clientService.fetchCitiesByState(state.id);
       if (apiCities.isNotEmpty && mounted) {
         setState(() {
           availableCities = apiCities;
@@ -189,9 +163,8 @@ class _AddClientDialogContentState extends State<_AddClientDialogContent> {
       // Update the text fields
       if (mounted) {
         setState(() {
-          widget.latitudeController.text = position.latitude.toStringAsFixed(6);
-          widget.longitudeController.text =
-              position.longitude.toStringAsFixed(6);
+          latitudeController.text = position.latitude.toStringAsFixed(6);
+          longitudeController.text = position.longitude.toStringAsFixed(6);
         });
 
         ScaffoldMessenger.of(context).showSnackBar(
@@ -210,9 +183,9 @@ class _AddClientDialogContentState extends State<_AddClientDialogContent> {
   // Create new client
   void _createClient() {
     // Validate required fields
-    if (widget.nameController.text.trim().isEmpty ||
-        widget.phoneController.text.trim().isEmpty ||
-        widget.codeController.text.trim().isEmpty ||
+    if (nameController.text.trim().isEmpty ||
+        phoneController.text.trim().isEmpty ||
+        codeController.text.trim().isEmpty ||
         selectedState == null ||
         selectedCity == null ||
         selectedWorkType == null) {
@@ -224,22 +197,21 @@ class _AddClientDialogContentState extends State<_AddClientDialogContent> {
     }
 
     // Validate phone number (should be numeric and at least 8 digits)
-    final phoneNumber = widget.phoneController.text.trim();
+    final phoneNumber = phoneController.text.trim();
     if (phoneNumber.length < 8 || !RegExp(r'^\d+$').hasMatch(phoneNumber)) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('رقم الهاتف غير صحيح')),
       );
       return;
-    } // Get the selected responsible ID or use a default value
-    final responsibleId = selectedResponsible?.id ?? 1;
+    }
 
     // Parse and validate latitude and longitude
     double latitude = 30.0444; // Default to Cairo coordinates
     double longitude = 31.2357;
 
     // Validate latitude if provided
-    if (widget.latitudeController.text.trim().isNotEmpty) {
-      final parsedLat = double.tryParse(widget.latitudeController.text.trim());
+    if (latitudeController.text.trim().isNotEmpty) {
+      final parsedLat = double.tryParse(latitudeController.text.trim());
       if (parsedLat == null || parsedLat < -90 || parsedLat > 90) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
@@ -251,8 +223,8 @@ class _AddClientDialogContentState extends State<_AddClientDialogContent> {
     }
 
     // Validate longitude if provided
-    if (widget.longitudeController.text.trim().isNotEmpty) {
-      final parsedLon = double.tryParse(widget.longitudeController.text.trim());
+    if (longitudeController.text.trim().isNotEmpty) {
+      final parsedLon = double.tryParse(longitudeController.text.trim());
       if (parsedLon == null || parsedLon < -180 || parsedLon > 180) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
@@ -263,13 +235,16 @@ class _AddClientDialogContentState extends State<_AddClientDialogContent> {
       longitude = parsedLon;
     }
 
+    // Get the selected responsible ID or use a default value
+    final responsibleId = selectedResponsible?.id ?? 1;
+
     // Create client with all required fields
-    widget.clientService
+    clientService
         .createClient(
-      name: widget.nameController.text,
-      phone: widget.phoneController.text,
-      address: widget.addressController.text,
-      code: widget.codeController.text,
+      name: nameController.text,
+      phone: phoneController.text,
+      address: addressController.text,
+      code: codeController.text,
       stateId: selectedState!.id,
       cityId: selectedCity!.id,
       typeOfWorkId: selectedWorkType!.id,
@@ -280,7 +255,7 @@ class _AddClientDialogContentState extends State<_AddClientDialogContent> {
         .then((client) {
       // Create a complete client with all fields for display
       final completeClient = client.copyWith(
-        code: widget.codeController.text,
+        code: codeController.text,
         stateId: selectedState!.id,
         cityId: selectedCity!.id,
         typeOfWorkId: selectedWorkType!.id,
@@ -290,7 +265,7 @@ class _AddClientDialogContentState extends State<_AddClientDialogContent> {
       // Add the complete client to the cubit state
       widget.clientCubit.addClient(completeClient);
 
-      // Show success message and close dialog
+      // Show success message and navigate back
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('تم إضافة العميل بنجاح')),
       );
@@ -307,23 +282,37 @@ class _AddClientDialogContentState extends State<_AddClientDialogContent> {
   Widget build(BuildContext context) {
     return Directionality(
       textDirection: TextDirection.rtl,
-      child: AlertDialog(
-        title: Text(
-          'إضافة عميل جديد',
-          textAlign: TextAlign.center,
-          style: TextStyle(
-            fontWeight: FontWeight.bold,
-            fontSize: 20.sp,
+      child: Scaffold(
+        appBar: AppBar(
+          title: const Text(
+            'إضافة عميل جديد',
+            style: TextStyle(fontWeight: FontWeight.bold),
           ),
+          centerTitle: true,
+          actions: [
+            TextButton(
+              onPressed: _createClient,
+              child: Text(
+                'حفظ',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 16.sp,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+          ],
         ),
-        content: isLoading
+        body: isLoading
             ? const Center(child: CircularProgressIndicator())
             : SingleChildScrollView(
+                padding: EdgeInsets.all(16.w),
                 child: Column(
-                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
+                    // Client name field
                     TextField(
-                      controller: widget.nameController,
+                      controller: nameController,
                       textAlign: TextAlign.right,
                       decoration: const InputDecoration(
                         labelText: 'اسم العميل',
@@ -334,8 +323,10 @@ class _AddClientDialogContentState extends State<_AddClientDialogContent> {
                       ),
                     ),
                     SizedBox(height: 16.h),
+
+                    // Phone number field
                     TextField(
-                      controller: widget.phoneController,
+                      controller: phoneController,
                       textAlign: TextAlign.right,
                       decoration: const InputDecoration(
                         labelText: 'رقم الهاتف',
@@ -347,8 +338,10 @@ class _AddClientDialogContentState extends State<_AddClientDialogContent> {
                       keyboardType: TextInputType.phone,
                     ),
                     SizedBox(height: 16.h),
+
+                    // Client code field
                     TextField(
-                      controller: widget.codeController,
+                      controller: codeController,
                       textAlign: TextAlign.right,
                       decoration: const InputDecoration(
                         labelText: 'كود العميل',
@@ -359,8 +352,10 @@ class _AddClientDialogContentState extends State<_AddClientDialogContent> {
                       ),
                     ),
                     SizedBox(height: 16.h),
+
+                    // Address field
                     TextField(
-                      controller: widget.addressController,
+                      controller: addressController,
                       textAlign: TextAlign.right,
                       decoration: const InputDecoration(
                         labelText: 'العنوان',
@@ -372,9 +367,10 @@ class _AddClientDialogContentState extends State<_AddClientDialogContent> {
                       maxLines: 2,
                     ),
                     SizedBox(height: 16.h),
+
                     // Latitude input field
                     TextField(
-                      controller: widget.latitudeController,
+                      controller: latitudeController,
                       textAlign: TextAlign.right,
                       decoration: const InputDecoration(
                         labelText: 'خط العرض (Latitude)',
@@ -388,9 +384,10 @@ class _AddClientDialogContentState extends State<_AddClientDialogContent> {
                           const TextInputType.numberWithOptions(decimal: true),
                     ),
                     SizedBox(height: 16.h),
+
                     // Longitude input field
                     TextField(
-                      controller: widget.longitudeController,
+                      controller: longitudeController,
                       textAlign: TextAlign.right,
                       decoration: const InputDecoration(
                         labelText: 'خط الطول (Longitude)',
@@ -404,22 +401,18 @@ class _AddClientDialogContentState extends State<_AddClientDialogContent> {
                           const TextInputType.numberWithOptions(decimal: true),
                     ),
                     SizedBox(height: 16.h),
+
                     // Location helper button
-                    Row(
-                      children: [
-                        Expanded(
-                          child: OutlinedButton.icon(
-                            onPressed: _getCurrentLocation,
-                            icon: const Icon(Icons.my_location),
-                            label: const Text('الحصول على الموقع الحالي'),
-                            style: OutlinedButton.styleFrom(
-                              padding: EdgeInsets.symmetric(vertical: 12.h),
-                            ),
-                          ),
-                        ),
-                      ],
+                    OutlinedButton.icon(
+                      onPressed: _getCurrentLocation,
+                      icon: const Icon(Icons.my_location),
+                      label: const Text('الحصول على الموقع الحالي'),
+                      style: OutlinedButton.styleFrom(
+                        padding: EdgeInsets.symmetric(vertical: 12.h),
+                      ),
                     ),
                     SizedBox(height: 16.h),
+
                     // State dropdown
                     DropdownButtonFormField<loc.State>(
                       decoration: const InputDecoration(
@@ -445,6 +438,7 @@ class _AddClientDialogContentState extends State<_AddClientDialogContent> {
                       },
                     ),
                     SizedBox(height: 16.h),
+
                     // City dropdown
                     DropdownButtonFormField<loc.City>(
                       decoration: const InputDecoration(
@@ -470,6 +464,7 @@ class _AddClientDialogContentState extends State<_AddClientDialogContent> {
                       },
                     ),
                     SizedBox(height: 16.h),
+
                     // Work type dropdown
                     DropdownButtonFormField<loc.WorkType>(
                       decoration: const InputDecoration(
@@ -495,6 +490,7 @@ class _AddClientDialogContentState extends State<_AddClientDialogContent> {
                       },
                     ),
                     SizedBox(height: 16.h),
+
                     // Responsible person dropdown
                     DropdownButtonFormField<loc.Responsible>(
                       decoration: const InputDecoration(
@@ -519,19 +515,23 @@ class _AddClientDialogContentState extends State<_AddClientDialogContent> {
                         });
                       },
                     ),
+                    SizedBox(height: 32.h),
+
+                    // Save button
+                    ElevatedButton(
+                      onPressed: _createClient,
+                      style: ElevatedButton.styleFrom(
+                        padding: EdgeInsets.symmetric(vertical: 16.h),
+                        textStyle: TextStyle(
+                          fontSize: 18.sp,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      child: const Text('إضافة العميل'),
+                    ),
                   ],
                 ),
               ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: const Text('إلغاء'),
-          ),
-          ElevatedButton(
-            onPressed: _createClient,
-            child: const Text('إضافة'),
-          ),
-        ],
       ),
     );
   }

@@ -14,6 +14,7 @@ import 'package:promoter_app/core/di/injection_container.dart';
 import 'package:promoter_app/features/tools/scanner/scanner_screen.dart';
 import 'package:promoter_app/features/products/models/product_model.dart'
     as ApiProduct;
+import 'package:promoter_app/core/constants/strings.dart';
 
 class ProductInquiryScreen extends StatefulWidget {
   const ProductInquiryScreen({super.key});
@@ -675,7 +676,7 @@ class _ProductInquiryScreenState extends State<ProductInquiryScreen> {
                         borderRadius: BorderRadius.circular(8.r),
                       ),
                       child: Text(
-                        '${product.price.toStringAsFixed(2)} ر.س',
+                        '${product.price.toStringAsFixed(2)} جنيه',
                         style: TextStyle(
                           color: Colors.white,
                           fontWeight: FontWeight.bold,
@@ -1383,7 +1384,7 @@ class _ProductInquiryScreenState extends State<ProductInquiryScreen> {
                                 ),
                                 SizedBox(height: 4.h),
                                 Text(
-                                  '${product.price.toStringAsFixed(2)} ر.س',
+                                  '${product.price.toStringAsFixed(2)} جنيه',
                                   style: TextStyle(
                                     fontSize: 12.sp,
                                     color: theme.colorScheme.primary,

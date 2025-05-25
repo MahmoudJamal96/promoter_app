@@ -133,7 +133,7 @@ class ClientProvider extends ChangeNotifier {
     if (_searchQuery.isNotEmpty) {
       result = result.where((client) {
         final name = client.name.toLowerCase();
-        final phone = client.phone.toLowerCase();
+        final phone = client.phone?.toLowerCase() ?? "";
         final address = client.address.toLowerCase();
         final query = _searchQuery.toLowerCase();
         return name.contains(query) ||

@@ -4,13 +4,14 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:promoter_app/features/client/cubit/client_cubit_service.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:url_launcher/url_launcher_string.dart';
 
 import '../../../core/di/injection_container.dart';
 import '../models/client_model.dart';
 import '../cubit/client_state.dart';
 import '../widgets/clients_map_view.dart';
 import '../widgets/enhanced_client_card.dart';
-import '../screens/add_client_dialog_new.dart' as add_client_dialog;
+import '../screens/add_client_page.dart';
 
 class EnhancedClientScreen extends StatelessWidget {
   const EnhancedClientScreen({super.key});
@@ -47,33 +48,65 @@ class _EnhancedClientScreenState extends State<EnhancedClientPage>
   }
 
   void _showAddClientDialog() {
-    // Use the separate dialog implementation with Arabic dropdowns
-    add_client_dialog.showAddClientDialog(context, context.read<ClientCubit>());
+    // Navigate to the Add Client page
+    Navigator.of(context)
+        .push(
+      MaterialPageRoute(
+        builder: (context) => AddClientPage(
+          clientCubit: context.read<ClientCubit>(),
+        ),
+      ),
+    )
+        .then((v) {
+      // Refresh the client list after adding a new client
+      if (mounted) {
+        setState(() {});
+      }
+    });
   }
 
   void _makePhoneCall(String phoneNumber) async {
-    final Uri launchUri = Uri(
-      scheme: 'tel',
-      path: phoneNumber,
-    );
-    if (await canLaunchUrl(launchUri)) {
-      await launchUrl(launchUri);
-    } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('تعذر الاتصال بالرقم $phoneNumber')),
-      );
+    try {
+      // Clean the phone number (remove any non-digit characters except +)
+      String cleanedNumber = phoneNumber.replaceAll(RegExp(r'[^\d+]'), '');
+
+      final String url = "tel:$cleanedNumber";
+      await launchUrlString(url);
+
+      // if (await launchUrlString(url)) {
+      //   await launchUrlString(url);
+      // } else {
+      //   throw 'Could not launch $url';
+      // }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('خطأ في الاتصال: $e')),
+        );
+      }
     }
   }
 
   void _openMap(double latitude, double longitude) async {
-    final googleUrl = Uri.parse(
-        'https://www.google.com/maps/search/?api=1&query=$latitude,$longitude');
-    if (await canLaunchUrl(googleUrl)) {
-      await launchUrl(googleUrl);
-    } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('تعذر فتح الخريطة')),
-      );
+    try {
+      final googleUrl = Uri.parse(
+          'https://www.google.com/maps/search/?api=1&query=$latitude,$longitude');
+
+      if (await canLaunchUrl(googleUrl)) {
+        await launchUrl(googleUrl, mode: LaunchMode.externalApplication);
+      } else {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('تعذر فتح الخريطة')),
+          );
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('خطأ في فتح الخريطة: $e')),
+        );
+      }
     }
   }
 
@@ -137,7 +170,7 @@ class _EnhancedClientScreenState extends State<EnhancedClientPage>
       final query = state.searchQuery.toLowerCase();
       result = result.where((client) {
         final name = client.name.toLowerCase();
-        final phone = client.phone.toLowerCase();
+        String phone = client.phone?.toLowerCase() ?? "";
         final address = client.address.toLowerCase();
         return name.contains(query) ||
             phone.contains(query) ||
@@ -158,16 +191,47 @@ class _EnhancedClientScreenState extends State<EnhancedClientPage>
   Widget _buildMapView(BuildContext context, ClientLoaded state) {
     final filteredClients = _getFilteredClients(state);
     if (state.promoterPosition == null) {
-      return const Center(child: Text('جاري تحديد موقعك...'));
+      return const Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            CircularProgressIndicator(),
+            SizedBox(height: 16),
+            Text('جاري تحديد موقعك...'),
+          ],
+        ),
+      );
     }
 
-    return ClientsMapView(
-      promoterPosition: state.promoterPosition!,
-      clients: filteredClients,
-      onClientSelected: (client) {
-        _showClientDetails(context, client);
-      },
-    );
+    try {
+      return ClientsMapView(
+        promoterPosition: state.promoterPosition!,
+        clients: filteredClients,
+        onClientSelected: (client) {
+          _showClientDetails(context, client);
+        },
+      );
+    } catch (e) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Icon(Icons.error, size: 64, color: Colors.red),
+            const SizedBox(height: 16),
+            Text('خطأ في تحميل الخريطة: $e'),
+            const SizedBox(height: 16),
+            ElevatedButton(
+              onPressed: () {
+                setState(() {
+                  // Force rebuild
+                });
+              },
+              child: const Text('إعادة المحاولة'),
+            ),
+          ],
+        ),
+      );
+    }
   }
 
   Widget _buildListView(BuildContext context, ClientLoaded state) {
@@ -357,7 +421,7 @@ class _EnhancedClientScreenState extends State<EnhancedClientPage>
               ],
             ),
             SizedBox(height: 24.h),
-            _buildDetailRow(Icons.phone, 'رقم الهاتف', client.phone),
+            _buildDetailRow(Icons.phone, 'رقم الهاتف', client.phone ?? ""),
             _buildDetailRow(Icons.account_balance_wallet, 'رصيد الحساب',
                 '${client.balance} ج.م'),
             _buildDetailRow(
@@ -408,7 +472,7 @@ class _EnhancedClientScreenState extends State<EnhancedClientPage>
                       backgroundColor: Colors.green,
                       padding: EdgeInsets.symmetric(vertical: 12.h),
                     ),
-                    onPressed: () => _makePhoneCall(client.phone),
+                    onPressed: () => _makePhoneCall(client.phone ?? ""),
                     icon: const Icon(Icons.phone),
                     label: const Text('اتصال'),
                   ),

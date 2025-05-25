@@ -5,7 +5,7 @@ enum VisitStatus { visited, notVisited, postponed }
 class Client {
   final int id;
   final String name;
-  final String phone;
+  final String? phone;
   final String address;
   final String? email; // Added email field
   final double balance;
@@ -19,10 +19,11 @@ class Client {
   final int? cityId; // City ID
   final int? typeOfWorkId; // Type of work ID
   final int? responsibleId; // Responsible ID
+
   const Client({
     required this.id,
     required this.name,
-    required this.phone,
+    this.phone,
     required this.address,
     this.email,
     required this.balance,
@@ -37,6 +38,7 @@ class Client {
     this.typeOfWorkId,
     this.responsibleId,
   });
+
   factory Client.fromJson(Map<String, dynamic> json) {
     // Parse visit status from string or int
     VisitStatus parseVisitStatus(dynamic status) {
@@ -67,7 +69,7 @@ class Client {
     return Client(
       id: json['id'] ?? 0,
       name: json['name'] ?? '',
-      phone: json['phone'] ?? '',
+      phone: json['phone'],
       address: json['address'] ?? '',
       email: json['email'],
       balance: (json['balance'] != null)
@@ -76,15 +78,15 @@ class Client {
               : (json['balance'] as num?)?.toDouble() ?? 0.0)
           : 0.0,
       lastPurchase: json['last_purchase'] ?? json['lastPurchase'] ?? '',
-      latitude: (json['latitude'] != null)
-          ? (json['latitude'] is int
-              ? (json['latitude'] as int).toDouble()
-              : (json['latitude'] as num?)?.toDouble() ?? 0.0)
+      latitude: (json['latitude'] ?? json['lat'] != null)
+          ? (json['latitude'] ?? json['lat'] is int
+              ? (json['latitude'] ?? json['lat'] as int).toDouble()
+              : (json['latitude'] ?? json['lat'] as num?)?.toDouble() ?? 0.0)
           : 0.0,
-      longitude: (json['longitude'] != null)
-          ? (json['longitude'] is int
-              ? (json['longitude'] as int).toDouble()
-              : (json['longitude'] as num?)?.toDouble() ?? 0.0)
+      longitude: (json['longitude'] ?? json['lon'] != null)
+          ? (json['longitude'] ?? json['lon'] is int
+              ? (json['longitude'] ?? json['lon'] as int).toDouble()
+              : (json['longitude'] ?? json['lon'] as num?)?.toDouble() ?? 0.0)
           : 0.0,
       visitStatus:
           parseVisitStatus(json['visit_status'] ?? json['visitStatus']),
@@ -119,6 +121,8 @@ class Client {
       'last_purchase': lastPurchase,
       'latitude': latitude,
       'longitude': longitude,
+      'lat': latitude, // Added for API compatibility
+      'lon': longitude, // Added for API compatibility
       'visit_status': visitStatus.index,
       'distance_to_promoter': distanceToPromoter,
       'code': code,

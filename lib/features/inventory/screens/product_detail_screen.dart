@@ -3,6 +3,9 @@ import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import '../models/product_model.dart';
 import '../services/inventory_service.dart';
+import '../../../core/constants/strings.dart';
+import '../../../features/products/services/products_service.dart';
+import '../../../core/di/injection_container.dart';
 
 class ProductDetailScreen extends StatefulWidget {
   final String productId;
@@ -20,10 +23,12 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
   Product? _product;
   bool _isLoading = true;
   final TextEditingController _quantityController = TextEditingController();
+  late ProductsService _productsService;
 
   @override
   void initState() {
     super.initState();
+    _productsService = sl<ProductsService>();
     _loadProductDetails();
   }
 
@@ -35,15 +40,42 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
 
   Future<void> _loadProductDetails() async {
     try {
-      final product = await InventoryService.getProductById(widget.productId);
+      // First try to get the product from the API
+      try {
+        final apiProduct =
+            await _productsService.getProductById(int.parse(widget.productId));
 
-      setState(() {
-        _product = product;
-        if (product != null) {
-          _quantityController.text = product.quantity.toString();
-        }
-        _isLoading = false;
-      });
+        // Convert API product to inventory product model
+        final inventoryProduct = Product(
+          id: apiProduct.id.toString(),
+          name: apiProduct.name,
+          category: apiProduct.categoryName,
+          price: apiProduct.price,
+          quantity: apiProduct.quantity,
+          imageUrl: apiProduct.imageUrl ?? 'assets/images/yasin_app_logo.JPG',
+          barcode: apiProduct.barcode,
+          location: 'الرف ${apiProduct.categoryId}',
+          supplier: apiProduct.companyName ?? 'غير محدد',
+          lastUpdated:
+              DateTime.tryParse(apiProduct.updatedAt) ?? DateTime.now(),
+        );
+
+        setState(() {
+          _product = inventoryProduct;
+          _quantityController.text = inventoryProduct.quantity.toString();
+          _isLoading = false;
+        });
+      } catch (apiError) {
+        // Fallback to local inventory service if API fails
+        final product = await InventoryService.getProductById(widget.productId);
+        setState(() {
+          _product = product;
+          if (product != null) {
+            _quantityController.text = product.quantity.toString();
+          }
+          _isLoading = false;
+        });
+      }
     } catch (e) {
       setState(() {
         _isLoading = false;
@@ -75,7 +107,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
     });
 
     try {
-      final success = await InventoryService.updateProductQuantity(
+      await InventoryService.updateProductQuantity(
         _product!.id,
         newQuantity,
       );
@@ -84,17 +116,15 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
         _isLoading = false;
       });
 
-      if (success) {
-        _showSuccessSnackBar('تم تحديث الكمية بنجاح');
-        _loadProductDetails(); // Reload product details
-      } else {
-        _showErrorSnackBar('فشل تحديث الكمية');
-      }
+      _showSuccessSnackBar('تم تحديث الكمية بنجاح');
+
+      // Refresh product details after successful update
+      _loadProductDetails();
     } catch (e) {
       setState(() {
         _isLoading = false;
       });
-      _showErrorSnackBar('حدث خطأ أثناء تحديث الكمية');
+      _showErrorSnackBar('فشل في تحديث الكمية');
     }
   }
 
@@ -109,19 +139,16 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-
     if (_isLoading) {
       return Scaffold(
         appBar: AppBar(
           title: const Text('تفاصيل المنتج'),
-          backgroundColor: Colors.transparent,
+          backgroundColor: Colors.white,
+          foregroundColor: Colors.black,
           elevation: 0,
         ),
-        body: Center(
-          child: CircularProgressIndicator(
-            color: theme.colorScheme.primary,
-          ),
+        body: const Center(
+          child: CircularProgressIndicator(),
         ),
       );
     }
@@ -130,397 +157,280 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
       return Scaffold(
         appBar: AppBar(
           title: const Text('تفاصيل المنتج'),
-          backgroundColor: Colors.transparent,
+          backgroundColor: Colors.white,
+          foregroundColor: Colors.black,
           elevation: 0,
         ),
-        body: Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(
-                Icons.error_outline,
-                size: 72.sp,
-                color: Colors.red,
-              ),
-              SizedBox(height: 16.h),
-              Text(
-                'لم يتم العثور على المنتج',
-                style: TextStyle(
-                  fontSize: 18.sp,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              SizedBox(height: 24.h),
-              ElevatedButton(
-                onPressed: () => Navigator.pop(context),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: theme.colorScheme.primary,
-                  foregroundColor: theme.colorScheme.onPrimary,
-                  padding:
-                      EdgeInsets.symmetric(horizontal: 32.w, vertical: 12.h),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12.r),
-                  ),
-                ),
-                child: const Text('العودة'),
-              ),
-            ],
-          ),
+        body: const Center(
+          child: Text('المنتج غير موجود'),
         ),
       );
     }
 
-    // Determine stock status
-    String stockStatus;
-    Color stockStatusColor;
-
-    if (_product!.quantity > 20) {
-      stockStatus = 'متوفر';
-      stockStatusColor = Colors.green;
-    } else if (_product!.quantity > 5) {
-      stockStatus = 'مخزون منخفض';
-      stockStatusColor = Colors.orange;
-    } else if (_product!.quantity > 0) {
-      stockStatus = 'مخزون منخفض جداً';
-      stockStatusColor = Colors.red;
-    } else {
-      stockStatus = 'غير متوفر';
-      stockStatusColor = Colors.grey;
-    }
-
     return Scaffold(
-      backgroundColor: theme.colorScheme.surface,
-      body: CustomScrollView(
-        slivers: [
-          // Product image and app bar
-          SliverAppBar(
-            expandedHeight: 300.h,
-            pinned: true,
-            backgroundColor: theme.colorScheme.primary,
-            flexibleSpace: FlexibleSpaceBar(
-              background: Hero(
-                tag: 'product_image_${_product!.id}',
-                child: Stack(
-                  fit: StackFit.expand,
-                  children: [
-                    Image.asset(
-                      _product!.imageUrl,
-                      fit: BoxFit.cover,
-                    ),
-                    Container(
-                      decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          begin: Alignment.topCenter,
-                          end: Alignment.bottomCenter,
-                          colors: [
-                            Colors.black.withOpacity(0.0),
-                            Colors.black.withOpacity(0.5),
-                          ],
-                        ),
-                      ),
-                    ),
-                    Positioned(
-                      bottom: 16.h,
-                      left: 16.w,
-                      child: Container(
-                        padding: EdgeInsets.symmetric(
-                            horizontal: 12.w, vertical: 6.h),
-                        decoration: BoxDecoration(
-                          color: theme.colorScheme.primary,
-                          borderRadius: BorderRadius.circular(12.r),
-                        ),
-                        child: Text(
-                          '${_product!.price.toStringAsFixed(2)} ر.س',
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontWeight: FontWeight.bold,
-                            fontSize: 18.sp,
-                          ),
-                        ),
-                      ),
-                    ),
-                  ],
+      appBar: AppBar(
+        title: const Text('تفاصيل المنتج'),
+        backgroundColor: Colors.white,
+        foregroundColor: Colors.black,
+        elevation: 0,
+      ),
+      body: SingleChildScrollView(
+        padding: EdgeInsets.all(16.w),
+        child: Column(
+          children: [
+            _buildProductImage(),
+            SizedBox(height: 24.h),
+            _buildProductInfo(),
+            SizedBox(height: 24.h),
+            _buildProductDetails(),
+            SizedBox(height: 24.h),
+            _buildQuantityUpdateSection(),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildProductImage() {
+    return Container(
+      height: 200.h,
+      width: double.infinity,
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(16.r),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.1),
+            blurRadius: 10,
+            offset: const Offset(0, 5),
+          ),
+        ],
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(16.r),
+        child: Hero(
+          tag: 'product_image_${_product!.id}',
+          child: Image.asset(
+            _product!.imageUrl,
+            fit: BoxFit.cover,
+            errorBuilder: (context, error, stackTrace) {
+              return Container(
+                color: Colors.grey[300],
+                child: const Icon(
+                  Icons.image_not_supported,
+                  size: 50,
+                  color: Colors.grey,
                 ),
-              ),
-            ),
-            leading: IconButton(
-              icon: Container(
-                padding: EdgeInsets.all(8.w),
-                decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.9),
-                  shape: BoxShape.circle,
-                ),
-                child: Icon(
-                  Icons.arrow_back,
-                  color: theme.colorScheme.primary,
-                ),
-              ),
-              onPressed: () => Navigator.pop(context),
-            ),
-            actions: [
-              IconButton(
-                icon: Container(
-                  padding: EdgeInsets.all(8.w),
-                  decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.9),
-                    shape: BoxShape.circle,
+              );
+            },
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildProductInfo() {
+    return Container(
+      padding: EdgeInsets.all(20.w),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16.r),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Expanded(
+                child: Text(
+                  '${_product!.price.toStringAsFixed(2)} ${Strings.CURRENCY}',
+                  style: TextStyle(
+                    fontSize: 24.sp,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.green,
                   ),
-                  child: Icon(
-                    Icons.share,
-                    color: theme.colorScheme.primary,
-                  ),
                 ),
-                onPressed: () {
-                  // TODO: Share product
-                },
               ),
-              SizedBox(width: 8.w),
+              _buildStockIndicator(),
             ],
           ),
+          SizedBox(height: 16.h),
+          Text(
+            _product!.name,
+            style: TextStyle(
+              fontSize: 20.sp,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          SizedBox(height: 8.h),
+          Text(
+            _product!.category,
+            style: TextStyle(
+              fontSize: 16.sp,
+              color: Colors.grey[600],
+            ),
+          ),
+          SizedBox(height: 12.h),
+          Row(
+            children: [
+              Icon(
+                Icons.inventory_2_outlined,
+                size: 20.sp,
+                color: _getStockColor(),
+              ),
+              SizedBox(width: 8.w),
+              Text(
+                _product!.quantity > 0 ? 'متوفر في المخزن' : 'غير متوفر',
+                style: TextStyle(
+                  fontSize: 14.sp,
+                  color: _getStockColor(),
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              SizedBox(width: 8.w),
+              Text(
+                '(${_product!.quantity} قطعة)',
+                style: TextStyle(
+                  fontSize: 14.sp,
+                  color: Colors.grey[600],
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
 
-          // Product details
-          SliverToBoxAdapter(
-            child: Padding(
-              padding: EdgeInsets.all(16.w),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Product name and category
-                  Row(
-                    children: [
-                      Expanded(
-                        child: Text(
-                          _product!.name,
-                          style: TextStyle(
-                            fontSize: 24.sp,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ).animate().fade(duration: 300.ms).slide(
-                            begin: const Offset(0, 0.5),
-                            end: const Offset(0, 0)),
-                      ),
-                      Container(
-                        padding: EdgeInsets.symmetric(
-                            horizontal: 12.w, vertical: 6.h),
-                        decoration: BoxDecoration(
-                          color: theme.colorScheme.primary.withOpacity(0.1),
-                          borderRadius: BorderRadius.circular(20.r),
-                        ),
-                        child: Text(
-                          _product!.category,
-                          style: TextStyle(
-                            color: theme.colorScheme.primary,
-                            fontWeight: FontWeight.w600,
-                            fontSize: 14.sp,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
+  Widget _buildStockIndicator() {
+    Color color = _getStockColor();
+    String text = _getStockText();
 
-                  SizedBox(height: 16.h),
+    return Container(
+      padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 6.h),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(20.r),
+        border: Border.all(color: color, width: 1),
+      ),
+      child: Text(
+        text,
+        style: TextStyle(
+          color: color,
+          fontSize: 12.sp,
+          fontWeight: FontWeight.w600,
+        ),
+      ),
+    );
+  }
 
-                  // Stock status
-                  Container(
-                    padding:
-                        EdgeInsets.symmetric(horizontal: 12.w, vertical: 8.h),
-                    decoration: BoxDecoration(
-                      color: stockStatusColor.withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(8.r),
-                      border:
-                          Border.all(color: stockStatusColor.withOpacity(0.5)),
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(
-                          _product!.quantity > 0
-                              ? Icons.check_circle
-                              : Icons.remove_circle,
-                          color: stockStatusColor,
-                          size: 18.sp,
-                        ),
-                        SizedBox(width: 8.w),
-                        Text(
-                          stockStatus,
-                          style: TextStyle(
-                            color: stockStatusColor,
-                            fontWeight: FontWeight.w600,
-                            fontSize: 14.sp,
-                          ),
-                        ),
-                        SizedBox(width: 8.w),
-                        Text(
-                          '(${_product!.quantity} قطعة)',
-                          style: TextStyle(
-                            color: stockStatusColor,
-                            fontSize: 14.sp,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
+  Color _getStockColor() {
+    if (_product!.quantity > 20) {
+      return Colors.green;
+    } else if (_product!.quantity > 5) {
+      return Colors.orange;
+    } else if (_product!.quantity > 0) {
+      return Colors.red;
+    } else {
+      return Colors.grey;
+    }
+  }
 
-                  SizedBox(height: 24.h),
+  String _getStockText() {
+    if (_product!.quantity > 20) {
+      return 'مخزون جيد';
+    } else if (_product!.quantity > 5) {
+      return 'مخزون منخفض';
+    } else if (_product!.quantity > 0) {
+      return 'مخزون محدود';
+    } else {
+      return 'نفذ المخزون';
+    }
+  }
 
-                  // Divider
-                  Divider(color: Colors.grey.shade300),
+  Widget _buildProductDetails() {
+    return Container(
+      padding: EdgeInsets.all(20.w),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16.r),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'تفاصيل المنتج',
+            style: TextStyle(
+              fontSize: 18.sp,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          SizedBox(height: 16.h),
+          _buildDetailRow(
+            'الباركود',
+            value: _product!.barcode,
+          ),
+          _buildDetailRow(
+            'الموقع',
+            value: _product!.location,
+          ),
+          _buildDetailRow(
+            'المورد',
+            value: _product!.supplier,
+          ),
+          _buildDetailRow(
+            'آخر تحديث',
+            value:
+                '${_product!.lastUpdated.day}/${_product!.lastUpdated.month}/${_product!.lastUpdated.year}',
+          ),
+        ],
+      ),
+    );
+  }
 
-                  SizedBox(height: 16.h),
-
-                  // Product details section
-                  Text(
-                    'معلومات المنتج',
-                    style: TextStyle(
-                      fontSize: 18.sp,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ).animate().fade(duration: 300.ms, delay: 200.ms),
-
-                  SizedBox(height: 16.h),
-
-                  // Product information list
-                  _buildInfoItem(
-                    icon: Icons.qr_code,
-                    label: 'الباركود',
-                    value: _product!.barcode,
-                  ),
-
-                  _buildInfoItem(
-                    icon: Icons.location_on,
-                    label: 'الموقع',
-                    value: _product!.location,
-                  ),
-
-                  _buildInfoItem(
-                    icon: Icons.business,
-                    label: 'المورد',
-                    value: _product!.supplier,
-                  ),
-
-                  _buildInfoItem(
-                    icon: Icons.access_time,
-                    label: 'آخر تحديث',
-                    value:
-                        '${_product!.lastUpdated.day}/${_product!.lastUpdated.month}/${_product!.lastUpdated.year}',
-                  ),
-
-                  SizedBox(height: 24.h),
-
-                  // Update quantity section
-                  Text(
-                    'تحديث الكمية',
-                    style: TextStyle(
-                      fontSize: 18.sp,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ).animate().fade(duration: 300.ms, delay: 400.ms),
-
-                  SizedBox(height: 16.h),
-
-                  Row(
-                    children: [
-                      Expanded(
-                        flex: 3,
-                        child: TextField(
-                          controller: _quantityController,
-                          keyboardType: TextInputType.number,
-                          decoration: InputDecoration(
-                            labelText: 'الكمية الجديدة',
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(12.r),
-                            ),
-                          ),
-                        ),
-                      ),
-                      SizedBox(width: 16.w),
-                      Expanded(
-                        flex: 2,
-                        child: ElevatedButton(
-                          onPressed: _updateProductQuantity,
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: theme.colorScheme.primary,
-                            foregroundColor: theme.colorScheme.onPrimary,
-                            padding: EdgeInsets.symmetric(vertical: 16.h),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12.r),
-                            ),
-                          ),
-                          child: Text(
-                            'تحديث',
-                            style: TextStyle(
-                              fontSize: 16.sp,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ).animate().fade(duration: 300.ms, delay: 500.ms),
-
-                  SizedBox(height: 16.h),
-
-                  // Quick adjust buttons
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      _buildAdjustButton(
-                        label: '+1',
-                        onPressed: () {
-                          final currentValue =
-                              int.tryParse(_quantityController.text) ?? 0;
-                          _quantityController.text =
-                              (currentValue + 1).toString();
-                        },
-                      ),
-                      SizedBox(width: 8.w),
-                      _buildAdjustButton(
-                        label: '+5',
-                        onPressed: () {
-                          final currentValue =
-                              int.tryParse(_quantityController.text) ?? 0;
-                          _quantityController.text =
-                              (currentValue + 5).toString();
-                        },
-                      ),
-                      SizedBox(width: 8.w),
-                      _buildAdjustButton(
-                        label: '+10',
-                        onPressed: () {
-                          final currentValue =
-                              int.tryParse(_quantityController.text) ?? 0;
-                          _quantityController.text =
-                              (currentValue + 10).toString();
-                        },
-                      ),
-                      SizedBox(width: 8.w),
-                      _buildAdjustButton(
-                        label: '-1',
-                        onPressed: () {
-                          final currentValue =
-                              int.tryParse(_quantityController.text) ?? 0;
-                          if (currentValue > 0) {
-                            _quantityController.text =
-                                (currentValue - 1).toString();
-                          }
-                        },
-                      ),
-                      SizedBox(width: 8.w),
-                      _buildAdjustButton(
-                        label: '-5',
-                        onPressed: () {
-                          final currentValue =
-                              int.tryParse(_quantityController.text) ?? 0;
-                          _quantityController.text =
-                              (currentValue - 5 > 0 ? currentValue - 5 : 0)
-                                  .toString();
-                        },
-                      ),
-                    ],
-                  ).animate().fade(duration: 300.ms, delay: 600.ms),
-
-                  SizedBox(height: 24.h),
-                ],
+  Widget _buildDetailRow(String label, {required String value}) {
+    return Padding(
+      padding: EdgeInsets.only(bottom: 12.h),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(
+            width: 80.w,
+            child: Text(
+              label,
+              style: TextStyle(
+                fontSize: 14.sp,
+                color: Colors.grey[600],
+              ),
+            ),
+          ),
+          Text(
+            ': ',
+            style: TextStyle(
+              fontSize: 14.sp,
+              color: Colors.grey[600],
+            ),
+          ),
+          Expanded(
+            child: Text(
+              value,
+              style: TextStyle(
+                fontSize: 14.sp,
+                fontWeight: FontWeight.w500,
               ),
             ),
           ),
@@ -529,87 +439,148 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
     );
   }
 
-  Widget _buildInfoItem({
-    required IconData icon,
-    required String label,
-    required String value,
-  }) {
-    return Padding(
-      padding: EdgeInsets.only(bottom: 16.h),
-      child: Row(
-        children: [
-          Container(
-            padding: EdgeInsets.all(8.w),
-            decoration: BoxDecoration(
-              color: Theme.of(context).colorScheme.primary.withOpacity(0.1),
-              borderRadius: BorderRadius.circular(8.r),
-            ),
-            child: Icon(
-              icon,
-              color: Theme.of(context).colorScheme.primary,
-              size: 20.sp,
-            ),
-          ),
-          SizedBox(width: 16.w),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                label,
-                style: TextStyle(
-                  color: Colors.grey.shade600,
-                  fontSize: 12.sp,
-                ),
-              ),
-              Text(
-                value,
-                style: TextStyle(
-                  fontSize: 14.sp,
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
-            ],
+  Widget _buildQuantityUpdateSection() {
+    return Container(
+      padding: EdgeInsets.all(20.w),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16.r),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 2),
           ),
         ],
       ),
-    ).animate().fade(
-          duration: 300.ms,
-          delay: Duration(milliseconds: 200 + (_buildInfoItemIndex++ * 100)),
-        );
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'تحديث الكمية',
+            style: TextStyle(
+              fontSize: 18.sp,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          SizedBox(height: 16.h),
+          Row(
+            children: [
+              Expanded(
+                child: TextField(
+                  controller: _quantityController,
+                  keyboardType: TextInputType.number,
+                  decoration: InputDecoration(
+                    labelText: 'الكمية الجديدة',
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8.r),
+                    ),
+                    suffixText: 'قطعة',
+                  ),
+                ),
+              ),
+              SizedBox(width: 16.w),
+              Column(
+                children: [
+                  _buildQuantityButton(
+                    icon: Icons.add,
+                    onPressed: () {
+                      final currentQuantity =
+                          int.tryParse(_quantityController.text) ?? 0;
+                      _quantityController.text =
+                          (currentQuantity + 1).toString();
+                    },
+                  ),
+                  SizedBox(height: 8.h),
+                  _buildQuantityButton(
+                    icon: Icons.remove,
+                    onPressed: () {
+                      final currentQuantity =
+                          int.tryParse(_quantityController.text) ?? 0;
+                      _quantityController.text = (currentQuantity - 1)
+                          .clamp(0, double.infinity)
+                          .toString();
+                    },
+                  ),
+                  SizedBox(height: 8.h),
+                  _buildQuantityButton(
+                    icon: Icons.add,
+                    onPressed: () {
+                      final currentQuantity =
+                          int.tryParse(_quantityController.text) ?? 0;
+
+                      _quantityController.text =
+                          (currentQuantity + 10).toString();
+                    },
+                  ),
+                  SizedBox(height: 8.h),
+                  _buildQuantityButton(
+                    icon: Icons.exposure_minus_1,
+                    onPressed: () {
+                      final currentQuantity =
+                          int.tryParse(_quantityController.text) ?? 0;
+                      _quantityController.text = (currentQuantity - 10)
+                          .clamp(0, double.infinity)
+                          .toString();
+                    },
+                  ),
+                ],
+              ),
+            ],
+          ),
+          SizedBox(height: 20.h),
+          SizedBox(
+            width: double.infinity,
+            height: 50.h,
+            child: ElevatedButton.icon(
+              onPressed: _isLoading ? null : _updateProductQuantity,
+              icon: _isLoading
+                  ? SizedBox(
+                      width: 20.w,
+                      height: 20.h,
+                      child: const CircularProgressIndicator(
+                        strokeWidth: 2,
+                        valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                      ),
+                    )
+                  : const Icon(Icons.save),
+              label: Text(
+                _isLoading ? 'جاري التحديث...' : 'حفظ التغييرات',
+                style: TextStyle(fontSize: 16.sp),
+              ),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Theme.of(context).colorScheme.primary,
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8.r),
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    ).animate().fadeIn(duration: 300.ms);
   }
 
-  int _buildInfoItemIndex = 0;
-
-  Widget _buildAdjustButton({
-    required String label,
+  Widget _buildQuantityButton({
+    required IconData icon,
     required VoidCallback onPressed,
   }) {
-    final theme = Theme.of(context);
-    final isPositive = label.startsWith('+');
-
-    return InkWell(
-      onTap: onPressed,
-      borderRadius: BorderRadius.circular(8.r),
-      child: Container(
-        padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 8.h),
-        decoration: BoxDecoration(
-          color: isPositive
-              ? theme.colorScheme.primary.withOpacity(0.1)
-              : Colors.red.withOpacity(0.1),
-          borderRadius: BorderRadius.circular(8.r),
-          border: Border.all(
-            color: isPositive
-                ? theme.colorScheme.primary.withOpacity(0.5)
-                : Colors.red.withOpacity(0.5),
+    return SizedBox(
+      width: 40.w,
+      height: 40.h,
+      child: ElevatedButton(
+        onPressed: onPressed,
+        style: ElevatedButton.styleFrom(
+          padding: EdgeInsets.zero,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(8.r),
           ),
+          backgroundColor:
+              Theme.of(context).colorScheme.primary.withOpacity(0.1),
+          foregroundColor: Theme.of(context).colorScheme.primary,
         ),
-        child: Text(
-          label,
-          style: TextStyle(
-            color: isPositive ? theme.colorScheme.primary : Colors.red,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
+        child: Icon(icon, size: 18.sp),
       ),
     );
   }

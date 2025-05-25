@@ -463,9 +463,22 @@ class SalesItem {
 
   // Calculate total for this item
   double get total => price * quantity;
+
+  // Add copyWith method
+  SalesItem copyWith({
+    Product? product,
+    int? quantity,
+    double? price,
+  }) {
+    return SalesItem(
+      product: product ?? this.product,
+      quantity: quantity ?? this.quantity,
+      price: price ?? this.price,
+    );
+  }
 }
 
-enum PaymentMethod { cash, creditCard, bankTransfer, check }
+enum PaymentMethod { cash, credit, bank }
 
 enum InvoiceStatus { pending, completed, cancelled }
 
@@ -607,12 +620,10 @@ class SalesService {
     switch (method) {
       case PaymentMethod.cash:
         return 'نقدي';
-      case PaymentMethod.creditCard:
-        return 'بطاقة ائتمان';
-      case PaymentMethod.bankTransfer:
+      case PaymentMethod.credit:
+        return 'آجل';
+      case PaymentMethod.bank:
         return 'تحويل بنكي';
-      case PaymentMethod.check:
-        return 'شيك';
     }
   }
 

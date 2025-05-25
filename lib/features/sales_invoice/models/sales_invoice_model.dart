@@ -24,19 +24,33 @@ class SalesInvoiceItem {
     required this.subtotal,
     this.product,
   });
-
   factory SalesInvoiceItem.fromJson(Map<String, dynamic> json) {
-    return SalesInvoiceItem(
-      id: json['id'] as int,
-      invoiceId: json['invoice_id'] as int,
-      productId: json['product_id'] as int,
-      productName: json['product_name'] as String,
-      price: (json['price'] as num).toDouble(),
-      quantity: json['quantity'] as int,
-      subtotal: (json['subtotal'] as num).toDouble(),
-      product:
-          json['product'] != null ? Product.fromJson(json['product']) : null,
-    );
+    try {
+      print('=== PARSING SALES INVOICE ITEM ===');
+      print('Item JSON: $json');
+      return SalesInvoiceItem(
+        id: json['id'] as int,
+        invoiceId: json['invoice_id'] as int? ?? json['order_id'] as int? ?? 0,
+        productId: json['product_id'] as int,
+        productName: json['product_name']?.toString() ??
+            (json['product']?['name']?.toString()) ??
+            'Unknown Product',
+        price: double.tryParse(json['unit_price'].toString()) ??
+            double.tryParse(json['price'].toString()) ??
+            double.tryParse(json['total_price'].toString()) ??
+            0.0,
+        quantity: json['quantity'] as int? ?? 1,
+        subtotal:
+            double.tryParse(json['total_price']?.toString() ?? "0") ?? 0.0,
+        product:
+            json['product'] != null ? Product.fromJson(json['product']) : null,
+      );
+    } catch (e) {
+      print('=== ERROR PARSING SALES INVOICE ITEM ===');
+      print('Error: $e');
+      print('Item JSON: $json');
+      rethrow;
+    }
   }
 }
 
@@ -72,27 +86,57 @@ class SalesInvoice {
     required this.updatedAt,
     required this.items,
   });
-
   factory SalesInvoice.fromJson(Map<String, dynamic> json) {
-    return SalesInvoice(
-      id: json['id'] as int,
-      invoiceNumber: json['invoice_number'] as String,
-      clientId: json['client_id'] as int,
-      clientName: json['client_name'] as String,
-      status: json['status'] as String,
-      paymentMethod: json['payment_method'] as String,
-      subtotal: (json['subtotal'] as num).toDouble(),
-      tax: (json['tax'] as num).toDouble(),
-      discount: (json['discount'] as num).toDouble(),
-      total: (json['total'] as num).toDouble(),
-      notes: json['notes'] as String? ?? '',
-      createdAt: json['created_at'] as String,
-      updatedAt: json['updated_at'] as String,
-      items: (json['items'] as List<dynamic>?)
-              ?.map((e) => SalesInvoiceItem.fromJson(e as Map<String, dynamic>))
-              .toList() ??
-          [],
-    );
+    try {
+      print('=== PARSING SALES INVOICE FROM JSON ===');
+      print('JSON Keys: ${json.keys.toList()}');
+      print('Raw JSON: $json');
+      return SalesInvoice(
+        id: json['id'] as int,
+        invoiceNumber: json['invoice_number'] as String? ??
+            json['number'] as String? ??
+            'INV-${json['id']}',
+        clientId: json['client_id'] as int? ?? 1,
+        clientName: json['client_name'] as String? ??
+            json['customer_name'] as String? ??
+            'Unknown Customer',
+        status: json['status'] as String? ?? 'pending',
+        paymentMethod: json['payment_method'] as String? ?? 'cash',
+        subtotal: double.tryParse(json['subtotal'].toString()) ??
+            double.tryParse(json['grand_total'].toString()) ??
+            0.0,
+        tax: double.tryParse(json['tax'].toString()) ?? 0.0,
+        discount: double.tryParse(json['subtotal'].toString()) ??
+            double.tryParse(json['discount'].toString()) ??
+            double.tryParse(json['discount_amount'].toString()) ??
+            0.0,
+        total: double.tryParse(json['total'].toString()) ??
+            double.tryParse(json['grand_total'].toString()) ??
+            0.0,
+        notes: json['notes']?.toString() ?? '',
+        createdAt: json['created_at']?.toString() ??
+            json['date']?.toString() ??
+            DateTime.now().toIso8601String(),
+        updatedAt: json['updated_at']?.toString() ??
+            json['date']?.toString() ??
+            DateTime.now().toIso8601String(),
+        items: (json['items'] as List<dynamic>?)?.map((e) {
+              try {
+                return SalesInvoiceItem.fromJson(e as Map<String, dynamic>);
+              } catch (itemError) {
+                print('Error parsing item: $itemError');
+                print('Item data: $e');
+                rethrow;
+              }
+            }).toList() ??
+            [],
+      );
+    } catch (e) {
+      print('=== ERROR PARSING SALES INVOICE ===');
+      print('Error: $e');
+      print('JSON: $json');
+      rethrow;
+    }
   }
 }
 

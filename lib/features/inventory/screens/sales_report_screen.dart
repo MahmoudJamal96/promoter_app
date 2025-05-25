@@ -3,6 +3,7 @@ import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:intl/intl.dart';
 import '../services/inventory_service.dart';
+import 'package:promoter_app/core/constants/strings.dart';
 
 class SalesReportScreen extends StatefulWidget {
   const SalesReportScreen({super.key});
@@ -338,7 +339,7 @@ class _SalesReportScreenState extends State<SalesReportScreen> {
               children: [
                 _buildSummaryCard(
                   title: 'إجمالي المبيعات',
-                  value: '٦٧,٨٤٢.٥٠ ر.س',
+                  value: '٦٧,٨٤٢.٥٠ جنيه',
                   icon: Icons.attach_money,
                   color: theme.colorScheme.primary,
                 ),
@@ -695,7 +696,7 @@ class _SalesReportScreenState extends State<SalesReportScreen> {
             Expanded(
               flex: 2,
               child: Text(
-                '${invoice.total.toStringAsFixed(2)} ر.س',
+                '${invoice.total.toStringAsFixed(2)} جنيه',
                 style: TextStyle(
                   fontSize: 14.sp,
                   fontWeight: FontWeight.bold,

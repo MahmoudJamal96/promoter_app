@@ -12,7 +12,7 @@ import 'package:promoter_app/features/sales_invoice/models/sales_invoice_model.d
 import 'package:promoter_app/features/sales_invoice/services/sales_service.dart'
     as invoice_service;
 import 'package:mobile_scanner/mobile_scanner.dart';
-import 'package:mobile_scanner/mobile_scanner.dart';
+import 'package:promoter_app/core/constants/strings.dart';
 
 class ReturnTransactionScreen extends StatefulWidget {
   // Optional invoice ID parameter allows return creation for a specific invoice
@@ -469,7 +469,8 @@ class _ReturnTransactionScreenState extends State<ReturnTransactionScreen>
           children: [
             Text('رقم المرتجع: ${returnOrder.returnNumber}'),
             SizedBox(height: 8.h),
-            Text('إجمالي المرتجع: ${returnOrder.total.toStringAsFixed(2)} ر.س'),
+            Text(
+                'إجمالي المرتجع: ${returnOrder.total.toStringAsFixed(2)} ${Strings.CURRENCY}'),
           ],
         ),
         actions: [
@@ -728,7 +729,7 @@ class _ReturnTransactionScreenState extends State<ReturnTransactionScreen>
                         ),
                       ),
                       subtitle: Text(
-                        'سعر: ${product.price.toStringAsFixed(2)} ر.س | المتاح: ${product.quantity}',
+                        'سعر: ${product.price.toStringAsFixed(2)} ${Strings.CURRENCY} | المتاح: ${product.quantity}',
                         style: TextStyle(
                           fontSize: 12.sp,
                           color: Colors.grey.shade600,
@@ -919,7 +920,7 @@ class _ReturnTransactionScreenState extends State<ReturnTransactionScreen>
                                   ),
                                   SizedBox(width: 16.w),
                                   Text(
-                                    '${(item.quantity * item.product.price).toStringAsFixed(2)} ر.س',
+                                    '${(item.quantity * item.product.price).toStringAsFixed(2)} جنيه',
                                     style: TextStyle(
                                       fontWeight: FontWeight.bold,
                                       fontSize: 14.sp,
@@ -1076,7 +1077,7 @@ class _ReturnTransactionScreenState extends State<ReturnTransactionScreen>
                               ),
                             ),
                             Text(
-                              '${subtotal.toStringAsFixed(2)} ر.س',
+                              '${subtotal.toStringAsFixed(2)} جنيه',
                               style: TextStyle(
                                 fontSize: 18.sp,
                                 fontWeight: FontWeight.bold,
@@ -1250,7 +1251,7 @@ class _ReturnTransactionScreenState extends State<ReturnTransactionScreen>
                               children: [
                                 Text('إجمالي الفاتورة:'),
                                 Text(
-                                    '${_selectedInvoice!.total.toStringAsFixed(2)} ر.س'),
+                                    '${_selectedInvoice!.total.toStringAsFixed(2)} جنيه'),
                               ],
                             ),
                           ],
@@ -1293,7 +1294,7 @@ class _ReturnTransactionScreenState extends State<ReturnTransactionScreen>
                                 return ListTile(
                                   title: Text(item.productName),
                                   subtitle: Text(
-                                    'الكمية: ${item.quantity} | السعر: ${item.price.toStringAsFixed(2)} ر.س',
+                                    'الكمية: ${item.quantity} | السعر: ${item.price.toStringAsFixed(2)} جنيه',
                                   ),
                                   trailing: isSelected
                                       ? Icon(Icons.check_circle,
@@ -1404,7 +1405,7 @@ class _ReturnTransactionScreenState extends State<ReturnTransactionScreen>
                                         ),
                                         SizedBox(width: 16.w),
                                         Text(
-                                          '${(item.quantity * item.product.price).toStringAsFixed(2)} ر.س',
+                                          '${(item.quantity * item.product.price).toStringAsFixed(2)} جنيه',
                                           style: TextStyle(
                                             fontWeight: FontWeight.bold,
                                             fontSize: 14.sp,
@@ -1510,7 +1511,7 @@ class _ReturnTransactionScreenState extends State<ReturnTransactionScreen>
                                   ),
                                 ),
                                 Text(
-                                  '${subtotal.toStringAsFixed(2)} ر.س',
+                                  '${subtotal.toStringAsFixed(2)} جنيه',
                                   style: TextStyle(
                                     fontSize: 18.sp,
                                     fontWeight: FontWeight.bold,

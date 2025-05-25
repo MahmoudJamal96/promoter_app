@@ -92,7 +92,7 @@ class ClientCubit extends Cubit<ClientState> {
     try {
       final newClient = await _clientService.createClient(
         name: client.name,
-        phone: client.phone,
+        phone: client.phone ?? "",
         address: client.address,
         latitude: client.latitude,
         longitude: client.longitude,

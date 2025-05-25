@@ -118,23 +118,43 @@ class _ClientsMapViewState extends State<ClientsMapView> {
 
   @override
   Widget build(BuildContext context) {
-    return GoogleMap(
-      mapType: MapType.normal,
-      initialCameraPosition: CameraPosition(
-        target: LatLng(
-          widget.promoterPosition.latitude,
-          widget.promoterPosition.longitude,
+    return Container(
+      child: GoogleMap(
+        mapType: MapType.normal,
+        initialCameraPosition: CameraPosition(
+          target: LatLng(
+            widget.promoterPosition.latitude,
+            widget.promoterPosition.longitude,
+          ),
+          zoom: 14,
         ),
-        zoom: 14,
+        markers: _markers,
+        polylines: _polylines,
+        myLocationEnabled: false, // Disable to avoid permission issues
+        myLocationButtonEnabled: false,
+        zoomControlsEnabled: true,
+        mapToolbarEnabled: true,
+        compassEnabled: true,
+        onMapCreated: (GoogleMapController controller) {
+          try {
+            if (!_controller.isCompleted) {
+              _controller.complete(controller);
+            }
+            // Ensure markers are updated after map creation
+            Future.delayed(const Duration(milliseconds: 500), () {
+              if (mounted) {
+                _createMarkers();
+              }
+            });
+            print('Google Map created successfully');
+          } catch (e) {
+            print('Error creating map: $e');
+          }
+        },
+        onCameraMove: (CameraPosition position) {
+          // Optional: Add camera movement handling
+        },
       ),
-      markers: _markers,
-      polylines: _polylines,
-      myLocationEnabled: true,
-      myLocationButtonEnabled: true,
-      zoomControlsEnabled: true,
-      onMapCreated: (GoogleMapController controller) {
-        _controller.complete(controller);
-      },
     );
   }
 

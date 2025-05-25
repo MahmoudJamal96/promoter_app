@@ -29,14 +29,11 @@ class OrderService {
         case inventory.PaymentMethod.cash:
           paymentMethodStr = 'cash';
           break;
-        case inventory.PaymentMethod.creditCard:
-          paymentMethodStr = 'credit_card';
+        case inventory.PaymentMethod.credit:
+          paymentMethodStr = 'credit';
           break;
-        case inventory.PaymentMethod.bankTransfer:
+        case inventory.PaymentMethod.bank:
           paymentMethodStr = 'bank_transfer';
-          break;
-        case inventory.PaymentMethod.check:
-          paymentMethodStr = 'check';
           break;
         default:
           paymentMethodStr = 'cash'; // Default to cash
@@ -54,18 +51,53 @@ class OrderService {
       final response = await _apiClient.post(
         '/create-order',
         data: requestData,
-      );
-
-      // Handle the response
+      ); // Handle the response
       if (response == null) {
         throw Exception('Failed to create order: Empty response');
       }
 
-      // For debugging
-      print('Order created successfully: $response');
+      // Enhanced logging for debugging
+      print('=== ORDER CREATION RESPONSE ===');
+      print('Full API Response: $response');
+      print('Response Type: ${response.runtimeType}');
+
+      // Log request details
+      print('=== ORDER REQUEST DETAILS ===');
+      print('Items Count: ${items.length}');
+      for (int i = 0; i < items.length; i++) {
+        final item = items[i];
+        print(
+            'Item ${i + 1}: ${item.product.name} - Qty: ${item.quantity} - Price: ${item.product.price}');
+      }
+      print('Customer: $customerName');
+      print('Phone: $customerPhone');
+      print('Payment Method: $paymentMethodStr');
+      print('Discount: $discount');
+      print('Client ID: $clientId');
+
+      // Log cost breakdown
+      double subtotal = items.fold(
+          0, (sum, item) => sum + (item.product.price * item.quantity));
+      print('=== COST BREAKDOWN ===');
+      print('Subtotal: $subtotal');
+      print('Discount: $discount');
+      print('Total: ${subtotal - discount}');
+
+      // Parse the response - handle if API returns order wrapper
+      Map<String, dynamic> orderData;
+      if (response.containsKey('order')) {
+        print('Response contains "order" wrapper, extracting...');
+        orderData = response['order'] as Map<String, dynamic>;
+      } else {
+        print('Response is direct order data');
+        orderData = response;
+      }
+
+      print('=== PARSED ORDER DATA ===');
+      print('Order Data: $orderData');
 
       // Return the created invoice
-      return SalesInvoice.fromJson(response);
+      return SalesInvoice.fromJson(orderData);
     } catch (e) {
       print('Error creating order: $e');
       rethrow;

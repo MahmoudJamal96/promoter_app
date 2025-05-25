@@ -7,6 +7,9 @@ import '../services/inventory_service.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:printing/printing.dart';
 import 'product_detail_screen.dart';
+import '../../../core/constants/strings.dart';
+import '../../../features/products/services/products_service.dart';
+import '../../../core/di/injection_container.dart';
 
 class InventoryScreen extends StatefulWidget {
   const InventoryScreen({super.key});
@@ -26,6 +29,7 @@ class _InventoryScreenState extends State<InventoryScreen>
   String _selectedCategory = 'الكل';
   int _currentPage = 0;
   bool _hasMoreData = true;
+  late ProductsService _productsService;
 
   // For inventory management
   List<InventoryItem> _inventoryItems = [];
@@ -38,20 +42,16 @@ class _InventoryScreenState extends State<InventoryScreen>
   // Unit display selection
   bool _showPrimaryUnits = true;
 
-  final List<String> _categories = [
-    'الكل',
-    'أجهزة كهربائية',
-    'إلكترونيات',
-    'أدوات منزلية',
-    'مستلزمات مكتبية',
-    'أدوات صحية',
-    'غذائية'
-  ];
+  // Variable to store categories
+  List<Map<String, dynamic>> _categories = [];
+
   @override
   void initState() {
     super.initState();
+    _productsService = sl<ProductsService>();
     _loadProducts();
     _loadInventoryItems();
+    _loadCategories(); // Load categories from API
 
     // Set up pagination
     _scrollController.addListener(_scrollListener);
@@ -84,6 +84,22 @@ class _InventoryScreenState extends State<InventoryScreen>
         _isLoading = false;
       });
       _showErrorSnackbar('فشل تحميل بيانات المخزون');
+    }
+  }
+
+  // Load categories from API
+  Future<void> _loadCategories() async {
+    try {
+      final categories = await _productsService.getCategories();
+      setState(() {
+        _categories = categories;
+        // Add "All" category at the beginning
+        if (!_categories.any((cat) => cat['name'] == 'الكل')) {
+          _categories.insert(0, {'id': 0, 'name': 'الكل'});
+        }
+      });
+    } catch (e) {
+      _showErrorSnackbar('فشل تحميل التصنيفات');
     }
   }
 
@@ -161,8 +177,9 @@ class _InventoryScreenState extends State<InventoryScreen>
         backgroundColor: Colors.green,
       ),
     );
-  } // Load initial products or next page
+  }
 
+  // Load initial products or next page
   Future<void> _loadProducts() async {
     if (!_hasMoreData) return;
 
@@ -171,8 +188,24 @@ class _InventoryScreenState extends State<InventoryScreen>
     });
 
     try {
-      final newProducts =
-          await InventoryService.getProducts(page: _currentPage);
+      final apiResponse =
+          await _productsService.getProducts(page: _currentPage + 1);
+
+      // Convert API Product model to Inventory Product model
+      final List<Product> newProducts = apiResponse
+          .map((p) => Product(
+                id: p.id.toString(),
+                name: p.name,
+                category: p.categoryName,
+                price: p.price,
+                quantity: p.quantity,
+                imageUrl: p.imageUrl ?? 'assets/images/yasin_app_logo.JPG',
+                barcode: p.barcode,
+                location: 'الرف ${p.categoryId}',
+                supplier: p.companyName ?? 'غير محدد',
+                lastUpdated: DateTime.tryParse(p.updatedAt) ?? DateTime.now(),
+              ))
+          .toList();
 
       setState(() {
         if (newProducts.isEmpty) {
@@ -187,17 +220,81 @@ class _InventoryScreenState extends State<InventoryScreen>
       setState(() {
         _isLoading = false;
       });
-      _showErrorSnackBar('حدث خطأ أثناء تحميل المنتجات');
+      _showErrorSnackbar('حدث خطأ أثناء تحميل المنتجات');
     }
-  } // Search for products
+  }
 
-  Future<void> _searchProducts(String query) async {
+  // Load products filtered by category
+  Future<void> _loadProductsByCategory(int categoryId) async {
+    if (!_hasMoreData) return;
+
     setState(() {
-      _isLoading = true; // Use _isLoading instead of _isSearching
+      _isLoading = true;
     });
 
     try {
-      final results = await InventoryService.searchProducts(query);
+      final apiResponse = await _productsService.getProducts(
+          page: _currentPage + 1, categoryId: categoryId);
+
+      // Convert API Product model to Inventory Product model
+      final List<Product> newProducts = apiResponse
+          .map((p) => Product(
+                id: p.id.toString(),
+                name: p.name,
+                category: p.categoryName,
+                price: p.price,
+                quantity: p.quantity,
+                imageUrl: p.imageUrl ?? 'assets/images/yasin_app_logo.JPG',
+                barcode: p.barcode,
+                location: 'الرف ${p.categoryId}',
+                supplier: p.companyName ?? 'غير محدد',
+                lastUpdated: DateTime.tryParse(p.updatedAt) ?? DateTime.now(),
+              ))
+          .toList();
+
+      setState(() {
+        if (newProducts.isEmpty) {
+          _hasMoreData = false;
+        } else {
+          _products.addAll(newProducts);
+          _currentPage++;
+        }
+        _isLoading = false;
+      });
+    } catch (e) {
+      setState(() {
+        _isLoading = false;
+      });
+      _showErrorSnackbar('حدث خطأ أثناء تحميل المنتجات');
+    }
+  }
+
+  // Search for products
+
+  Future<void> _searchProducts(String query) async {
+    setState(() {
+      _isLoading = true;
+    });
+
+    try {
+      // Use the ProductsService to search for products via getProducts method
+      final apiResults = await _productsService.getProducts(search: query);
+
+      // Convert API Product model to Inventory Product model
+      final List<Product> results = apiResults
+          .map((p) => Product(
+                id: p.id.toString(),
+                name: p.name,
+                category: p.categoryName,
+                price: p.price,
+                quantity: p.quantity,
+                imageUrl: p.imageUrl ?? 'assets/images/yasin_app_logo.JPG',
+                barcode: p.barcode,
+                location: 'الرف ${p.categoryId}',
+                supplier: p.companyName ?? 'غير محدد',
+                lastUpdated: DateTime.tryParse(p.updatedAt) ?? DateTime.now(),
+              ))
+          .toList();
 
       setState(() {
         _products = results;
@@ -221,7 +318,21 @@ class _InventoryScreenState extends State<InventoryScreen>
       _hasMoreData = true;
     });
 
-    _loadProducts();
+    // If not the "All" category, filter by category when loading products
+    if (category != 'الكل') {
+      // Find the category ID
+      final categoryEntry = _categories.firstWhere(
+        (cat) => cat['name'] == category,
+        orElse: () => {'id': 0, 'name': 'الكل'},
+      );
+      final int categoryId = categoryEntry['id'] as int;
+
+      // Load products filtered by category
+      _loadProductsByCategory(categoryId);
+    } else {
+      // Load all products
+      _loadProducts();
+    }
   }
 
   // Scroll listener for pagination
@@ -343,7 +454,7 @@ class _InventoryScreenState extends State<InventoryScreen>
                   padding: EdgeInsets.symmetric(horizontal: 16.w),
                   itemCount: _categories.length,
                   itemBuilder: (context, index) {
-                    final category = _categories[index];
+                    final category = _categories[index]['name'] as String;
                     final isSelected = category == _selectedCategory;
 
                     return Padding(
@@ -587,7 +698,7 @@ class _InventoryScreenState extends State<InventoryScreen>
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       Text(
-                        '${product.price.toStringAsFixed(2)} ر.س',
+                        '${product.price.toStringAsFixed(2)} ${Strings.CURRENCY}',
                         style: TextStyle(
                           fontSize: 14.sp,
                           fontWeight: FontWeight.bold,
@@ -667,9 +778,10 @@ class _InventoryScreenState extends State<InventoryScreen>
                     spacing: 8.w,
                     runSpacing: 8.h,
                     children: _categories.map((category) {
-                      final isSelected = category == _selectedCategory;
+                      final categoryName = category['name'] as String;
+                      final isSelected = categoryName == _selectedCategory;
                       return ChoiceChip(
-                        label: Text(category),
+                        label: Text(categoryName),
                         selected: isSelected,
                         selectedColor:
                             theme.colorScheme.primary.withOpacity(0.2),
@@ -690,7 +802,7 @@ class _InventoryScreenState extends State<InventoryScreen>
                           ),
                         ),
                         onSelected: (_) {
-                          _filterByCategory(category);
+                          _filterByCategory(categoryName);
                           Navigator.pop(context);
                         },
                       );
@@ -712,7 +824,8 @@ class _InventoryScreenState extends State<InventoryScreen>
                     min: 0,
                     max: 5000,
                     divisions: 50,
-                    labels: const RangeLabels('0 ر.س', '5000 ر.س'),
+                    labels: RangeLabels(
+                        '0 ${Strings.CURRENCY}', '5000 ${Strings.CURRENCY}'),
                     onChanged: (RangeValues values) {},
                     activeColor: theme.colorScheme.primary,
                     inactiveColor: theme.colorScheme.primary.withOpacity(0.2),
@@ -721,8 +834,8 @@ class _InventoryScreenState extends State<InventoryScreen>
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Text('0 ر.س'),
-                      Text('5000 ر.س'),
+                      Text('0 ${Strings.CURRENCY}'),
+                      Text('5000 ${Strings.CURRENCY}'),
                     ],
                   ),
 
@@ -813,7 +926,7 @@ class _InventoryScreenState extends State<InventoryScreen>
                     ),
                   ),
                   Text(
-                    '${_totalInventoryValue.toStringAsFixed(2)} ريال',
+                    '${_totalInventoryValue.toStringAsFixed(2)} ${Strings.CURRENCY}',
                     style: TextStyle(
                       fontSize: 16.sp,
                       fontWeight: FontWeight.bold,
@@ -963,7 +1076,7 @@ class _InventoryScreenState extends State<InventoryScreen>
                                       ),
                                     ),
                                     Text(
-                                      '${item.price.toStringAsFixed(2)} ريال',
+                                      '${item.price.toStringAsFixed(2)} ${Strings.CURRENCY}',
                                       style: TextStyle(
                                         fontWeight: FontWeight.bold,
                                         color: theme.colorScheme.primary,
@@ -1084,7 +1197,7 @@ class _InventoryScreenState extends State<InventoryScreen>
                   'تاريخ الطباعة: ${DateTime.now().toString().split(' ')[0]}'),
               pw.SizedBox(height: 10),
               pw.Text(
-                  'إجمالي قيمة المخزون: ${_totalInventoryValue.toStringAsFixed(2)} ريال'),
+                  'إجمالي قيمة المخزون: ${_totalInventoryValue.toStringAsFixed(2)} ${Strings.CURRENCY}'),
               pw.SizedBox(height: 20),
 
               // Table header

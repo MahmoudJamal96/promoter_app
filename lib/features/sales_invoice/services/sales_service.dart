@@ -29,15 +29,15 @@ class SalesService {
         case inventory.PaymentMethod.cash:
           paymentMethodStr = 'cash';
           break;
-        case inventory.PaymentMethod.creditCard:
+        case inventory.PaymentMethod.credit:
           paymentMethodStr = 'credit_card';
           break;
-        case inventory.PaymentMethod.bankTransfer:
+        case inventory.PaymentMethod.bank:
           paymentMethodStr = 'bank_transfer';
           break;
-        case inventory.PaymentMethod.check:
-          paymentMethodStr = 'check';
-          break;
+        // case inventory.PaymentMethod.:
+        //   paymentMethodStr = 'check';
+        //   break;
         default:
           paymentMethodStr = 'cash'; // Default to cash
       }

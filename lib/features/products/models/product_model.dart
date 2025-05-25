@@ -32,18 +32,22 @@ class Product {
   factory Product.fromJson(Map<String, dynamic> json) {
     return Product(
       id: json['id'] as int,
-      name: json['name'] as String,
-      sku: json['sku'] as String,
-      barcode: json['barcode'] as String,
-      price: (json['price'] as num).toDouble(),
-      quantity: json['quantity'] as int,
-      imageUrl: json['image_url'] as String?,
-      categoryId: json['category_id'] as int,
-      categoryName: json['category_name'] as String,
+      name: json['name'] as String? ?? '',
+      sku: json['sku'] as String? ?? '',
+      barcode: json['barcode'] ?? json['barcode_number'] as String? ?? '',
+      price: double.tryParse(json['price']?.toString() ?? "0") ?? 0,
+      quantity: int.tryParse(json['quantity']?.toString() ??
+              json['stock']?.toString() ??
+              json['current_stock']?.toString() ??
+              '0') ??
+          0,
+      imageUrl: json['image_url'] as String? ?? '',
+      categoryId: json['category_id'] as int? ?? 0,
+      categoryName: json['category_name'] as String? ?? '',
       companyId: json['company_id'] as int?,
       companyName: json['company_name'] as String?,
-      createdAt: json['created_at'] as String,
-      updatedAt: json['updated_at'] as String,
+      createdAt: json['created_at'] as String? ?? "",
+      updatedAt: json['updated_at'] as String? ?? "",
     );
   }
 

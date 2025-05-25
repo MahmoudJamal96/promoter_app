@@ -1,6 +1,4 @@
-import 'dart:convert';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
-import '../../../core/constants/api_constants.dart';
 import '../../../core/network/api_client.dart';
 import '../../../core/di/injection_container.dart';
 import '../models/product_model.dart';
@@ -41,7 +39,6 @@ class ProductsService {
     final List<dynamic> products = response['data'] ?? [];
     return products.map((json) => Product.fromJson(json)).toList();
   }*/
-
   // Scan product by barcode/sku/name
   Future<List<Product>> scanProduct(
       {String? sku, String? name, String? barcode}) async {
@@ -55,8 +52,21 @@ class ProductsService {
       data: formData,
     );
 
-    final List<dynamic> products = response['data'] ?? [];
-    return products.map((json) => Product.fromJson(json)).toList();
+    // Check if response contains success status and data
+    if (response['success'] == true && response['data'] != null) {
+      // Handle case where data is a single product object
+      final productData = response['data'];
+      if (productData is Map<String, dynamic>) {
+        // Single product returned
+        return [Product.fromJson(productData)];
+      } else if (productData is List) {
+        // Multiple products returned (in case API changes)
+        return productData.map((json) => Product.fromJson(json)).toList();
+      }
+    }
+
+    // Return empty list if no valid data found
+    return [];
   }
 
   // Get related products for a specific product
