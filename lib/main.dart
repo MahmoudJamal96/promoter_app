@@ -9,12 +9,11 @@ import 'package:promoter_app/core/di/injection_container.dart' as di;
 import 'package:promoter_app/features/auth/presentation/bloc/auth_bloc.dart';
 import 'package:promoter_app/features/auth/screens/login_screen.dart';
 import 'package:promoter_app/features/dashboard/dashboard_screen.dart';
+import 'package:promoter_app/features/salary/cubit/salary_cubit.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 
 import 'app_theme.dart';
-import 'core/usecases/usecase.dart';
 import 'features/client/cubit/client_cubit_service.dart';
-import 'features/menu/leave_request/leave_request_setup.dart';
 import 'features/menu/tasks/di/setup_tasks.dart';
 
 final logger = Logger();
@@ -58,6 +57,10 @@ class MyApp extends StatelessWidget {
           // Use API connected ClientCubit
           BlocProvider(
             create: (_) => di.sl<ClientCubit>(),
+          ),
+          // Add SalaryCubit
+          BlocProvider(
+            create: (_) => di.sl<SalaryCubit>(),
           ),
         ],
         child: SafeArea(

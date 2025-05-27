@@ -49,7 +49,7 @@ class _InventoryScreenState extends State<InventoryScreen>
   void initState() {
     super.initState();
     _productsService = sl<ProductsService>();
-    _loadProducts();
+    // _loadProducts();
     _loadInventoryItems();
     _loadCategories(); // Load categories from API
 
@@ -331,7 +331,7 @@ class _InventoryScreenState extends State<InventoryScreen>
       _loadProductsByCategory(categoryId);
     } else {
       // Load all products
-      _loadProducts();
+      // _loadProducts();
     }
   }
 
@@ -341,7 +341,7 @@ class _InventoryScreenState extends State<InventoryScreen>
             _scrollController.position.maxScrollExtent - 200 &&
         !_isLoading &&
         _hasMoreData) {
-      _loadProducts();
+      // _loadProducts();
     }
   }
 
@@ -375,7 +375,7 @@ class _InventoryScreenState extends State<InventoryScreen>
           controller: _tabController,
           tabs: [
             Tab(text: 'المنتجات'),
-            Tab(text: 'جرد المخزون'),
+            // Tab(text: 'جرد المخزون'),
           ],
           labelColor: theme.colorScheme.primary,
           unselectedLabelColor: theme.colorScheme.onSurface.withOpacity(0.7),
@@ -524,7 +524,7 @@ class _InventoryScreenState extends State<InventoryScreen>
                                 _currentPage = 0;
                                 _hasMoreData = true;
                               });
-                              await _loadProducts();
+                              // await _loadProducts();
                             },
                             child: GridView.builder(
                               controller: _scrollController,
@@ -562,28 +562,28 @@ class _InventoryScreenState extends State<InventoryScreen>
             ],
           ),
           // Tab 2: Inventory Count
-          _buildInventoryCountTab(theme),
+          // _buildInventoryCountTab(theme),
         ],
       ),
-      floatingActionButton: _tabController.index == 0
-          ? FloatingActionButton(
-              backgroundColor: theme.colorScheme.primary,
-              foregroundColor: theme.colorScheme.onPrimary,
-              onPressed: () {
-                // Add new product functionality
-              },
-              child: Icon(Icons.add),
-            )
-          : FloatingActionButton(
-              backgroundColor: theme.colorScheme.secondary,
-              foregroundColor: theme.colorScheme.onSecondary,
-              onPressed: () {
-                setState(() {
-                  _countingMode = !_countingMode;
-                });
-              },
-              child: Icon(_countingMode ? Icons.check : Icons.edit),
-            ),
+      // floatingActionButton: _tabController.index == 0
+      //     ? FloatingActionButton(
+      //         backgroundColor: theme.colorScheme.primary,
+      //         foregroundColor: theme.colorScheme.onPrimary,
+      //         onPressed: () {
+      //           // Add new product functionality
+      //         },
+      //         child: Icon(Icons.add),
+      //       )
+      //     : FloatingActionButton(
+      //         backgroundColor: theme.colorScheme.secondary,
+      //         foregroundColor: theme.colorScheme.onSecondary,
+      //         onPressed: () {
+      //           setState(() {
+      //             _countingMode = !_countingMode;
+      //           });
+      //         },
+      //         child: Icon(_countingMode ? Icons.check : Icons.edit),
+      //       ),
     );
   }
 

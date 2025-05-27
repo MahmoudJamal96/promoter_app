@@ -10,9 +10,160 @@ import '../../products/services/products_service.dart';
 import '../../sales_invoice/services/order_service.dart';
 import '../../../core/di/injection_container.dart';
 import '../../../core/constants/strings.dart';
+import '../../invoice_generator/invoice_generator.dart';
+import 'package:pdf/widgets.dart' as pw;
+import 'package:pdf/pdf.dart';
+
+// Custom converter for sales invoice items
+class SalesInvoiceConverter implements InvoiceConverter<InvoiceItem> {
+  final String companyName;
+  final String invoiceNumber;
+  final String customerName;
+  final DateTime date;
+  final double subtotal;
+  final double tax;
+  final double discount;
+  final double total;
+
+  SalesInvoiceConverter({
+    required this.companyName,
+    required this.invoiceNumber,
+    required this.customerName,
+    required this.date,
+    required this.subtotal,
+    required this.tax,
+    required this.discount,
+    required this.total,
+  });
+
+  @override
+  pw.Widget buildInvoice(List<InvoiceItem> items) {
+    return pw.Column(
+      crossAxisAlignment: pw.CrossAxisAlignment.start,
+      children: [
+        // Header
+        pw.Row(
+          mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+          children: [
+            pw.Column(
+              crossAxisAlignment: pw.CrossAxisAlignment.start,
+              children: [
+                pw.Text(
+                  companyName,
+                  style: pw.TextStyle(
+                      fontWeight: pw.FontWeight.bold, fontSize: 24),
+                ),
+                pw.SizedBox(height: 8),
+                pw.Text('رقم الفاتورة: $invoiceNumber',
+                    style: pw.TextStyle(fontSize: 14)),
+                pw.Text('التاريخ: ${date.toString().split(' ')[0]}',
+                    style: pw.TextStyle(fontSize: 14)),
+                pw.Text('العميل: $customerName',
+                    style: pw.TextStyle(fontSize: 14)),
+              ],
+            ),
+          ],
+        ),
+        pw.SizedBox(height: 30),
+
+        // Table header
+        pw.Table(
+          border: pw.TableBorder.all(),
+          columnWidths: {
+            0: const pw.FlexColumnWidth(4),
+            1: const pw.FlexColumnWidth(1),
+            2: const pw.FlexColumnWidth(2),
+            3: const pw.FlexColumnWidth(2),
+          },
+          children: [
+            pw.TableRow(
+              decoration: pw.BoxDecoration(color: PdfColors.grey200),
+              children: [
+                pw.Padding(
+                  padding: const pw.EdgeInsets.all(8),
+                  child: pw.Text('المنتج',
+                      style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
+                ),
+                pw.Padding(
+                  padding: const pw.EdgeInsets.all(8),
+                  child: pw.Text('الكمية',
+                      style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
+                ),
+                pw.Padding(
+                  padding: const pw.EdgeInsets.all(8),
+                  child: pw.Text('السعر',
+                      style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
+                ),
+                pw.Padding(
+                  padding: const pw.EdgeInsets.all(8),
+                  child: pw.Text('المجموع',
+                      style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
+                ),
+              ],
+            ),
+
+            // Items
+            ...items.map((item) => pw.TableRow(
+                  children: [
+                    pw.Padding(
+                      padding: const pw.EdgeInsets.all(8),
+                      child: pw.Text(item.description),
+                    ),
+                    pw.Padding(
+                      padding: const pw.EdgeInsets.all(8),
+                      child: pw.Text(item.quantity.toString()),
+                    ),
+                    pw.Padding(
+                      padding: const pw.EdgeInsets.all(8),
+                      child: pw.Text('${item.price.toStringAsFixed(2)} جنيه'),
+                    ),
+                    pw.Padding(
+                      padding: const pw.EdgeInsets.all(8),
+                      child: pw.Text(
+                          '${(item.quantity * item.price).toStringAsFixed(2)} جنيه'),
+                    ),
+                  ],
+                )),
+          ],
+        ),
+
+        pw.SizedBox(height: 30),
+
+        // Totals section
+        pw.Row(
+          mainAxisAlignment: pw.MainAxisAlignment.end,
+          children: [
+            pw.Column(
+              crossAxisAlignment: pw.CrossAxisAlignment.end,
+              children: [
+                pw.Text('المجموع الفرعي: ${subtotal.toStringAsFixed(2)} جنيه'),
+                pw.Text('الضريبة (15%): ${tax.toStringAsFixed(2)} جنيه'),
+                if (discount > 0)
+                  pw.Text('الخصم: ${discount.toStringAsFixed(2)} جنيه'),
+                pw.Divider(),
+                pw.Text(
+                  'المجموع الكلي: ${total.toStringAsFixed(2)} جنيه',
+                  style: pw.TextStyle(
+                      fontWeight: pw.FontWeight.bold, fontSize: 16),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+}
 
 class SalesInvoiceScreen extends StatefulWidget {
-  const SalesInvoiceScreen({super.key});
+  final String? initialClientName;
+  final String? initialClientPhone;
+
+  const SalesInvoiceScreen({
+    super.key,
+    this.initialClientName,
+    this.initialClientPhone,
+  });
 
   @override
   State<SalesInvoiceScreen> createState() => _SalesInvoiceScreenState();
@@ -33,13 +184,20 @@ class _SalesInvoiceScreenState extends State<SalesInvoiceScreen> {
   // Services
   late ProductsService _productsService;
   late OrderService _orderService;
-
   @override
   void initState() {
     super.initState();
     _discountController.text = '0';
     _productsService = sl<ProductsService>();
     _orderService = OrderService();
+
+    // Set initial client data if provided
+    if (widget.initialClientName != null) {
+      _customerNameController.text = widget.initialClientName!;
+    }
+    if (widget.initialClientPhone != null) {
+      _customerPhoneController.text = widget.initialClientPhone!;
+    }
   }
 
   @override
@@ -159,7 +317,6 @@ class _SalesInvoiceScreenState extends State<SalesInvoiceScreen> {
   double get _vat => _subtotal * 0.15;
 
   double get _total => _subtotal + _vat - _discount;
-
   // Create invoice using API
   Future<void> _createInvoice() async {
     if (_cartItems.isEmpty) {
@@ -174,7 +331,7 @@ class _SalesInvoiceScreenState extends State<SalesInvoiceScreen> {
     try {
       // Show loading dialog
       _showLoadingDialog(); // Create order using OrderService
-      await _orderService.createOrder(
+      final result = await _orderService.createOrder(
         items: _cartItems,
         customerName: _customerNameController.text,
         customerPhone: _customerPhoneController.text.isEmpty
@@ -188,12 +345,103 @@ class _SalesInvoiceScreenState extends State<SalesInvoiceScreen> {
       Navigator.pop(context);
 
       _showSuccessSnackBar('تم إنشاء الفاتورة بنجاح');
-      _showInvoiceSummaryDialog();
+
+      // Print the invoice directly
+      await _printInvoice(result);
+
       _resetForm();
     } catch (e) {
       // Close loading dialog if open
       if (Navigator.canPop(context)) Navigator.pop(context);
       _showErrorSnackBar('خطأ في إنشاء الفاتورة: ${e.toString()}');
+    }
+  }
+
+  // Print invoice method using InvoiceGenerator
+  Future<void> _printInvoice(invoice_model.SalesInvoice invoice) async {
+    try {
+      // Convert invoice items to InvoiceItem format
+      final List<InvoiceItem> invoiceItems = invoice.items
+          .map((item) => InvoiceItem(
+                description: item.productName,
+                quantity: item.quantity,
+                price: item.price,
+              ))
+          .toList();
+
+      // Create converter with invoice details
+      final converter = SalesInvoiceConverter(
+        companyName: 'شركة الياسين التجارية',
+        invoiceNumber: invoice.invoiceNumber,
+        customerName: invoice.clientName,
+        date: DateTime.tryParse(invoice.createdAt) ?? DateTime.now(),
+        subtotal: invoice.subtotal,
+        tax: invoice.tax,
+        discount: invoice.discount,
+        total: invoice.total,
+      );
+
+      // Generate PDF
+      final pdfBytes = await InvoiceGenerator.toPrinter(
+        invoiceItems,
+        converter: converter,
+        isArabic: true,
+      );
+
+      // Show print preview and options
+      showDialog(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: const Text('طباعة الفاتورة'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text('رقم الفاتورة: ${invoice.invoiceNumber}'),
+              Text('العميل: ${invoice.clientName}'),
+              Text(
+                  'المجموع: ${invoice.total.toStringAsFixed(2)} ${Strings.CURRENCY}'),
+              const SizedBox(height: 20),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                children: [
+                  ElevatedButton.icon(
+                    onPressed: () async {
+                      Navigator.pop(context);
+                      // Show print preview
+                      InvoiceGenerator.showPrintPreview(context, pdfBytes);
+                    },
+                    icon: const Icon(Icons.preview),
+                    label: const Text('معاينة'),
+                  ),
+                  ElevatedButton.icon(
+                    onPressed: () async {
+                      Navigator.pop(context);
+                      // Print directly
+                      final success =
+                          await InvoiceGenerator.printDocument(pdfBytes);
+                      if (success) {
+                        _showSuccessSnackBar('تم طباعة الفاتورة بنجاح');
+                      } else {
+                        _showErrorSnackBar('فشل في طباعة الفاتورة');
+                      }
+                    },
+                    icon: const Icon(Icons.print),
+                    label: const Text('طباعة'),
+                  ),
+                ],
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('إلغاء'),
+            ),
+          ],
+        ),
+      );
+    } catch (e) {
+      _showErrorSnackBar('خطأ في تجهيز الفاتورة للطباعة: ${e.toString()}');
     }
   }
 
@@ -221,6 +469,51 @@ class _SalesInvoiceScreenState extends State<SalesInvoiceScreen> {
         ),
         actions: [
           TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('موافق'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // Show invoice summary dialog
+  void _showInvoiceSummaryDialog() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('ملخص الفاتورة'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('العميل: ${_customerNameController.text}'),
+            if (_customerPhoneController.text.isNotEmpty)
+              Text('الهاتف: ${_customerPhoneController.text}'),
+            const Divider(),
+            Text(
+                'المجموع الفرعي: ${_subtotal.toStringAsFixed(2)} ${Strings.CURRENCY}'),
+            Text(
+                'ضريبة القيمة المضافة: ${_vat.toStringAsFixed(2)} ${Strings.CURRENCY}'),
+            if (_discount > 0)
+              Text(
+                  'الخصم: ${_discount.toStringAsFixed(2)} ${Strings.CURRENCY}'),
+            const Divider(),
+            Text(
+              'المجموع الكلي: ${_total.toStringAsFixed(2)} ${Strings.CURRENCY}',
+              style: const TextStyle(fontWeight: FontWeight.bold),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () {
+              Navigator.pop(context);
+              _resetForm();
+            },
+            child: const Text('بدء فاتورة جديدة'),
+          ),
+          ElevatedButton(
             onPressed: () => Navigator.pop(context),
             child: const Text('موافق'),
           ),
@@ -337,51 +630,6 @@ class _SalesInvoiceScreenState extends State<SalesInvoiceScreen> {
     } catch (e) {
       _showErrorSnackBar('خطأ في مسح الباركود: ${e.toString()}');
     }
-  }
-
-  // Show invoice summary dialog
-  void _showInvoiceSummaryDialog() {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('ملخص الفاتورة'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text('العميل: ${_customerNameController.text}'),
-            if (_customerPhoneController.text.isNotEmpty)
-              Text('الهاتف: ${_customerPhoneController.text}'),
-            const Divider(),
-            Text(
-                'المجموع الفرعي: ${_subtotal.toStringAsFixed(2)} ${Strings.CURRENCY}'),
-            Text(
-                'ضريبة القيمة المضافة: ${_vat.toStringAsFixed(2)} ${Strings.CURRENCY}'),
-            if (_discount > 0)
-              Text(
-                  'الخصم: ${_discount.toStringAsFixed(2)} ${Strings.CURRENCY}'),
-            const Divider(),
-            Text(
-              'المجموع الكلي: ${_total.toStringAsFixed(2)} ${Strings.CURRENCY}',
-              style: const TextStyle(fontWeight: FontWeight.bold),
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () {
-              Navigator.pop(context);
-              _resetForm();
-            },
-            child: const Text('بدء فاتورة جديدة'),
-          ),
-          ElevatedButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('موافق'),
-          ),
-        ],
-      ),
-    );
   }
 
   void _showErrorSnackBar(String message) {

@@ -1,4 +1,3 @@
-import 'dart:convert';
 import '../../../core/network/api_client.dart';
 import '../../../core/di/injection_container.dart';
 import '../models/salary_model.dart';
@@ -29,20 +28,51 @@ class SalaryService {
         return _getMockSalaries(); // Return mock data for testing
       }
 
-      // Handle different response formats
+      // Handle the API response structure
       List<dynamic> salariesData = [];
 
-      if (response is List) {
+      if (response is Map &&
+          response['success'] == true &&
+          response['data'] != null) {
+        salariesData = response['data'] as List;
+      } else if (response is List) {
         salariesData = response;
       } else if (response['data'] != null) {
         if (response['data'] is List) {
           salariesData = response['data'];
-        } else if (response['data']['data'] is List) {
-          salariesData = response['data']['data'];
         }
       }
 
-      return salariesData.map((json) => SalaryModel.fromJson(json)).toList();
+      // Convert to SalaryEntry objects first
+      final salaryEntries =
+          salariesData.map((json) => SalaryEntry.fromJson(json)).toList();
+
+      // Group entries by month and aggregate them
+      final groupedByMonth = <String, List<SalaryEntry>>{};
+      for (var entry in salaryEntries) {
+        final entryDate = DateTime.parse(entry.date);
+        final monthKey =
+            '${entryDate.year}-${entryDate.month.toString().padLeft(2, '0')}';
+
+        if (!groupedByMonth.containsKey(monthKey)) {
+          groupedByMonth[monthKey] = [];
+        }
+        groupedByMonth[monthKey]!.add(entry);
+      }
+
+      // Create aggregated SalaryModel objects for each month
+      final aggregatedSalaries = <SalaryModel>[];
+      for (var monthKey in groupedByMonth.keys) {
+        final monthEntries = groupedByMonth[monthKey]!;
+        final aggregatedSalary =
+            SalaryModel.fromEntries(monthEntries, monthKey);
+        aggregatedSalaries.add(aggregatedSalary);
+      }
+
+      // Sort by month (newest first)
+      aggregatedSalaries.sort((a, b) => b.month.compareTo(a.month));
+
+      return aggregatedSalaries;
     } catch (e) {
       print('Error getting salaries: $e');
       return _getMockSalaries(); // Return mock data in case of error
@@ -57,7 +87,11 @@ class SalaryService {
       if (response != null && response['data'] != null) {
         final salaryData = response['data'];
         if (salaryData is List && salaryData.isNotEmpty) {
-          return SalaryModel.fromJson(salaryData.first);
+          // Convert to SalaryEntry objects first
+          final salaryEntries =
+              salaryData.map((json) => SalaryEntry.fromJson(json)).toList();
+          // Aggregate entries for the month
+          return SalaryModel.fromEntries(salaryEntries, month);
         } else if (salaryData is Map) {
           return SalaryModel.fromJson(salaryData);
         }
@@ -89,6 +123,50 @@ class SalaryService {
     }
   }
 
+  /// Create new salary entry (for admin/HR)
+  Future<SalaryModel?> createSalary(SalaryRequestModel salaryRequest) async {
+    try {
+      final response = await _apiClient.post(
+        '/salaries',
+        data: salaryRequest.toJson(),
+      );
+
+      if (response != null) {
+        return SalaryModel.fromJson(response['data'] ?? response);
+      }
+      return null;
+    } catch (e) {
+      print('Error creating salary: $e');
+      return null;
+    }
+  }
+
+  /// Create new individual salary entry
+  Future<bool> createSalaryEntry(EntryRequestModel entryRequest) async {
+    try {
+      final response = await _apiClient.post(
+        '/salaries',
+        data: entryRequest.toJson(),
+      );
+
+      return response != null;
+    } catch (e) {
+      print('Error creating salary entry: $e');
+      return false;
+    }
+  }
+
+  /// Get salary statistics
+  Future<SalaryStatsModel?> getSalaryStats() async {
+    try {
+      final salaries = await getSalaries();
+      return SalaryStatsModel.fromSalaries(salaries);
+    } catch (e) {
+      print('Error getting salary stats: $e');
+      return null;
+    }
+  }
+
   /// Update salary details (for admin/HR)
   Future<SalaryModel?> updateSalary({
     required int salaryId,
@@ -110,36 +188,14 @@ class SalaryService {
     }
   }
 
-  /// Create new salary entry (for admin/HR)
-  Future<SalaryModel?> createSalary(SalaryRequestModel salaryRequest) async {
+  /// Delete salary entry
+  Future<bool> deleteSalary(String salaryId) async {
     try {
-      final response = await _apiClient.post(
-        '/salaries',
-        data: salaryRequest.toJson(),
-      );
-
-      if (response != null) {
-        return SalaryModel.fromJson(response['data'] ?? response);
-      }
-      return null;
+      final response = await _apiClient.delete('/salaries/$salaryId');
+      return response != null;
     } catch (e) {
-      print('Error creating salary: $e');
-      return null;
-    }
-  }
-
-  /// Get salary statistics
-  Future<SalaryStatsModel?> getSalaryStats() async {
-    try {
-      final response = await _apiClient.get('/salary-stats');
-
-      if (response != null && response['data'] != null) {
-        return SalaryStatsModel.fromJson(response['data']);
-      }
-      return null;
-    } catch (e) {
-      print('Error getting salary stats: $e');
-      return null;
+      print('Error deleting salary: $e');
+      return false;
     }
   }
 

@@ -28,8 +28,10 @@ class InvoiceGenerator {
     pdf.addPage(
       pw.Page(
         pageFormat: format,
+        margin: const pw.EdgeInsets.all(20),
         theme: pw.ThemeData.withFont(
           base: isArabic ? ttf : pw.Font.helvetica(),
+          bold: isArabic ? ttf : pw.Font.helveticaBold(),
         ),
         textDirection: isArabic ? pw.TextDirection.rtl : pw.TextDirection.ltr,
         build: (context) => converter.buildInvoice(items),
@@ -96,93 +98,197 @@ class InvoiceItemConverter<T extends InvoiceItem>
     required this.date,
     this.companyLogo,
   });
-
   @override
   pw.Widget buildInvoice(List<T> items) {
     final total = items.fold<double>(
         0, (sum, item) => sum + (item.quantity * item.price));
 
-    return pw.Column(
-      crossAxisAlignment: pw.CrossAxisAlignment.start,
-      children: [
-        // Header
-        pw.Row(
-          mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
-          children: [
-            pw.Column(
-              crossAxisAlignment: pw.CrossAxisAlignment.start,
+    return pw.Padding(
+      padding: const pw.EdgeInsets.all(20),
+      child: pw.Column(
+        crossAxisAlignment: pw.CrossAxisAlignment.start,
+        children: [
+          // Header with proper Arabic alignment
+          pw.Container(
+            width: double.infinity,
+            child: pw.Column(
+              crossAxisAlignment: pw.CrossAxisAlignment.center,
               children: [
                 pw.Text(
                   companyName,
                   style: pw.TextStyle(
-                      fontWeight: pw.FontWeight.bold, fontSize: 20),
+                    fontWeight: pw.FontWeight.bold,
+                    fontSize: 24,
+                  ),
+                  textAlign: pw.TextAlign.center,
                 ),
-                pw.Text('Invoice #: $invoiceNumber'),
-                pw.Text('Date: ${date.toString().split(' ')[0]}'),
-              ],
-            ),
-          ],
-        ),
-        pw.SizedBox(height: 20),
-
-        // Table header
-        pw.Table(
-          border: pw.TableBorder.all(),
-          columnWidths: {
-            0: const pw.FlexColumnWidth(3),
-            1: const pw.FlexColumnWidth(1),
-            2: const pw.FlexColumnWidth(2),
-            3: const pw.FlexColumnWidth(2),
-          },
-          children: [
-            pw.TableRow(
-              decoration: pw.BoxDecoration(color: PdfColors.grey200),
-              children: [
-                pw.Padding(
-                    padding: const pw.EdgeInsets.all(5),
-                    child: pw.Text('Description')),
-                pw.Padding(
-                    padding: const pw.EdgeInsets.all(5), child: pw.Text('Qty')),
-                pw.Padding(
-                    padding: const pw.EdgeInsets.all(5),
-                    child: pw.Text('Unit Price')),
-                pw.Padding(
-                    padding: const pw.EdgeInsets.all(5),
-                    child: pw.Text('Total')),
-              ],
-            ),
-
-            // Items
-            ...items.map((item) => pw.TableRow(
+                pw.SizedBox(height: 10),
+                pw.Row(
+                  mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
                   children: [
-                    pw.Padding(
-                        padding: const pw.EdgeInsets.all(5),
-                        child: pw.Text(item.description)),
-                    pw.Padding(
-                        padding: const pw.EdgeInsets.all(5),
-                        child: pw.Text(item.quantity.toString())),
-                    pw.Padding(
-                        padding: const pw.EdgeInsets.all(5),
-                        child: pw.Text('\$${item.price.toStringAsFixed(2)}')),
-                    pw.Padding(
-                        padding: const pw.EdgeInsets.all(5),
-                        child: pw.Text(
-                            '\$${(item.quantity * item.price).toStringAsFixed(2)}')),
+                    pw.Text(
+                      'رقم الفاتورة: $invoiceNumber',
+                      style: pw.TextStyle(fontSize: 14),
+                    ),
+                    pw.Text(
+                      'التاريخ: ${date.toString().split(' ')[0]}',
+                      style: pw.TextStyle(fontSize: 14),
+                    ),
                   ],
-                )),
-          ],
-        ),
+                ),
+              ],
+            ),
+          ),
+          pw.SizedBox(height: 30),
 
-        // Total
-        pw.SizedBox(height: 20),
-        pw.Row(
-          mainAxisAlignment: pw.MainAxisAlignment.end,
-          children: [
-            pw.Text('Total: \$${total.toStringAsFixed(2)}',
-                style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
-          ],
-        ),
-      ],
+          // Table with improved design
+          pw.Container(
+            decoration: pw.BoxDecoration(
+              border: pw.Border.all(color: PdfColors.black, width: 1),
+            ),
+            child: pw.Table(
+              border: pw.TableBorder.all(color: PdfColors.grey300),
+              columnWidths: {
+                0: const pw.FlexColumnWidth(4),
+                1: const pw.FlexColumnWidth(1.5),
+                2: const pw.FlexColumnWidth(2),
+                3: const pw.FlexColumnWidth(2),
+              },
+              children: [
+                // Header row
+                pw.TableRow(
+                  decoration: pw.BoxDecoration(color: PdfColors.grey100),
+                  children: [
+                    pw.Container(
+                      padding: const pw.EdgeInsets.all(8),
+                      child: pw.Text(
+                        'الوصف',
+                        style: pw.TextStyle(
+                          fontWeight: pw.FontWeight.bold,
+                          fontSize: 12,
+                        ),
+                        textAlign: pw.TextAlign.center,
+                      ),
+                    ),
+                    pw.Container(
+                      padding: const pw.EdgeInsets.all(8),
+                      child: pw.Text(
+                        'الكمية',
+                        style: pw.TextStyle(
+                          fontWeight: pw.FontWeight.bold,
+                          fontSize: 12,
+                        ),
+                        textAlign: pw.TextAlign.center,
+                      ),
+                    ),
+                    pw.Container(
+                      padding: const pw.EdgeInsets.all(8),
+                      child: pw.Text(
+                        'السعر',
+                        style: pw.TextStyle(
+                          fontWeight: pw.FontWeight.bold,
+                          fontSize: 12,
+                        ),
+                        textAlign: pw.TextAlign.center,
+                      ),
+                    ),
+                    pw.Container(
+                      padding: const pw.EdgeInsets.all(8),
+                      child: pw.Text(
+                        'المجموع',
+                        style: pw.TextStyle(
+                          fontWeight: pw.FontWeight.bold,
+                          fontSize: 12,
+                        ),
+                        textAlign: pw.TextAlign.center,
+                      ),
+                    ),
+                  ],
+                ),
+
+                // Items rows
+                ...items.map((item) => pw.TableRow(
+                      children: [
+                        pw.Container(
+                          padding: const pw.EdgeInsets.all(8),
+                          child: pw.Text(
+                            item.description,
+                            style: pw.TextStyle(fontSize: 11),
+                          ),
+                        ),
+                        pw.Container(
+                          padding: const pw.EdgeInsets.all(8),
+                          child: pw.Text(
+                            item.quantity.toString(),
+                            style: pw.TextStyle(fontSize: 11),
+                            textAlign: pw.TextAlign.center,
+                          ),
+                        ),
+                        pw.Container(
+                          padding: const pw.EdgeInsets.all(8),
+                          child: pw.Text(
+                            '${item.price.toStringAsFixed(2)} ر.س',
+                            style: pw.TextStyle(fontSize: 11),
+                            textAlign: pw.TextAlign.center,
+                          ),
+                        ),
+                        pw.Container(
+                          padding: const pw.EdgeInsets.all(8),
+                          child: pw.Text(
+                            '${(item.quantity * item.price).toStringAsFixed(2)} ر.س',
+                            style: pw.TextStyle(fontSize: 11),
+                            textAlign: pw.TextAlign.center,
+                          ),
+                        ),
+                      ],
+                    )),
+              ],
+            ),
+          ),
+
+          // Total section with better design
+          pw.SizedBox(height: 20),
+          pw.Container(
+            width: double.infinity,
+            padding: const pw.EdgeInsets.all(15),
+            decoration: pw.BoxDecoration(
+              color: PdfColors.grey50,
+              border: pw.Border.all(color: PdfColors.grey300),
+            ),
+            child: pw.Row(
+              mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+              children: [
+                pw.Text(
+                  'المجموع الكلي:',
+                  style: pw.TextStyle(
+                    fontWeight: pw.FontWeight.bold,
+                    fontSize: 16,
+                  ),
+                ),
+                pw.Text(
+                  '${total.toStringAsFixed(2)} ر.س',
+                  style: pw.TextStyle(
+                    fontWeight: pw.FontWeight.bold,
+                    fontSize: 16,
+                  ),
+                ),
+              ],
+            ),
+          ),
+
+          // Footer with thank you message
+          pw.SizedBox(height: 30),
+          pw.Center(
+            child: pw.Text(
+              'شكراً لتعاملكم معنا',
+              style: pw.TextStyle(
+                fontSize: 14,
+                fontStyle: pw.FontStyle.italic,
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

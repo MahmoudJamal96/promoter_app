@@ -12,6 +12,7 @@ import '../cubit/client_state.dart';
 import '../widgets/clients_map_view.dart';
 import '../widgets/enhanced_client_card.dart';
 import '../screens/add_client_page.dart';
+import '../../inventory/screens/sales_invoice_screen_fixed.dart';
 
 class EnhancedClientScreen extends StatelessWidget {
   const EnhancedClientScreen({super.key});
@@ -108,6 +109,18 @@ class _EnhancedClientScreenState extends State<EnhancedClientPage>
         );
       }
     }
+  }
+
+  void _createSalesInvoice(BuildContext context, Client client) {
+    Navigator.pop(context); // Close the client details sheet
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (context) => SalesInvoiceScreen(
+          initialClientName: client.name,
+          initialClientPhone: client.phone ?? '',
+        ),
+      ),
+    );
   }
 
   @override
@@ -321,27 +334,6 @@ class _EnhancedClientScreenState extends State<EnhancedClientPage>
                 'الكل',
                 currentFilter == null,
               ),
-              SizedBox(width: 8.w),
-              _buildFilterChip(
-                context,
-                VisitStatus.notVisited,
-                'لم يتم الزيارة',
-                currentFilter == VisitStatus.notVisited,
-              ),
-              SizedBox(width: 8.w),
-              _buildFilterChip(
-                context,
-                VisitStatus.visited,
-                'تمت الزيارة',
-                currentFilter == VisitStatus.visited,
-              ),
-              SizedBox(width: 8.w),
-              _buildFilterChip(
-                context,
-                VisitStatus.postponed,
-                'مؤجلة',
-                currentFilter == VisitStatus.postponed,
-              ),
             ],
           ),
         );
@@ -429,41 +421,6 @@ class _EnhancedClientScreenState extends State<EnhancedClientPage>
             _buildDetailRow(Icons.check_circle_outline, 'حالة الزيارة',
                 statusOptions[client.visitStatus] ?? 'غير معروفة'),
             SizedBox(height: 24.h),
-            Text(
-              'تغيير حالة الزيارة',
-              style: TextStyle(fontSize: 18.sp, fontWeight: FontWeight.bold),
-            ),
-            SizedBox(height: 8.h),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-              children: [
-                _buildStatusButton(
-                  context,
-                  client,
-                  VisitStatus.notVisited,
-                  Colors.grey,
-                  Icons.access_time,
-                  'لم يتم الزيارة',
-                ),
-                _buildStatusButton(
-                  context,
-                  client,
-                  VisitStatus.visited,
-                  Colors.green,
-                  Icons.check_circle,
-                  'تمت الزيارة',
-                ),
-                _buildStatusButton(
-                  context,
-                  client,
-                  VisitStatus.postponed,
-                  Colors.orange,
-                  Icons.event_busy,
-                  'مؤجلة',
-                ),
-              ],
-            ),
-            SizedBox(height: 16.h),
             Row(
               children: [
                 Expanded(
@@ -495,6 +452,19 @@ class _EnhancedClientScreenState extends State<EnhancedClientPage>
                 ),
               ],
             ),
+            SizedBox(height: 16.h),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton.icon(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.orange,
+                  padding: EdgeInsets.symmetric(vertical: 14.h),
+                ),
+                onPressed: () => _createSalesInvoice(context, client),
+                icon: const Icon(Icons.receipt_long),
+                label: const Text('إنشاء فاتورة مبيعات'),
+              ),
+            ),
           ],
         ),
       ),
@@ -523,44 +493,6 @@ class _EnhancedClientScreenState extends State<EnhancedClientPage>
           ),
         ],
       ),
-    );
-  }
-
-  Widget _buildStatusButton(
-    BuildContext context,
-    Client client,
-    VisitStatus status,
-    Color color,
-    IconData icon,
-    String label,
-  ) {
-    final isCurrentStatus = client.visitStatus == status;
-    return Column(
-      children: [
-        InkWell(
-          onTap: isCurrentStatus
-              ? null
-              : () {
-                  context
-                      .read<ClientCubit>()
-                      .updateClientStatus(client.id, status);
-                  Navigator.pop(context);
-                },
-          child: CircleAvatar(
-            radius: 24.r,
-            backgroundColor: isCurrentStatus ? color : color.withOpacity(0.3),
-            child: Icon(
-              icon,
-              color: Colors.white,
-            ),
-          ),
-        ),
-        SizedBox(height: 4.h),
-        Text(
-          label,
-          style: TextStyle(fontSize: 12.sp),
-        ),
-      ],
     );
   }
 }
