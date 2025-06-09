@@ -66,6 +66,9 @@ class Client {
       return VisitStatus.notVisited;
     }
 
+    print(
+        "mahmoud mmemem ${double.tryParse(json['longitude']?.toString() ?? '') ?? double.tryParse(json['lon']?.toString() ?? '') ?? double.tryParse(json['Long']?.toString() ?? '') ?? 0.0}");
+
     return Client(
       id: json['id'] ?? 0,
       name: json['name'] ?? '',
@@ -78,19 +81,14 @@ class Client {
               : (json['balance'] as num?)?.toDouble() ?? 0.0)
           : 0.0,
       lastPurchase: json['last_purchase'] ?? json['lastPurchase'] ?? '',
-      latitude: (json['latitude'] ?? json['lat'] != null)
-          ? (json['latitude'] ?? json['lat'] is int
-              ? (json['latitude'] ?? json['lat'] as int).toDouble()
-              : (json['latitude'] ?? json['lat'] as num?)?.toDouble() ?? 0.0)
-          : 0.0,
-      longitude: (json['longitude'] ?? json['lon'] != null)
-          ? (json['longitude'] ?? json['lon'] is int
-              ? (json['longitude'] ?? json['lon'] as int).toDouble()
-                  ? (json['Long'] ?? json['Long'] as int).toDouble()
-                  : (json['longitude'] ?? json['lon'] as num?)?.toDouble() ??
-                      0.0
-              : 0.0)
-          : 0.0,
+      latitude: double.tryParse(json['latitude']?.toString() ?? '') ??
+          double.tryParse(json['lat']?.toString() ?? '') ??
+          double.tryParse(json['Lat']?.toString() ?? '') ??
+          0.0,
+      longitude: double.tryParse(json['longitude']?.toString() ?? '') ??
+          double.tryParse(json['lon']?.toString() ?? '') ??
+          double.tryParse(json['Long']?.toString() ?? '') ??
+          0.0,
       visitStatus:
           parseVisitStatus(json['visit_status'] ?? json['visitStatus']),
       distanceToPromoter: (json['distance_to_promoter'] != null ||

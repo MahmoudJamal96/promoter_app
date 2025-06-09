@@ -260,8 +260,14 @@ class ClientService {
       lastPurchase: json['last_purchase'] ??
           json['created_at']?.toString().split('T')[0] ??
           DateTime.now().toString().split(' ')[0],
-      latitude: json['latitude']?.toDouble() ?? 0.0,
-      longitude: json['longitude']?.toDouble() ?? 0.0,
+      latitude: double.tryParse(json['latitude']?.toString() ?? '') ??
+          double.tryParse(json['lat']?.toString() ?? '') ??
+          double.tryParse(json['Lat']?.toString() ?? '') ??
+          0.0,
+      longitude: double.tryParse(json['longitude']?.toString() ?? '') ??
+          double.tryParse(json['lon']?.toString() ?? '') ??
+          double.tryParse(json['Long']?.toString() ?? '') ??
+          0.0,
       visitStatus: _mapApiStatusToModel(json['status'] ?? ''),
       distanceToPromoter: json['distance']?.toDouble() ?? 0.0,
     );

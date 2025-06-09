@@ -90,6 +90,7 @@ class _EnhancedClientScreenState extends State<EnhancedClientPage>
 
   void _openMap(double latitude, double longitude) async {
     try {
+      print("mahmoud ${latitude}, $longitude");
       final googleUrl = Uri.parse(
           'https://www.google.com/maps/search/?api=1&query=$latitude,$longitude');
 
@@ -418,8 +419,8 @@ class _EnhancedClientScreenState extends State<EnhancedClientPage>
                 '${client.balance} ج.م'),
             _buildDetailRow(
                 Icons.calendar_today, 'آخر عملية شراء', client.lastPurchase),
-            _buildDetailRow(Icons.check_circle_outline, 'حالة الزيارة',
-                statusOptions[client.visitStatus] ?? 'غير معروفة'),
+            // _buildDetailRow(Icons.check_circle_outline, 'حالة الزيارة',
+            //     statusOptions[client.visitStatus] ?? 'غير معروفة'),
             SizedBox(height: 24.h),
             Row(
               children: [
