@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:promoter_app/core/utils/sound_manager.dart';
 
 class PriceOfferItem extends StatelessWidget {
   final String productName;
@@ -11,19 +12,22 @@ class PriceOfferItem extends StatelessWidget {
   final VoidCallback? onTap;
 
   const PriceOfferItem({
-    Key? key,
+    super.key,
     required this.productName,
     required this.productCode,
     required this.price,
     this.discountPrice,
     required this.availableQuantity,
     this.onTap,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
-      onTap: onTap,
+      onTap: () {
+        onTap!();
+        SoundManager().playClickSound();
+      },
       child: Container(
         margin: EdgeInsets.symmetric(vertical: 8.h),
         decoration: BoxDecoration(
@@ -71,20 +75,15 @@ class PriceOfferItem extends StatelessWidget {
                     ),
                   ),
                   Container(
-                    padding:
-                        EdgeInsets.symmetric(horizontal: 12.w, vertical: 6.h),
+                    padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 6.h),
                     decoration: BoxDecoration(
-                      color: availableQuantity > 0
-                          ? Colors.green.shade50
-                          : Colors.red.shade50,
+                      color: availableQuantity > 0 ? Colors.green.shade50 : Colors.red.shade50,
                       borderRadius: BorderRadius.circular(20.r),
                     ),
                     child: Text(
                       'المتاح: $availableQuantity',
                       style: TextStyle(
-                        color: availableQuantity > 0
-                            ? Colors.green.shade700
-                            : Colors.red.shade700,
+                        color: availableQuantity > 0 ? Colors.green.shade700 : Colors.red.shade700,
                         fontWeight: FontWeight.bold,
                         fontSize: 12.sp,
                       ),
@@ -141,8 +140,7 @@ class PriceOfferItem extends StatelessWidget {
                       ],
                     ),
                     Container(
-                      padding:
-                          EdgeInsets.symmetric(horizontal: 12.w, vertical: 6.h),
+                      padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 6.h),
                       decoration: BoxDecoration(
                         color: Colors.red.shade50,
                         borderRadius: BorderRadius.circular(20.r),

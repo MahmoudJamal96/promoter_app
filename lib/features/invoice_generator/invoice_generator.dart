@@ -1,9 +1,11 @@
-import 'dart:typed_data';
-import 'dart:ui';
+import 'dart:developer';
+import 'dart:ui' as ui;
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
+import 'package:permission_handler/permission_handler.dart';
 import 'package:printing/printing.dart';
 
 /// Generic interface for converting items to invoice format
@@ -20,8 +22,7 @@ class InvoiceGenerator {
     bool isArabic = true,
   }) async {
     // Load the Arabic font
-    final fontData =
-        await rootBundle.load("assets/fonts/NotoSansArabic-Regular.ttf");
+    final fontData = await rootBundle.load("assets/fonts/NotoSansArabic-Regular.ttf");
     final ttf = pw.Font.ttf(fontData);
 
     final pdf = pw.Document();
@@ -40,12 +41,76 @@ class InvoiceGenerator {
     return pdf.save();
   }
 
+  static Future<void> downloadAsImage(
+    Uint8List pdfBytes, {
+    PdfPageFormat format = PdfPageFormat.a4,
+  }) async {
+    final imageBytes = await generateFullPageImage(
+      pdfBytes,
+    );
+
+    // Request storage permission (for Android)
+    final status = await Permission.storage.request();
+    if (!status.isGranted) {
+      log('Storage permission not granted');
+      return;
+    }
+
+    // // Save to gallery
+    // final result = await ImageGallerySaver.saveImage(
+    //   imageBytes,
+    //   quality: 100,
+    //   name: 'invoice_${DateTime.now().millisecondsSinceEpoch}',
+    // );
+
+    // if (result['isSuccess']) {
+    //   log('✅ Image saved to gallery successfully');
+    // } else {
+    //   log('❌ Failed to save image to gallery');
+    // }
+  }
+
+  static Future<Uint8List> generateFullPageImage(
+    Uint8List pdfBytes, {
+    double dpi = 300,
+  }) async {
+    final rasterStream = Printing.raster(pdfBytes, dpi: dpi);
+    final firstPage = await rasterStream.first;
+
+    // Get ui.Image
+    final ui.Image image = await firstPage.toImage();
+
+    // Convert ui.Image to PNG
+    final byteData = await image.toByteData(format: ui.ImageByteFormat.png);
+    if (byteData == null) {
+      throw Exception('Failed to convert image to byte data');
+    }
+
+    return byteData.buffer.asUint8List();
+  }
+
+  static Future<List<Uint8List>> generateAllImages(
+    Uint8List pdfBytes, {
+    PdfPageFormat format = PdfPageFormat.a4,
+    double dpi = 300,
+  }) async {
+    final images = <Uint8List>[];
+
+    final pages = Printing.raster(pdfBytes, dpi: dpi);
+    await for (final page in pages) {
+      final png = await page.toPng();
+      images.add(png);
+    }
+
+    return images;
+  }
+
   /// Generates an image from the invoice PDF
   static Future<Uint8List> generateImage(
     Uint8List pdfBytes, {
     PdfPageFormat format = PdfPageFormat.a4,
   }) async {
-    final pages = await Printing.raster(pdfBytes, dpi: 300);
+    final pages = Printing.raster(pdfBytes, dpi: 300);
     // Wait for the Future to complete and then convert to PNG
     final firstPage = await pages.first;
     return firstPage.toPng();
@@ -68,13 +133,34 @@ class InvoiceGenerator {
     );
   }
 
+  // Convert pdf to image
+  static Future<Uint8List> pdfToImage(
+    Uint8List pdfBytes, {
+    PdfPageFormat format = PdfPageFormat.a4,
+    double dpi = 300,
+  }) async {
+    final rasterStream = Printing.raster(pdfBytes, dpi: dpi);
+    final firstPage = await rasterStream.first;
+
+    // Convert to ui.Image
+    final uiImage = await firstPage.toImage();
+
+    // Convert ui.Image to Image
+    return await uiImage
+        .toByteData(format: ui.ImageByteFormat.png)
+        .then((byteData) => byteData!.buffer.asUint8List());
+  }
+
   /// Shows a print preview dialog
   static void showPrintPreview(BuildContext context, Uint8List pdfBytes) {
     Navigator.push(
       context,
       MaterialPageRoute(
         builder: (context) => Scaffold(
-          appBar: AppBar(title: const Text('Invoice Preview')),
+          appBar: AppBar(
+            title: const Text('Invoice Preview'),
+            backgroundColor: const Color(0xFF148ccd),
+          ),
           body: PdfPreview(
             build: (_) => pdfBytes,
           ),
@@ -85,8 +171,7 @@ class InvoiceGenerator {
 }
 
 /// Example of a converter implementation for invoice items
-class InvoiceItemConverter<T extends InvoiceItem>
-    implements InvoiceConverter<T> {
+class InvoiceItemConverter<T extends InvoiceItem> implements InvoiceConverter<T> {
   final String companyName;
   final String invoiceNumber;
   final DateTime date;
@@ -100,8 +185,7 @@ class InvoiceItemConverter<T extends InvoiceItem>
   });
   @override
   pw.Widget buildInvoice(List<T> items) {
-    final total = items.fold<double>(
-        0, (sum, item) => sum + (item.quantity * item.price));
+    final total = items.fold<double>(0, (sum, item) => sum + (item.quantity * item.price));
 
     return pw.Padding(
       padding: const pw.EdgeInsets.all(20),
@@ -128,11 +212,11 @@ class InvoiceItemConverter<T extends InvoiceItem>
                   children: [
                     pw.Text(
                       'رقم الفاتورة: $invoiceNumber',
-                      style: pw.TextStyle(fontSize: 14),
+                      style: const pw.TextStyle(fontSize: 14),
                     ),
                     pw.Text(
                       'التاريخ: ${date.toString().split(' ')[0]}',
-                      style: pw.TextStyle(fontSize: 14),
+                      style: const pw.TextStyle(fontSize: 14),
                     ),
                   ],
                 ),
@@ -157,7 +241,7 @@ class InvoiceItemConverter<T extends InvoiceItem>
               children: [
                 // Header row
                 pw.TableRow(
-                  decoration: pw.BoxDecoration(color: PdfColors.grey100),
+                  decoration: const pw.BoxDecoration(color: PdfColors.grey100),
                   children: [
                     pw.Container(
                       padding: const pw.EdgeInsets.all(8),
@@ -192,6 +276,34 @@ class InvoiceItemConverter<T extends InvoiceItem>
                         textAlign: pw.TextAlign.center,
                       ),
                     ),
+                    pw.SizedBox(height: 20),
+                    pw.Container(
+                      width: double.infinity,
+                      padding: const pw.EdgeInsets.all(15),
+                      decoration: pw.BoxDecoration(
+                        color: PdfColors.grey50,
+                        border: pw.Border.all(color: PdfColors.grey300),
+                      ),
+                      child: pw.Row(
+                        mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+                        children: [
+                          pw.Text(
+                            'إجمالي الكمية : ',
+                            style: pw.TextStyle(
+                              fontWeight: pw.FontWeight.bold,
+                              fontSize: 16,
+                            ),
+                          ),
+                          pw.Text(
+                            '( ${items.fold<int>(0, (sum, item) => sum + item.quantity)} )',
+                            style: pw.TextStyle(
+                              fontWeight: pw.FontWeight.bold,
+                              fontSize: 16,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
                     pw.Container(
                       padding: const pw.EdgeInsets.all(8),
                       child: pw.Text(
@@ -213,30 +325,30 @@ class InvoiceItemConverter<T extends InvoiceItem>
                           padding: const pw.EdgeInsets.all(8),
                           child: pw.Text(
                             item.description,
-                            style: pw.TextStyle(fontSize: 11),
+                            style: const pw.TextStyle(fontSize: 11),
                           ),
                         ),
                         pw.Container(
                           padding: const pw.EdgeInsets.all(8),
                           child: pw.Text(
                             item.quantity.toString(),
-                            style: pw.TextStyle(fontSize: 11),
+                            style: const pw.TextStyle(fontSize: 11),
                             textAlign: pw.TextAlign.center,
                           ),
                         ),
                         pw.Container(
                           padding: const pw.EdgeInsets.all(8),
                           child: pw.Text(
-                            '${item.price.toStringAsFixed(2)} ر.س',
-                            style: pw.TextStyle(fontSize: 11),
+                            '${item.price.toStringAsFixed(2)} ج.م',
+                            style: const pw.TextStyle(fontSize: 11),
                             textAlign: pw.TextAlign.center,
                           ),
                         ),
                         pw.Container(
                           padding: const pw.EdgeInsets.all(8),
                           child: pw.Text(
-                            '${(item.quantity * item.price).toStringAsFixed(2)} ر.س',
-                            style: pw.TextStyle(fontSize: 11),
+                            '${(item.quantity * item.price).toStringAsFixed(2)} ج.م',
+                            style: const pw.TextStyle(fontSize: 11),
                             textAlign: pw.TextAlign.center,
                           ),
                         ),
@@ -259,6 +371,34 @@ class InvoiceItemConverter<T extends InvoiceItem>
               mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
               children: [
                 pw.Text(
+                  'إجمالي الكمية : ',
+                  style: pw.TextStyle(
+                    fontWeight: pw.FontWeight.bold,
+                    fontSize: 16,
+                  ),
+                ),
+                pw.Text(
+                  '( ${items.fold<int>(0, (sum, item) => sum + item.quantity)} )',
+                  style: pw.TextStyle(
+                    fontWeight: pw.FontWeight.bold,
+                    fontSize: 16,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          pw.SizedBox(height: 20),
+          pw.Container(
+            width: double.infinity,
+            padding: const pw.EdgeInsets.all(15),
+            decoration: pw.BoxDecoration(
+              color: PdfColors.grey50,
+              border: pw.Border.all(color: PdfColors.grey300),
+            ),
+            child: pw.Row(
+              mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+              children: [
+                pw.Text(
                   'المجموع الكلي:',
                   style: pw.TextStyle(
                     fontWeight: pw.FontWeight.bold,
@@ -266,7 +406,7 @@ class InvoiceItemConverter<T extends InvoiceItem>
                   ),
                 ),
                 pw.Text(
-                  '${total.toStringAsFixed(2)} ر.س',
+                  '${total.toStringAsFixed(2)} ج.م',
                   style: pw.TextStyle(
                     fontWeight: pw.FontWeight.bold,
                     fontSize: 16,

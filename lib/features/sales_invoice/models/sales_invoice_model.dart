@@ -40,10 +40,8 @@ class SalesInvoiceItem {
             double.tryParse(json['total_price'].toString()) ??
             0.0,
         quantity: json['quantity'] as int? ?? 1,
-        subtotal:
-            double.tryParse(json['total_price']?.toString() ?? "0") ?? 0.0,
-        product:
-            json['product'] != null ? Product.fromJson(json['product']) : null,
+        subtotal: double.tryParse(json['total_price']?.toString() ?? "0") ?? 0.0,
+        product: json['product'] != null ? Product.fromJson(json['product']) : null,
       );
     } catch (e) {
       print('=== ERROR PARSING SALES INVOICE ITEM ===');
@@ -69,6 +67,7 @@ class SalesInvoice {
   final String createdAt;
   final String updatedAt;
   final List<SalesInvoiceItem> items;
+  final int? totalQuantity;
 
   SalesInvoice({
     required this.id,
@@ -85,6 +84,7 @@ class SalesInvoice {
     required this.createdAt,
     required this.updatedAt,
     required this.items,
+    this.totalQuantity,
   });
   factory SalesInvoice.fromJson(Map<String, dynamic> json) {
     try {
@@ -93,12 +93,12 @@ class SalesInvoice {
       print('Raw JSON: $json');
       return SalesInvoice(
         id: json['id'] as int,
-        invoiceNumber: json['invoice_number'] as String? ??
-            json['number'] as String? ??
-            'INV-${json['id']}',
+        invoiceNumber:
+            json['invoice_number'] as String? ?? json['number'] as String? ?? 'INV-${json['id']}',
         clientId: json['client_id'] as int? ?? 1,
         clientName: json['client_name'] as String? ??
             json['customer_name'] as String? ??
+            json['notes']?.toString() ??
             'Unknown Customer',
         status: json['status'] as String? ?? 'pending',
         paymentMethod: json['payment_method'] as String? ?? 'cash',
@@ -130,6 +130,7 @@ class SalesInvoice {
               }
             }).toList() ??
             [],
+        totalQuantity: json['total_quantity'],
       );
     } catch (e) {
       print('=== ERROR PARSING SALES INVOICE ===');

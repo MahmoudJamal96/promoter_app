@@ -30,3 +30,12 @@ class AuthError extends AuthState {
   @override
   List<Object?> get props => [message];
 }
+
+class AuthImageLoaded extends AuthState {
+  final String? image;
+
+  const AuthImageLoaded(this.image);
+
+  @override
+  List<Object?> get props => [image];
+}

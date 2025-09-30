@@ -1,19 +1,22 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:promoter_app/core/utils/sound_manager.dart';
+import 'package:promoter_app/features/menu/delivery/order_status.dart';
+import 'package:url_launcher/url_launcher.dart';
+
 import '../../../core/di/injection_container.dart';
 import 'models/delivery_order_model.dart';
 import 'services/delivery_service.dart';
 
 class DeliveryScreen extends StatefulWidget {
-  const DeliveryScreen({Key? key}) : super(key: key);
+  const DeliveryScreen({super.key});
 
   @override
   State<DeliveryScreen> createState() => _DeliveryScreenState();
 }
 
-class _DeliveryScreenState extends State<DeliveryScreen>
-    with SingleTickerProviderStateMixin {
+class _DeliveryScreenState extends State<DeliveryScreen> with SingleTickerProviderStateMixin {
   late TabController _tabController;
   final DeliveryService _deliveryService = sl<DeliveryService>();
 
@@ -30,6 +33,7 @@ class _DeliveryScreenState extends State<DeliveryScreen>
   }
 
   Future<void> _loadOrders() async {
+    SoundManager().playClickSound();
     setState(() {
       _isLoading = true;
     });
@@ -72,11 +76,13 @@ class _DeliveryScreenState extends State<DeliveryScreen>
             color: Colors.white,
           ),
         ),
-        backgroundColor: Theme.of(context).primaryColor,
+        centerTitle: true,
+        iconTheme: const IconThemeData(color: Colors.white),
+        backgroundColor: const Color(0xFF148ccd),
         elevation: 0,
         actions: [
           IconButton(
-            icon: Icon(Icons.refresh, color: Colors.white),
+            icon: const Icon(Icons.refresh, color: Colors.white),
             onPressed: _loadOrders,
           ),
         ],
@@ -94,7 +100,7 @@ class _DeliveryScreenState extends State<DeliveryScreen>
         ),
       ),
       body: _isLoading
-          ? Center(child: CircularProgressIndicator())
+          ? const Center(child: CircularProgressIndicator())
           : TabBarView(
               controller: _tabController,
               children: [
@@ -111,8 +117,8 @@ class _DeliveryScreenState extends State<DeliveryScreen>
       return RefreshIndicator(
         onRefresh: _loadOrders,
         child: SingleChildScrollView(
-          physics: AlwaysScrollableScrollPhysics(),
-          child: Container(
+          physics: const AlwaysScrollableScrollPhysics(),
+          child: SizedBox(
             height: MediaQuery.of(context).size.height * 0.7,
             child: _buildEmptyState(),
           ),
@@ -129,8 +135,8 @@ class _DeliveryScreenState extends State<DeliveryScreen>
               .animate()
               .fadeIn(duration: 300.ms, delay: (50 * index).ms)
               .slide(
-                  begin: Offset(0, 10),
-                  end: Offset(0, 0),
+                  begin: const Offset(0, 10),
+                  end: const Offset(0, 0),
                   duration: 300.ms,
                   curve: Curves.easeOut);
         },
@@ -172,6 +178,49 @@ class _DeliveryScreenState extends State<DeliveryScreen>
   }
 
   Widget _buildOrderCard(DeliveryOrder order, bool isActive) {
+    void openMap(double latitude, double longitude) async {
+      try {
+        final googleUrl =
+            Uri.parse('https://www.google.com/maps/search/?api=1&query=$latitude,$longitude');
+
+        if (await canLaunchUrl(googleUrl)) {
+          await launchUrl(googleUrl, mode: LaunchMode.externalApplication);
+        } else {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('تعذر فتح الخريطة')),
+            );
+          }
+        }
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('خطأ في فتح الخريطة: $e')),
+          );
+        }
+      }
+    }
+
+    OrderStatus currentStatus = OrderStatus.active;
+    void showStatusDialog() {
+      SoundManager().playClickSound();
+      showDialog(
+        context: context,
+        builder: (BuildContext context) {
+          return OrderStatusDialog(
+            currentStatus: currentStatus,
+            onStatusChanged: (OrderStatus newStatus) {
+              setState(() {
+                currentStatus = newStatus;
+              });
+              // Here you can add your API call or database update
+              print('Status changed to: ${newStatus.arabicLabel}');
+            },
+          );
+        },
+      );
+    }
+
     return Card(
       margin: EdgeInsets.only(bottom: 12.h),
       elevation: 3,
@@ -195,8 +244,7 @@ class _DeliveryScreenState extends State<DeliveryScreen>
             Row(
               children: [
                 Container(
-                  padding:
-                      EdgeInsets.symmetric(horizontal: 12.w, vertical: 6.h),
+                  padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 6.h),
                   decoration: BoxDecoration(
                     color: _getStatusColor(order.status),
                     borderRadius: BorderRadius.circular(20.r),
@@ -210,7 +258,7 @@ class _DeliveryScreenState extends State<DeliveryScreen>
                     ),
                   ),
                 ),
-                Spacer(),
+                const Spacer(),
                 Text(
                   order.id,
                   style: TextStyle(
@@ -301,7 +349,7 @@ class _DeliveryScreenState extends State<DeliveryScreen>
                   ElevatedButton.icon(
                     onPressed: () => _showOrderDetails(order),
                     icon: Icon(Icons.visibility, size: 16.sp),
-                    label: Text('التفاصيل'),
+                    label: const Text('التفاصيل'),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Theme.of(context).primaryColor,
                       foregroundColor: Colors.white,
@@ -310,6 +358,41 @@ class _DeliveryScreenState extends State<DeliveryScreen>
                       ),
                     ),
                   ),
+              ],
+            ),
+            SizedBox(height: 8.h),
+            Row(
+              children: [
+                ElevatedButton.icon(
+                  onPressed: () {
+                    SoundManager().playClickSound();
+                    openMap(30.1254545, 31.0551444);
+                  },
+                  icon: Icon(Icons.map_sharp, size: 16.sp),
+                  label: const Text('موقع العميل'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Theme.of(context).primaryColor,
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8.r),
+                    ),
+                  ),
+                ),
+                const Spacer(),
+                ElevatedButton.icon(
+                  onPressed: () {
+                    showStatusDialog();
+                  },
+                  icon: Icon(Icons.edit, size: 16.sp),
+                  label: const Text('حالة الطلب'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Theme.of(context).primaryColor,
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8.r),
+                    ),
+                  ),
+                ),
               ],
             ),
           ],
@@ -373,7 +456,7 @@ class _DeliveryScreenState extends State<DeliveryScreen>
       case DeliveryStatus.preparing:
         return Colors.orange;
       case DeliveryStatus.inProgress:
-        return Colors.blue;
+        return const Color(0xFF148ccd);
       case DeliveryStatus.delivered:
         return Colors.green;
       case DeliveryStatus.cancelled:
@@ -382,11 +465,11 @@ class _DeliveryScreenState extends State<DeliveryScreen>
   }
 
   void _showOrderDetails(DeliveryOrder order) {
+    SoundManager().playClickSound();
     showDialog(
       context: context,
       builder: (context) => Dialog(
-        shape:
-            RoundedRectangleBorder(borderRadius: BorderRadius.circular(16.r)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16.r)),
         child: Container(
           padding: EdgeInsets.all(20.w),
           child: Column(
@@ -407,8 +490,7 @@ class _DeliveryScreenState extends State<DeliveryScreen>
                   _buildDetailItem('رقم الطلب', order.id),
                   _buildDetailItem('العميل', order.customerName),
                   _buildDetailItem('العنوان', order.customerAddress),
-                  if (order.customerPhone != null)
-                    _buildDetailItem('الهاتف', order.customerPhone!),
+                  if (order.customerPhone != null) _buildDetailItem('الهاتف', order.customerPhone!),
                   _buildDetailItem('تاريخ الطلب',
                       '${order.orderDate.day}/${order.orderDate.month}/${order.orderDate.year}'),
                   _buildDetailItem('تاريخ التوصيل المتوقع',
@@ -419,8 +501,7 @@ class _DeliveryScreenState extends State<DeliveryScreen>
                   _buildDetailItem('الحالة', order.status.displayName),
                   if (order.paymentMethod != null)
                     _buildDetailItem('طريقة الدفع', order.paymentMethod!),
-                  if (order.notes != null)
-                    _buildDetailItem('ملاحظات', order.notes!),
+                  if (order.notes != null) _buildDetailItem('ملاحظات', order.notes!),
                 ],
               ),
               SizedBox(height: 16.h),
@@ -455,7 +536,10 @@ class _DeliveryScreenState extends State<DeliveryScreen>
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton(
-                  onPressed: () => Navigator.of(context).pop(),
+                  onPressed: () {
+                    SoundManager().playClickSound();
+                    Navigator.of(context).pop();
+                  },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Theme.of(context).primaryColor,
                     foregroundColor: Colors.white,
@@ -463,7 +547,7 @@ class _DeliveryScreenState extends State<DeliveryScreen>
                       borderRadius: BorderRadius.circular(8.r),
                     ),
                   ),
-                  child: Text('إغلاق'),
+                  child: const Text('إغلاق'),
                 ),
               ),
             ],

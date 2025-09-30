@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
+import 'package:promoter_app/core/utils/sound_manager.dart';
+
 import '../../../core/di/injection_container.dart';
-import 'services/delivery_service.dart';
 import 'models/delivery_order_model.dart';
+import 'services/delivery_service.dart';
 
 /// Test widget to verify the delivery API integration
 class TestDeliveryApiWidget extends StatefulWidget {
-  const TestDeliveryApiWidget({Key? key}) : super(key: key);
+  const TestDeliveryApiWidget({super.key});
 
   @override
   State<TestDeliveryApiWidget> createState() => _TestDeliveryApiWidgetState();
@@ -18,6 +20,7 @@ class _TestDeliveryApiWidgetState extends State<TestDeliveryApiWidget> {
   String _message = '';
 
   Future<void> _testGetOrders() async {
+    SoundManager().playClickSound();
     setState(() {
       _isLoading = true;
       _message = '';
@@ -39,6 +42,7 @@ class _TestDeliveryApiWidgetState extends State<TestDeliveryApiWidget> {
   }
 
   Future<void> _testGetActiveOrders() async {
+    SoundManager().playClickSound();
     setState(() {
       _isLoading = true;
       _message = '';
@@ -63,8 +67,8 @@ class _TestDeliveryApiWidgetState extends State<TestDeliveryApiWidget> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('Delivery API Test'),
-        backgroundColor: Colors.blue,
+        title: const Text('Delivery API Test'),
+        backgroundColor: const Color(0xFF148ccd),
       ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
@@ -75,32 +79,32 @@ class _TestDeliveryApiWidgetState extends State<TestDeliveryApiWidget> {
               children: [
                 ElevatedButton(
                   onPressed: _isLoading ? null : _testGetOrders,
-                  child: Text('Test Get Orders'),
+                  child: const Text('Test Get Orders'),
                 ),
-                SizedBox(width: 10),
+                const SizedBox(width: 10),
                 ElevatedButton(
                   onPressed: _isLoading ? null : _testGetActiveOrders,
-                  child: Text('Test Active Orders'),
+                  child: const Text('Test Active Orders'),
                 ),
               ],
             ),
-            SizedBox(height: 20),
+            const SizedBox(height: 20),
             if (_isLoading)
-              Center(child: CircularProgressIndicator())
+              const Center(child: CircularProgressIndicator())
             else ...[
-              Text(
+              const Text(
                 'Result:',
                 style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
               ),
-              SizedBox(height: 10),
+              const SizedBox(height: 10),
               Text(_message),
-              SizedBox(height: 20),
+              const SizedBox(height: 20),
               if (_orders.isNotEmpty) ...[
                 Text(
                   'Orders (${_orders.length}):',
-                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
                 ),
-                SizedBox(height: 10),
+                const SizedBox(height: 10),
                 Expanded(
                   child: ListView.builder(
                     itemCount: _orders.length,

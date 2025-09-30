@@ -7,6 +7,7 @@ class Client {
   final String name;
   final String? phone;
   final String address;
+  final String? shopName;
   final String? email; // Added email field
   final double balance;
   final String lastPurchase;
@@ -24,6 +25,7 @@ class Client {
     required this.id,
     required this.name,
     this.phone,
+    this.shopName,
     required this.address,
     this.email,
     required this.balance,
@@ -46,7 +48,7 @@ class Client {
 
       if (status is String) {
         switch (status.toLowerCase()) {
-          case 'visited':
+          case 'completed':
             return VisitStatus.visited;
           case 'postponed':
             return VisitStatus.postponed;
@@ -89,17 +91,12 @@ class Client {
           double.tryParse(json['lon']?.toString() ?? '') ??
           double.tryParse(json['Long']?.toString() ?? '') ??
           0.0,
-      visitStatus:
-          parseVisitStatus(json['visit_status'] ?? json['visitStatus']),
+      visitStatus: parseVisitStatus(json['last_meeting_status'] ?? json['last_meeting_status']),
       distanceToPromoter: (json['distance_to_promoter'] != null ||
               json['distanceToPromoter'] != null)
           ? ((json['distance_to_promoter'] ?? json['distanceToPromoter']) is int
-              ? (json['distance_to_promoter'] ??
-                      json['distanceToPromoter'] as int)
-                  .toDouble()
-              : (json['distance_to_promoter'] ??
-                          json['distanceToPromoter'] as num?)
-                      ?.toDouble() ??
+              ? (json['distance_to_promoter'] ?? json['distanceToPromoter'] as int).toDouble()
+              : (json['distance_to_promoter'] ?? json['distanceToPromoter'] as num?)?.toDouble() ??
                   0.0)
           : 0.0,
       code: json['code'],

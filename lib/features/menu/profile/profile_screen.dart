@@ -1,8 +1,13 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:promoter_app/core/utils/sound_manager.dart';
 import 'package:promoter_app/features/auth/presentation/bloc/auth_bloc.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class ProfileScreen extends StatelessWidget {
   const ProfileScreen({super.key});
@@ -14,25 +19,16 @@ class ProfileScreen extends StatelessWidget {
     return Scaffold(
       backgroundColor: theme.colorScheme.surface,
       appBar: AppBar(
-        backgroundColor: Colors.transparent,
+        backgroundColor: const Color(0xFF148ccd),
         elevation: 0,
         title: Text(
-          'My Profile',
+          'ملفي الشخصى',
           style: TextStyle(
             color: theme.colorScheme.onSurface,
             fontWeight: FontWeight.bold,
             fontSize: 18.sp,
           ),
         ),
-        actions: [
-          IconButton(
-            icon: Icon(Icons.settings_outlined,
-                color: theme.colorScheme.onSurface),
-            onPressed: () {
-              // TODO: Navigate to settings
-            },
-          ),
-        ],
       ),
       body: SingleChildScrollView(
         physics: const BouncingScrollPhysics(),
@@ -45,9 +41,6 @@ class ProfileScreen extends StatelessWidget {
 
             SizedBox(height: 20.h),
 
-            /// 🔹 Profile Stats
-            _buildProfileStats(context),
-
             SizedBox(height: 20.h),
 
             /// 🔹 User Information Form Fields
@@ -59,7 +52,7 @@ class ProfileScreen extends StatelessWidget {
                   Padding(
                     padding: EdgeInsets.only(left: 8.w, bottom: 10.h),
                     child: Text(
-                      "Personal Information",
+                      "المعلومات الشخصية",
                       style: TextStyle(
                         fontSize: 16.sp,
                         fontWeight: FontWeight.bold,
@@ -80,74 +73,19 @@ class ProfileScreen extends StatelessWidget {
 
                     return Column(
                       children: [
+                        _buildTextField(label: "الاسم", initialValue: userName),
+                        //_buildTextField(label: "البريد الالكتروني", initialValue: userEmail),
+                        _buildTextField(label: "رقم الهاتف", initialValue: userPhone),
                         _buildTextField(
-                            label: "Full Name", initialValue: userName),
-                        _buildTextField(
-                            label: "Email", initialValue: userEmail),
-                        _buildTextField(
-                            label: "Mobile", initialValue: userPhone),
-                        _buildTextField(
-                          label: "Bio",
+                          label: "نبذة",
                           initialValue: "مندوب مبيعات",
                           maxLines: 3,
                         ),
                       ],
                     );
                   }),
-                  SizedBox(height: 20.h),
-                  Padding(
-                    padding: EdgeInsets.only(left: 8.w, bottom: 10.h),
-                    child: Text(
-                      "Social Links",
-                      style: TextStyle(
-                        fontSize: 16.sp,
-                        fontWeight: FontWeight.bold,
-                        color: theme.colorScheme.primary,
-                      ),
-                    ),
-                  ),
-                  _buildSocialLinkField(
-                      label: "Behance",
-                      icon: Icons.link,
-                      initialValue: "https://behance.com/jessy_p"),
-                  _buildSocialLinkField(
-                      label: "Dribbble", icon: Icons.link, initialValue: ""),
                 ],
               ).animate().fade(duration: 500.ms),
-            ),
-
-            SizedBox(height: 20.h),
-
-            /// 🔹 Additional Settings Section
-            _buildAdditionalSettings(context),
-
-            SizedBox(height: 20.h),
-
-            /// 🔹 Save Button with Animation
-            Padding(
-              padding: EdgeInsets.symmetric(horizontal: 16.w),
-              child: ElevatedButton(
-                onPressed: () {},
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: theme.colorScheme.primary,
-                  foregroundColor: theme.colorScheme.onPrimary,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12.r),
-                  ),
-                  padding: EdgeInsets.symmetric(vertical: 14.h),
-                  minimumSize: Size(double.infinity, 50.h),
-                  elevation: 2,
-                ),
-                child: Text(
-                  "Save Profile",
-                  style:
-                      TextStyle(fontSize: 16.sp, fontWeight: FontWeight.bold),
-                ),
-              )
-                  .animate()
-                  .fade(duration: 400.ms)
-                  .scale(delay: 300.ms, duration: 500.ms)
-                  .shimmer(delay: 700.ms, duration: 1000.ms),
             ),
 
             SizedBox(height: 30.h),
@@ -202,29 +140,59 @@ class ProfileScreen extends StatelessWidget {
                 child: CircleAvatar(
                   radius: 50.r,
                   backgroundColor: Colors.grey.shade300,
-                  backgroundImage:
-                      const AssetImage('assets/profile_placeholder.png'),
-                )
-                    .animate()
-                    .fade(duration: 600.ms)
-                    .scale(begin: 0.8, end: 1, duration: 500.ms),
+                  backgroundImage: context.watch<AuthBloc>().image == null
+                      ? const AssetImage('assets/images/logo_banner.png')
+                      : FileImage(File(context.watch<AuthBloc>().image!)) as ImageProvider,
+                ).animate().fade(duration: 600.ms).scale(begin: 0.8, end: 1, duration: 500.ms),
               ),
-              Positioned(
-                bottom: 0,
-                right: 0,
-                child: Container(
-                  padding: EdgeInsets.all(8.w),
-                  decoration: BoxDecoration(
-                    color: theme.colorScheme.secondary,
-                    shape: BoxShape.circle,
-                    border: Border.all(color: Colors.white, width: 2),
-                  ),
-                  child: Icon(
-                    Icons.camera_alt,
-                    color: Colors.black,
-                    size: 16.sp,
-                  ),
-                ).animate().fade(delay: 300.ms, duration: 300.ms),
+              BlocBuilder<AuthBloc, AuthState>(
+                builder: (context, state) {
+                  return Positioned(
+                    bottom: 0,
+                    right: 0,
+                    child: InkWell(
+                      onTap: () {
+                        SoundManager().playClickSound();
+                        // Handle profile picture change
+                        //Upload image from mobile and safe it in shared preferences
+                        //implement image picker functionality here
+                        final image = ImagePicker();
+                        image.pickImage(source: ImageSource.gallery).then((pickedFile) {
+                          if (pickedFile != null) {
+                            // Save the image path to shared preferences or state management
+                            // For example, using SharedPreferences:
+                            context.read<AuthBloc>().image = pickedFile.path;
+                            SharedPreferences.getInstance().then((prefs) {
+                              prefs.setString('profile_image', pickedFile.path);
+                            }).then((value) {
+                              context.read<AuthBloc>().getImage();
+                            });
+                          }
+                        });
+                      },
+                      child: Container(
+                        width: 40.w,
+                        height: 40.h,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: Colors.white,
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withOpacity(0.1),
+                              blurRadius: 8,
+                              spreadRadius: 2,
+                            ),
+                          ],
+                        ),
+                        child: Icon(
+                          Icons.add_a_photo,
+                          color: theme.colorScheme.primary,
+                          size: 24.sp,
+                        ).animate().fade(duration: 400.ms),
+                      ),
+                    ),
+                  );
+                },
               ),
             ],
           ),
@@ -264,78 +232,8 @@ class ProfileScreen extends StatelessWidget {
               ),
             ],
           ).animate().fade(delay: 200.ms, duration: 400.ms),
-          SizedBox(height: 10.h),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              _buildProfileBadge(context, "Premium", Icons.star),
-              SizedBox(width: 10.w),
-              _buildProfileBadge(context, "Top Performer", Icons.emoji_events),
-            ],
-          ).animate().fade(delay: 300.ms, duration: 400.ms),
         ],
       ),
-    );
-  }
-
-  Widget _buildProfileBadge(BuildContext context, String label, IconData icon) {
-    final theme = Theme.of(context);
-
-    return Container(
-      padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 5.h),
-      decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.2),
-        borderRadius: BorderRadius.circular(20.r),
-        border: Border.all(color: Colors.white.withOpacity(0.3)),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(
-            icon,
-            color: theme.colorScheme.secondary,
-            size: 14.sp,
-          ),
-          SizedBox(width: 5.w),
-          Text(
-            label,
-            style: TextStyle(
-              fontSize: 12.sp,
-              color: Colors.white,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildProfileStats(BuildContext context) {
-    final theme = Theme.of(context);
-
-    return Container(
-      margin: EdgeInsets.symmetric(horizontal: 16.w),
-      padding: EdgeInsets.all(16.w),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16.r),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.grey.withOpacity(0.1),
-            blurRadius: 8,
-            spreadRadius: 2,
-          ),
-        ],
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-        children: [
-          _buildStatItem(context, "35", "Promotions"),
-          _buildDivider(),
-          _buildStatItem(context, "12", "Events"),
-          _buildDivider(),
-          _buildStatItem(context, "98%", "Success Rate"),
-        ],
-      ).animate().fade(duration: 500.ms),
     );
   }
 
@@ -460,7 +358,9 @@ class ProfileScreen extends StatelessWidget {
                       color: Colors.grey.shade600,
                     )
                   : null,
-          onTap: () {},
+          onTap: () {
+            SoundManager().playClickSound();
+          },
         ),
         if (showDivider)
           Divider(
@@ -472,34 +372,28 @@ class ProfileScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildTextField(
-      {required String label, String? initialValue, int maxLines = 1}) {
+  Widget _buildTextField({required String label, String? initialValue, int maxLines = 1}) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
           label,
-          style: TextStyle(
-              fontSize: 14.sp,
-              fontWeight: FontWeight.w600,
-              color: Colors.black87),
+          style: TextStyle(fontSize: 14.sp, fontWeight: FontWeight.w600, color: Colors.black87),
         ),
         SizedBox(height: 6.h),
         TextFormField(
           initialValue: initialValue,
           maxLines: maxLines,
           decoration: InputDecoration(
-            contentPadding:
-                EdgeInsets.symmetric(vertical: 14.h, horizontal: 12.w),
-            border:
-                OutlineInputBorder(borderRadius: BorderRadius.circular(12.r)),
+            contentPadding: EdgeInsets.symmetric(vertical: 14.h, horizontal: 12.w),
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12.r)),
             enabledBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12.r),
               borderSide: BorderSide(color: Colors.grey.shade300),
             ),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12.r),
-              borderSide: BorderSide(color: Colors.blue.shade500),
+              borderSide: const BorderSide(color: Color(0xFF148ccd)),
             ),
             filled: true,
             fillColor: Colors.white,
@@ -517,30 +411,25 @@ class ProfileScreen extends StatelessWidget {
       children: [
         Text(
           label,
-          style: TextStyle(
-              fontSize: 14.sp,
-              fontWeight: FontWeight.w600,
-              color: Colors.black87),
+          style: TextStyle(fontSize: 14.sp, fontWeight: FontWeight.w600, color: Colors.black87),
         ),
         SizedBox(height: 6.h),
         TextFormField(
           initialValue: initialValue,
           decoration: InputDecoration(
-            contentPadding:
-                EdgeInsets.symmetric(vertical: 14.h, horizontal: 12.w),
-            border:
-                OutlineInputBorder(borderRadius: BorderRadius.circular(12.r)),
+            contentPadding: EdgeInsets.symmetric(vertical: 14.h, horizontal: 12.w),
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12.r)),
             enabledBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12.r),
               borderSide: BorderSide(color: Colors.grey.shade300),
             ),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12.r),
-              borderSide: BorderSide(color: Colors.blue.shade500),
+              borderSide: const BorderSide(color: Color(0xFF148ccd)),
             ),
             filled: true,
             fillColor: Colors.white,
-            prefixIcon: Icon(icon, color: Colors.blue.shade400),
+            prefixIcon: Icon(icon, color: const Color(0xFF148ccd)),
             hintText: "Enter URL",
           ),
         ),

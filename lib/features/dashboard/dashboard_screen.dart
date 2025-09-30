@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -6,17 +8,20 @@ import 'package:flutter_zoom_drawer/flutter_zoom_drawer.dart';
 import 'package:promoter_app/core/constants/assets.dart';
 import 'package:promoter_app/core/constants/strings.dart';
 import 'package:promoter_app/core/di/injection_container.dart';
+import 'package:promoter_app/core/utils/sound_manager.dart';
 import 'package:promoter_app/core/view/widgets/image_loader.dart';
 import 'package:promoter_app/features/auth/presentation/bloc/auth_bloc.dart';
 import 'package:promoter_app/features/client/screens/enhanced_client_screen_new.dart';
 import 'package:promoter_app/features/collection/screens/collection_screen.dart'; // Added import
 import 'package:promoter_app/features/dashboard/controllers/dashboard_controller.dart';
 import 'package:promoter_app/features/inventory/screens/inventory_screen.dart';
-import 'package:promoter_app/features/inventory/screens/product_inquiry_screen.dart';
 import 'package:promoter_app/features/inventory/screens/sales_invoice_screen.dart';
 import 'package:promoter_app/features/inventory/screens/warehouse_transfer_screen.dart';
+import 'package:promoter_app/features/menu/disbursements.dart';
+import 'package:promoter_app/features/menu/profile/profile_screen.dart';
+import 'package:promoter_app/features/menu/tursery_screen.dart';
 import 'package:promoter_app/features/returns/screens/return_transaction_screen.dart';
-import 'package:promoter_app/features/salary/screens/salary_screen.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:syncfusion_flutter_gauges/gauges.dart';
 
 import '../collection/cubit/collection_cubit.dart';
@@ -24,6 +29,8 @@ import '../menu/menu_screen.dart';
 
 class ZoomDrawerScreen extends StatelessWidget {
   static final ZoomDrawerController _drawerController = ZoomDrawerController();
+
+  const ZoomDrawerScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -73,40 +80,47 @@ class ZoomDrawerScreen extends StatelessWidget {
           offset: const Offset(2, 0),
         ),
       ],
-      menuScreen: MenuScreen(),
-      mainScreen: DashboardScreen(),
+      menuScreen: const MenuScreen(),
+      mainScreen: const DashboardScreen(),
     );
   }
 }
 
-class DashboardScreen extends StatelessWidget {
+class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
+
+  @override
+  State<DashboardScreen> createState() => _DashboardScreenState();
+}
+
+class _DashboardScreenState extends State<DashboardScreen> {
+  @override
+  void initState() {
+    SharedPreferences.getInstance().then((prefs) {
+      prefs.setString('first_login_phone', "done");
+    });
+    super.initState();
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        backgroundColor: Colors.white,
+        backgroundColor: const Color(0xFF148ccd),
         elevation: 0,
-        title: BlocBuilder<AuthBloc, AuthState>(
-          builder: (context, state) {
-            String userName = 'مرحبًا';
-            if (state is AuthAuthenticated) {
-              userName = 'مرحبًا ${state.user.name}';
-            }
-            return Text(
-              userName,
-              style: const TextStyle(color: Colors.black, fontSize: 18),
-            );
-          },
+        centerTitle: true,
+        title: const Text(
+          "الياسين للتجارة والتوزيع",
+          style: TextStyle(color: Colors.white, fontSize: 18),
         )
             // Animating the title with extended duration.
             .animate()
             .fade(duration: 1000.ms)
             .slide(begin: const Offset(0, -40), end: Offset.zero),
         leading: IconButton(
-          icon: const Icon(Icons.menu, color: Colors.black),
+          icon: const Icon(Icons.menu, color: Colors.white),
           onPressed: () {
+            SoundManager().playClickSound();
             ZoomDrawerScreen._drawerController.toggle!();
           },
         )
@@ -114,6 +128,29 @@ class DashboardScreen extends StatelessWidget {
             .fadeIn(duration: 1000.ms)
             .slide(begin: const Offset(-40, 0), end: Offset.zero)
             .scale(duration: 1000.ms),
+        actions: [
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 8),
+            child: InkWell(
+              onTap: () {
+                SoundManager().playClickSound();
+                Navigator.push(context, MaterialPageRoute(builder: (_) => const ProfileScreen()));
+              },
+              child: CircleAvatar(
+                      radius: 20,
+                      backgroundColor: Colors.deepPurple,
+                      backgroundImage: context.watch<AuthBloc>().image == null
+                          ? const AssetImage('assets/images/logo_banner.png')
+                          : FileImage(File(context.watch<AuthBloc>().image!)) as ImageProvider)
+                  .animate()
+                  .fadeIn(duration: 1000.ms, delay: 200.ms)
+                  .slide(begin: const Offset(40, 0), end: Offset.zero)
+                  .scale(
+                    duration: 1000.ms,
+                  ),
+            ),
+          )
+        ],
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16.0),
@@ -139,9 +176,7 @@ class DashboardScreen extends StatelessWidget {
               ).animate().scale(duration: 1000.ms),
             ),
             const SizedBox(height: 20),
-            const FeatureGrid()
-                .animate()
-                .fade(duration: 1000.ms, delay: 200.ms),
+            const FeatureGrid().animate().fade(duration: 1000.ms, delay: 200.ms),
           ],
         ),
       ),
@@ -153,8 +188,7 @@ class CircularPercentIndicator extends StatefulWidget {
   const CircularPercentIndicator({super.key});
 
   @override
-  State<CircularPercentIndicator> createState() =>
-      _CircularPercentIndicatorState();
+  State<CircularPercentIndicator> createState() => _CircularPercentIndicatorState();
 }
 
 class _CircularPercentIndicatorState extends State<CircularPercentIndicator> {
@@ -178,11 +212,9 @@ class _CircularPercentIndicatorState extends State<CircularPercentIndicator> {
           // If target is 0, set percentage to 0 to avoid division by zero
           if (dashboardInfo.completionPercentage > 0) {
             _completionPercentage =
-                (dashboardInfo.totalDebt / dashboardInfo.completionPercentage) *
-                    100;
+                (dashboardInfo.totalDebt / dashboardInfo.completionPercentage) * 100;
             // Limit to 100% maximum
-            _completionPercentage =
-                _completionPercentage > 100 ? 100 : _completionPercentage;
+            _completionPercentage = _completionPercentage > 100 ? 100 : _completionPercentage;
           } else {
             _completionPercentage = 0;
           }
@@ -307,7 +339,7 @@ class _DebtCardState extends State<DebtCard> {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        border: Border.all(color: Colors.blueAccent),
+        border: Border.all(color: const Color(0xFF148ccd)),
         borderRadius: BorderRadius.circular(10),
       ),
       child: Column(
@@ -323,16 +355,14 @@ class _DebtCardState extends State<DebtCard> {
               width: 20,
               child: CircularProgressIndicator(
                 strokeWidth: 2,
-                valueColor: AlwaysStoppedAnimation<Color>(Colors.blue),
+                valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF148ccd)),
               ),
             )
           else
             Text(
               '$_totalDebt $_currencySymbol',
               style: const TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.blue),
+                  fontSize: 18, fontWeight: FontWeight.bold, color: Color(0xFF148ccd)),
             ),
         ],
       ),
@@ -351,7 +381,7 @@ class FeatureGrid extends StatelessWidget {
         'title': 'فاتورة مبيعات',
         'icon': Icons.receipt,
         'anim': Assets.singleInvoiceLottie,
-        'color': Colors.blue.shade700,
+        'color': const Color(0xFF148ccd),
         'action': () {
           print('فاتورة مبيعات tapped');
           Navigator.push(
@@ -364,7 +394,7 @@ class FeatureGrid extends StatelessWidget {
         'title': 'العملاء',
         'icon': Icons.person,
         'anim': Assets.profileLottie,
-        'color': Colors.blue.shade700,
+        'color': const Color(0xFF148ccd),
         'action': () {
           Navigator.push(
             context,
@@ -376,14 +406,14 @@ class FeatureGrid extends StatelessWidget {
         'title': 'تحصيل',
         'icon': Icons.payments,
         'anim': Assets.singleInvoiceLottie,
-        'color': Colors.blue.shade700,
+        'color': const Color(0xFF148ccd),
         'action': () {
           Navigator.push(
             context,
             MaterialPageRoute(
                 builder: (_) => BlocProvider(
                     create: (context) => sl<CollectionCubit>(),
-                    child: const CollectionScreen())), // Updated navigation
+                    child: const CustomerCollectionScreen())), // Updated navigation
           );
         },
       },
@@ -391,14 +421,11 @@ class FeatureGrid extends StatelessWidget {
         'title': 'صرف',
         'icon': Icons.payment,
         'anim': Assets.singleInvoiceLottie,
-        'color': Colors.blue.shade700,
+        'color': const Color(0xFF148ccd),
         'action': () {
-          // TODO: Create a disbursement screen and update the navigation
-          // For now, showing a SnackBar message
-
           Navigator.push(
             context,
-            MaterialPageRoute(builder: (_) => const SalaryScreen()),
+            MaterialPageRoute(builder: (_) => const DisbursementFormScreen()),
           );
         },
       },
@@ -406,11 +433,11 @@ class FeatureGrid extends StatelessWidget {
         'title': 'الخزينة',
         'icon': Icons.account_balance_wallet,
         'anim': Assets.invoiceLottie,
-        'color': Colors.blue.shade700,
+        'color': const Color(0xFF148ccd),
         'action': () {
           Navigator.push(
             context,
-            MaterialPageRoute(builder: (_) => const InventoryScreen()),
+            MaterialPageRoute(builder: (_) => const TreasuryScreen()),
           );
         },
       },
@@ -418,7 +445,7 @@ class FeatureGrid extends StatelessWidget {
         'title': 'تسجيل مرتجع',
         'icon': Icons.assignment_return,
         'anim': Assets.invoiceLottie,
-        'color': Colors.blue.shade700,
+        'color': const Color(0xFF148ccd),
         'action': () {
           Navigator.push(
             context,
@@ -427,14 +454,14 @@ class FeatureGrid extends StatelessWidget {
         },
       },
       {
-        'title': 'المنتجات',
+        'title': 'جرد المخزون',
         'icon': Icons.inventory_2,
         'anim': Assets.scanLottie,
-        'color': Colors.blue.shade700,
+        'color': const Color(0xFF148ccd),
         'action': () {
           Navigator.push(
             context,
-            MaterialPageRoute(builder: (_) => const ProductInquiryScreen()),
+            MaterialPageRoute(builder: (_) => const InventoryScreen()),
           );
         },
       },
@@ -442,7 +469,7 @@ class FeatureGrid extends StatelessWidget {
         'title': 'تحويل مخزون',
         'icon': Icons.swap_horiz,
         'anim': Assets.warehouseLottie,
-        'color': Colors.blue.shade700,
+        'color': const Color(0xFF148ccd),
         'action': () {
           Navigator.push(
             context,
@@ -460,9 +487,7 @@ class FeatureGrid extends StatelessWidget {
           for (var index = 0; index < features.length; index++)
             FeatureCard(
               action: features[index]['action'] as VoidCallback,
-              anim: features[index].containsKey('anim')
-                  ? features[index]['anim'] as String
-                  : null,
+              anim: features[index].containsKey('anim') ? features[index]['anim'] as String : null,
               title: features[index]['title'] as String,
               icon: features[index]['icon'] as IconData,
               color: features[index]['color'] as Color,
@@ -500,8 +525,7 @@ class FeatureCard extends StatefulWidget {
   State<FeatureCard> createState() => _FeatureCardState();
 }
 
-class _FeatureCardState extends State<FeatureCard>
-    with SingleTickerProviderStateMixin {
+class _FeatureCardState extends State<FeatureCard> with SingleTickerProviderStateMixin {
   late AnimationController _controller;
   bool _isHovered = false;
 
@@ -510,7 +534,7 @@ class _FeatureCardState extends State<FeatureCard>
     super.initState();
     _controller = AnimationController(
       vsync: this,
-      duration: Duration(milliseconds: 200),
+      duration: const Duration(milliseconds: 200),
     );
   }
 
@@ -526,6 +550,7 @@ class _FeatureCardState extends State<FeatureCard>
 
     return GestureDetector(
         onTap: () {
+          SoundManager().playClickSound();
           widget.action?.call();
         },
         onTapDown: (_) {
@@ -562,26 +587,27 @@ class _FeatureCardState extends State<FeatureCard>
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(18.r),
                 side: widget.withBorder
-                    ? BorderSide(color: Colors.blueAccent, width: 1.5)
+                    ? const BorderSide(color: Color(0xFF148ccd), width: 1.5)
                     : BorderSide.none,
               ),
               elevation: _isHovered ? 5 : 2,
               child: Container(
                 decoration: BoxDecoration(
+                  color: const Color(0xFF148ccd).withOpacity(0.2),
                   borderRadius: BorderRadius.circular(18.r),
-                  gradient: LinearGradient(
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                    colors: _isHovered
-                        ? [buttonColor, buttonColor.withOpacity(0.8)]
-                        : [Colors.white, Colors.white],
-                  ),
+                  // gradient: LinearGradient(
+                  //   begin: Alignment.topLeft,
+                  //   end: Alignment.bottomRight,
+                  //   colors: _isHovered
+                  //       ? [buttonColor, buttonColor.withOpacity(0.8)]
+                  //       : [Colors.white, Colors.white],
+                  // ),
                   boxShadow: _isHovered
                       ? [
                           BoxShadow(
                             color: buttonColor.withOpacity(0.4),
                             blurRadius: 12,
-                            offset: Offset(0, 4),
+                            offset: const Offset(0, 4),
                           )
                         ]
                       : [],
@@ -614,7 +640,7 @@ class _FeatureCardState extends State<FeatureCard>
                         style: TextStyle(
                           fontSize: 14.sp,
                           fontWeight: FontWeight.bold,
-                          color: _isHovered ? Colors.white : buttonColor,
+                          color: const Color(0xFF148ccd),
                         ),
                         textAlign: TextAlign.center,
                       ),

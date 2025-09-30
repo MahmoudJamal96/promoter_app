@@ -1,27 +1,29 @@
+import 'dart:developer';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:promoter_app/core/utils/sound_manager.dart';
 import 'package:promoter_app/features/client/cubit/client_cubit_service.dart';
+import 'package:promoter_app/features/client/widgets/change_status_dialoug.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:url_launcher/url_launcher_string.dart';
 
 import '../../../core/di/injection_container.dart';
-import '../models/client_model.dart';
+import '../../inventory/screens/sales_invoice_screen_fixed.dart';
 import '../cubit/client_state.dart';
+import '../models/client_model.dart';
+import '../screens/add_client_page.dart';
 import '../widgets/clients_map_view.dart';
 import '../widgets/enhanced_client_card.dart';
-import '../screens/add_client_page.dart';
-import '../../inventory/screens/sales_invoice_screen_fixed.dart';
 
 class EnhancedClientScreen extends StatelessWidget {
   const EnhancedClientScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
-    return BlocProvider(
-        create: (context) => sl<ClientCubit>(),
-        child: const EnhancedClientPage());
+    return BlocProvider(create: (context) => sl<ClientCubit>(), child: const EnhancedClientPage());
   }
 }
 
@@ -36,6 +38,7 @@ class _EnhancedClientScreenState extends State<EnhancedClientPage>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
 
+  bool _isMapActive = false; // Flag to track if map is active
   @override
   void initState() {
     super.initState();
@@ -49,6 +52,7 @@ class _EnhancedClientScreenState extends State<EnhancedClientPage>
   }
 
   void _showAddClientDialog() {
+    SoundManager().playClickSound();
     // Navigate to the Add Client page
     Navigator.of(context)
         .push(
@@ -67,6 +71,7 @@ class _EnhancedClientScreenState extends State<EnhancedClientPage>
   }
 
   void _makePhoneCall(String phoneNumber) async {
+    SoundManager().playClickSound();
     try {
       // Clean the phone number (remove any non-digit characters except +)
       String cleanedNumber = phoneNumber.replaceAll(RegExp(r'[^\d+]'), '');
@@ -89,10 +94,10 @@ class _EnhancedClientScreenState extends State<EnhancedClientPage>
   }
 
   void _openMap(double latitude, double longitude) async {
+    _isMapActive = true; // Set the flag to true when opening the map
     try {
-      print("mahmoud ${latitude}, $longitude");
-      final googleUrl = Uri.parse(
-          'https://www.google.com/maps/search/?api=1&query=$latitude,$longitude');
+      final googleUrl =
+          Uri.parse('https://www.google.com/maps/search/?api=1&query=$latitude,$longitude');
 
       if (await canLaunchUrl(googleUrl)) {
         await launchUrl(googleUrl, mode: LaunchMode.externalApplication);
@@ -113,6 +118,7 @@ class _EnhancedClientScreenState extends State<EnhancedClientPage>
   }
 
   void _createSalesInvoice(BuildContext context, Client client) {
+    SoundManager().playClickSound();
     Navigator.pop(context); // Close the client details sheet
     Navigator.of(context).push(
       MaterialPageRoute(
@@ -128,22 +134,25 @@ class _EnhancedClientScreenState extends State<EnhancedClientPage>
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
+        backgroundColor: const Color(0xFF148ccd),
         title: const Text('العملاء',
-            style: TextStyle(fontWeight: FontWeight.bold)),
+            style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white)),
         centerTitle: true,
+        iconTheme: const IconThemeData(color: Colors.white),
         actions: [
           IconButton(
-            icon: const Icon(Icons.add),
+            icon: const Icon(Icons.add, color: Colors.white),
             onPressed: _showAddClientDialog,
           ),
         ],
-        bottom: TabBar(
-          controller: _tabController,
-          tabs: const [
-            Tab(icon: Icon(Icons.list), text: 'قائمة'),
-            Tab(icon: Icon(Icons.map), text: 'خريطة'),
-          ],
-        ),
+        // bottom: TabBar(
+        //   controller: _tabController,
+        //   labelColor: Colors.white,
+        //   tabs: const [
+        //     Tab(icon: Icon(Icons.list), text: 'قائمة'),
+        //     Tab(icon: Icon(Icons.map), text: 'خريطة'),
+        //   ],
+        // ),
       ),
       body: BlocBuilder<ClientCubit, ClientState>(
         builder: (context, state) {
@@ -154,13 +163,15 @@ class _EnhancedClientScreenState extends State<EnhancedClientPage>
               children: [
                 _buildSearchAndFilter(context),
                 Expanded(
-                  child: TabBarView(
-                    controller: _tabController,
-                    children: [
-                      _buildListView(context, state),
-                      _buildMapView(context, state),
-                    ],
-                  ),
+                  child: _buildListView(context, state),
+                  // TabBarView(
+                  //   physics: const NeverScrollableScrollPhysics(),
+                  //   controller: _tabController,
+                  //   children: [
+                  //     _buildListView(context, state),
+                  //     _buildMapView(context, state),
+                  //   ],
+                  // ),
                 ),
               ],
             );
@@ -176,8 +187,7 @@ class _EnhancedClientScreenState extends State<EnhancedClientPage>
 
   List<Client> _getFilteredClients(ClientLoaded state) {
     // Start with base list - use sortedClients if available, otherwise use clients
-    List<Client> result =
-        state.sortedClients.isEmpty ? state.clients : state.sortedClients;
+    List<Client> result = state.sortedClients.isEmpty ? state.clients : state.sortedClients;
 
     // Apply search filter if query exists
     if (state.searchQuery.isNotEmpty) {
@@ -186,17 +196,13 @@ class _EnhancedClientScreenState extends State<EnhancedClientPage>
         final name = client.name.toLowerCase();
         String phone = client.phone?.toLowerCase() ?? "";
         final address = client.address.toLowerCase();
-        return name.contains(query) ||
-            phone.contains(query) ||
-            address.contains(query);
+        return name.contains(query) || phone.contains(query) || address.contains(query);
       }).toList();
     }
 
     // Apply status filter if not null (i.e., not "All")
     if (state.filterStatus != null) {
-      result = result
-          .where((client) => client.visitStatus == state.filterStatus)
-          .toList();
+      result = result.where((client) => client.visitStatus == state.filterStatus).toList();
     }
 
     return result;
@@ -218,12 +224,19 @@ class _EnhancedClientScreenState extends State<EnhancedClientPage>
     }
 
     try {
-      return ClientsMapView(
-        promoterPosition: state.promoterPosition!,
-        clients: filteredClients,
-        onClientSelected: (client) {
-          _showClientDetails(context, client);
-        },
+      return AbsorbPointer(
+        absorbing: false, // Make sure touches pass through
+        child: SizedBox(
+          width: double.infinity,
+          height: double.infinity,
+          child: ClientsMapView(
+            promoterPosition: state.promoterPosition!,
+            clients: filteredClients,
+            onClientSelected: (client) {
+              _showClientDetails(context, client);
+            },
+          ),
+        ),
       );
     } catch (e) {
       return Center(
@@ -236,6 +249,7 @@ class _EnhancedClientScreenState extends State<EnhancedClientPage>
             const SizedBox(height: 16),
             ElevatedButton(
               onPressed: () {
+                SoundManager().playClickSound();
                 setState(() {
                   // Force rebuild
                 });
@@ -305,7 +319,7 @@ class _EnhancedClientScreenState extends State<EnhancedClientPage>
             },
           ),
         ),
-        _buildFilterChips(context),
+        // _buildFilterChips(context),
       ],
     );
   }
@@ -334,6 +348,27 @@ class _EnhancedClientScreenState extends State<EnhancedClientPage>
                 null,
                 'الكل',
                 currentFilter == null,
+              ),
+              SizedBox(width: 8.w),
+              _buildFilterChip(
+                context,
+                VisitStatus.notVisited,
+                'لم يتم الزيارة',
+                currentFilter == VisitStatus.notVisited,
+              ),
+              SizedBox(width: 8.w),
+              _buildFilterChip(
+                context,
+                VisitStatus.visited,
+                'تمت الزيارة',
+                currentFilter == VisitStatus.visited,
+              ),
+              SizedBox(width: 8.w),
+              _buildFilterChip(
+                context,
+                VisitStatus.postponed,
+                'مؤجلة',
+                currentFilter == VisitStatus.postponed,
               ),
             ],
           ),
@@ -365,11 +400,27 @@ class _EnhancedClientScreenState extends State<EnhancedClientPage>
   }
 
   void _showClientDetails(BuildContext context, Client client) {
-    final statusOptions = {
-      VisitStatus.notVisited: 'لم يتم الزيارة',
-      VisitStatus.visited: 'تمت الزيارة',
-      VisitStatus.postponed: 'مؤجلة',
-    };
+    SoundManager().playClickSound();
+    String currentStatus = client.visitStatus.name;
+
+    void showStatusDialog() {
+      showDialog(
+        context: context,
+        builder: (BuildContext context) {
+          return UserStatusDialog(
+            initialStatus: currentStatus,
+            clientId: client.id,
+            onStatusChanged: (newStatus) {
+              setState(() {
+                currentStatus = newStatus;
+              });
+              // Here you can also save to database or call an API
+              log('Status changed to: $newStatus');
+            },
+          );
+        },
+      );
+    }
 
     showModalBottomSheet(
       context: context,
@@ -415,10 +466,8 @@ class _EnhancedClientScreenState extends State<EnhancedClientPage>
             ),
             SizedBox(height: 24.h),
             _buildDetailRow(Icons.phone, 'رقم الهاتف', client.phone ?? ""),
-            _buildDetailRow(Icons.account_balance_wallet, 'رصيد الحساب',
-                '${client.balance} ج.م'),
-            _buildDetailRow(
-                Icons.calendar_today, 'آخر عملية شراء', client.lastPurchase),
+            _buildDetailRow(Icons.account_balance_wallet, 'رصيد الحساب', '${client.balance} ج.م'),
+            _buildDetailRow(Icons.calendar_today, 'آخر عملية شراء', client.lastPurchase),
             // _buildDetailRow(Icons.check_circle_outline, 'حالة الزيارة',
             //     statusOptions[client.visitStatus] ?? 'غير معروفة'),
             SizedBox(height: 24.h),
@@ -439,10 +488,11 @@ class _EnhancedClientScreenState extends State<EnhancedClientPage>
                 Expanded(
                   child: ElevatedButton.icon(
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.blue,
+                      backgroundColor: const Color(0xFF148ccd),
                       padding: EdgeInsets.symmetric(vertical: 12.h),
                     ),
                     onPressed: () {
+                      SoundManager().playClickSound();
                       print(
                           'Opening map for ${client.name}  ${client.latitude}, ${client.longitude}');
                       _openMap(client.latitude, client.longitude);
@@ -451,6 +501,18 @@ class _EnhancedClientScreenState extends State<EnhancedClientPage>
                     label: const Text('خريطة'),
                   ),
                 ),
+                // SizedBox(width: 16.w),
+                // Expanded(
+                //   child: ElevatedButton.icon(
+                //     style: ElevatedButton.styleFrom(
+                //       backgroundColor: Colors.orange,
+                //       padding: EdgeInsets.symmetric(vertical: 12.h),
+                //     ),
+                //     onPressed: showStatusDialog,
+                //     icon: const Icon(Icons.account_circle_sharp),
+                //     label: const Text('الحالة'),
+                //   ),
+                // ),
               ],
             ),
             SizedBox(height: 16.h),

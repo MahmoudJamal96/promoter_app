@@ -1,12 +1,13 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:geocoding/geocoding.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:promoter_app/core/di/injection_container.dart';
+import 'package:promoter_app/core/utils/sound_manager.dart';
 
+import '../cubit/client_cubit_service.dart';
 import '../models/location_models.dart' as loc;
 import '../services/client_service.dart';
-import '../cubit/client_cubit_service.dart';
 
 class AddClientPage extends StatefulWidget {
   final ClientCubit clientCubit;
@@ -23,9 +24,9 @@ class AddClientPage extends StatefulWidget {
 class _AddClientPageState extends State<AddClientPage> {
   // Text controllers
   final nameController = TextEditingController();
+  final marketNameController = TextEditingController();
   final phoneController = TextEditingController();
   final codeController = TextEditingController();
-  final addressController = TextEditingController();
   final latitudeController = TextEditingController();
   final longitudeController = TextEditingController();
 
@@ -57,7 +58,7 @@ class _AddClientPageState extends State<AddClientPage> {
     nameController.dispose();
     phoneController.dispose();
     codeController.dispose();
-    addressController.dispose();
+    locationNameController.dispose();
     latitudeController.dispose();
     longitudeController.dispose();
     super.dispose();
@@ -125,8 +126,15 @@ class _AddClientPageState extends State<AddClientPage> {
   }
 
   // Get current location
-  Future<void> _getCurrentLocation() async {
+  final TextEditingController locationNameController = TextEditingController();
+
+  void _getCurrentLocation(BuildContext context) async {
     try {
+      // Show loading indicator
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('جاري الحصول على الموقع...')),
+      );
+
       // Check if location services are enabled
       bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
       if (!serviceEnabled) {
@@ -160,34 +168,116 @@ class _AddClientPageState extends State<AddClientPage> {
         desiredAccuracy: LocationAccuracy.high,
       );
 
-      // Update the text fields
-      if (mounted) {
-        setState(() {
-          latitudeController.text = position.latitude.toStringAsFixed(6);
-          longitudeController.text = position.longitude.toStringAsFixed(6);
-        });
+      // Get address from coordinates (Reverse Geocoding)
+      String locationName = await _getAddressFromCoordinates(position.latitude, position.longitude);
 
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('تم الحصول على الموقع الحالي بنجاح')),
-        );
-      }
+      // Update the text fields
+      setState(() {
+        latitudeController.text = position.latitude.toStringAsFixed(6);
+        longitudeController.text = position.longitude.toStringAsFixed(6);
+        locationNameController.text = locationName;
+      });
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('تم الحصول على الموقع والعنوان بنجاح')),
+      );
     } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('خطأ في الحصول على الموقع: $e')),
-        );
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('خطأ في الحصول على الموقع: $e')),
+      );
+    }
+  }
+
+  Future<String> _getAddressFromCoordinates(double latitude, double longitude) async {
+    try {
+      List<Placemark> placemarks = await placemarkFromCoordinates(latitude, longitude);
+
+      if (placemarks.isNotEmpty) {
+        Placemark placemark = placemarks.first;
+
+        // Build address string
+        List<String> addressParts = [];
+
+        if (placemark.street != null && placemark.street!.isNotEmpty) {
+          addressParts.add(placemark.street!);
+        }
+        if (placemark.subLocality != null && placemark.subLocality!.isNotEmpty) {
+          addressParts.add(placemark.subLocality!);
+        }
+        if (placemark.locality != null && placemark.locality!.isNotEmpty) {
+          addressParts.add(placemark.locality!);
+        }
+        if (placemark.administrativeArea != null && placemark.administrativeArea!.isNotEmpty) {
+          addressParts.add(placemark.administrativeArea!);
+        }
+        if (placemark.country != null && placemark.country!.isNotEmpty) {
+          addressParts.add(placemark.country!);
+        }
+
+        return addressParts.join(', ');
       }
+
+      return 'لم يتم العثور على العنوان';
+    } catch (e) {
+      return 'خطأ في الحصول على العنوان: $e';
+    }
+  }
+
+  // Alternative method to get specific address components
+  Future<Map<String, String>> _getDetailedAddress(double latitude, double longitude) async {
+    try {
+      List<Placemark> placemarks = await placemarkFromCoordinates(latitude, longitude);
+
+      if (placemarks.isNotEmpty) {
+        Placemark placemark = placemarks.first;
+
+        return {
+          'street': placemark.street ?? '',
+          'subLocality': placemark.subLocality ?? '',
+          'locality': placemark.locality ?? '',
+          'administrativeArea': placemark.administrativeArea ?? '',
+          'country': placemark.country ?? '',
+          'postalCode': placemark.postalCode ?? '',
+          'name': placemark.name ?? '',
+          'thoroughfare': placemark.thoroughfare ?? '',
+          'subThoroughfare': placemark.subThoroughfare ?? '',
+        };
+      }
+
+      return {};
+    } catch (e) {
+      return {'error': 'خطأ في الحصول على تفاصيل العنوان: $e'};
+    }
+  }
+
+  // Method to get location name from coordinates without getting current location
+  Future<void> getLocationNameFromCoordinates(
+      BuildContext context, double latitude, double longitude) async {
+    try {
+      String locationName = await _getAddressFromCoordinates(latitude, longitude);
+
+      setState(() {
+        locationNameController.text = locationName;
+      });
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('تم الحصول على اسم المكان بنجاح')),
+      );
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('خطأ في الحصول على اسم المكان: $e')),
+      );
     }
   }
 
   // Create new client
   void _createClient() {
+    SoundManager().playClickSound();
     // Validate required fields
     if (nameController.text.trim().isEmpty ||
         phoneController.text.trim().isEmpty ||
-        codeController.text.trim().isEmpty ||
-        selectedState == null ||
-        selectedCity == null ||
+        locationNameController.text.trim().isEmpty ||
+        marketNameController.text.trim().isEmpty ||
         selectedWorkType == null) {
       // Show validation message
       ScaffoldMessenger.of(context).showSnackBar(
@@ -214,8 +304,7 @@ class _AddClientPageState extends State<AddClientPage> {
       final parsedLat = double.tryParse(latitudeController.text.trim());
       if (parsedLat == null || parsedLat < -90 || parsedLat > 90) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-              content: Text('خط العرض غير صحيح (يجب أن يكون بين -90 و 90)')),
+          const SnackBar(content: Text('خط العرض غير صحيح (يجب أن يكون بين -90 و 90)')),
         );
         return;
       }
@@ -227,8 +316,7 @@ class _AddClientPageState extends State<AddClientPage> {
       final parsedLon = double.tryParse(longitudeController.text.trim());
       if (parsedLon == null || parsedLon < -180 || parsedLon > 180) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-              content: Text('خط الطول غير صحيح (يجب أن يكون بين -180 و 180)')),
+          const SnackBar(content: Text('خط الطول غير صحيح (يجب أن يكون بين -180 و 180)')),
         );
         return;
       }
@@ -241,29 +329,20 @@ class _AddClientPageState extends State<AddClientPage> {
     // Create client with all required fields
     clientService
         .createClient(
-      name: nameController.text,
-      phone: phoneController.text,
-      address: addressController.text,
-      code: codeController.text,
-      stateId: selectedState!.id,
-      cityId: selectedCity!.id,
-      typeOfWorkId: selectedWorkType!.id,
-      latitude: latitude,
-      longitude: longitude,
-      responsibleId: responsibleId,
-    )
+            name: nameController.text,
+            phone: phoneController.text,
+            address: locationNameController.text,
+            code: codeController.text,
+            stateId: 1,
+            cityId: 1,
+            typeOfWorkId: selectedWorkType!.id,
+            latitude: latitude,
+            longitude: longitude,
+            responsibleId: responsibleId,
+            shopName: marketNameController.text.trim())
         .then((client) {
-      // Create a complete client with all fields for display
-      final completeClient = client.copyWith(
-        code: codeController.text,
-        stateId: selectedState!.id,
-        cityId: selectedCity!.id,
-        typeOfWorkId: selectedWorkType!.id,
-        responsibleId: responsibleId,
-      );
-
-      // Add the complete client to the cubit state
-      widget.clientCubit.addClient(completeClient);
+      // // Add the complete client to the cubit state
+      // widget.clientCubit.addClient(completeClient);
 
       // Show success message and navigate back
       ScaffoldMessenger.of(context).showSnackBar(
@@ -284,24 +363,13 @@ class _AddClientPageState extends State<AddClientPage> {
       textDirection: TextDirection.rtl,
       child: Scaffold(
         appBar: AppBar(
+          backgroundColor: const Color(0xFF148ccd),
           title: const Text(
             'إضافة عميل جديد',
-            style: TextStyle(fontWeight: FontWeight.bold),
+            style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white),
           ),
+          iconTheme: const IconThemeData(color: Colors.white),
           centerTitle: true,
-          actions: [
-            TextButton(
-              onPressed: _createClient,
-              child: Text(
-                'حفظ',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 16.sp,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            ),
-          ],
         ),
         body: isLoading
             ? const Center(child: CircularProgressIndicator())
@@ -317,8 +385,18 @@ class _AddClientPageState extends State<AddClientPage> {
                       decoration: const InputDecoration(
                         labelText: 'اسم العميل',
                         border: OutlineInputBorder(),
-                        contentPadding:
-                            EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                        contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                        alignLabelWithHint: true,
+                      ),
+                    ),
+                    SizedBox(height: 16.h),
+                    TextField(
+                      controller: marketNameController,
+                      textAlign: TextAlign.right,
+                      decoration: const InputDecoration(
+                        labelText: 'اسم الماركت',
+                        border: OutlineInputBorder(),
+                        contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                         alignLabelWithHint: true,
                       ),
                     ),
@@ -331,8 +409,7 @@ class _AddClientPageState extends State<AddClientPage> {
                       decoration: const InputDecoration(
                         labelText: 'رقم الهاتف',
                         border: OutlineInputBorder(),
-                        contentPadding:
-                            EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                        contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                         alignLabelWithHint: true,
                       ),
                       keyboardType: TextInputType.phone,
@@ -340,28 +417,26 @@ class _AddClientPageState extends State<AddClientPage> {
                     SizedBox(height: 16.h),
 
                     // Client code field
-                    TextField(
-                      controller: codeController,
-                      textAlign: TextAlign.right,
-                      decoration: const InputDecoration(
-                        labelText: 'كود العميل',
-                        border: OutlineInputBorder(),
-                        contentPadding:
-                            EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                        alignLabelWithHint: true,
-                      ),
-                    ),
-                    SizedBox(height: 16.h),
+                    // TextField(
+                    //   controller: codeController,
+                    //   textAlign: TextAlign.right,
+                    //   decoration: const InputDecoration(
+                    //     labelText: 'كود العميل',
+                    //     border: OutlineInputBorder(),
+                    //     contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                    //     alignLabelWithHint: true,
+                    //   ),
+                    // ),
+                    // SizedBox(height: 16.h),
 
                     // Address field
                     TextField(
-                      controller: addressController,
+                      controller: locationNameController,
                       textAlign: TextAlign.right,
                       decoration: const InputDecoration(
                         labelText: 'العنوان',
                         border: OutlineInputBorder(),
-                        contentPadding:
-                            EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                        contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                         alignLabelWithHint: true,
                       ),
                       maxLines: 2,
@@ -369,42 +444,41 @@ class _AddClientPageState extends State<AddClientPage> {
                     SizedBox(height: 16.h),
 
                     // Latitude input field
-                    TextField(
-                      controller: latitudeController,
-                      textAlign: TextAlign.right,
-                      decoration: const InputDecoration(
-                        labelText: 'خط العرض (Latitude)',
-                        border: OutlineInputBorder(),
-                        contentPadding:
-                            EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                        alignLabelWithHint: true,
-                        hintText: 'مثال: 30.0444',
-                      ),
-                      keyboardType:
-                          const TextInputType.numberWithOptions(decimal: true),
-                    ),
-                    SizedBox(height: 16.h),
+                    // TextField(
+                    //   controller: latitudeController,
+                    //   textAlign: TextAlign.right,
+                    //   decoration: const InputDecoration(
+                    //     labelText: 'خط العرض (Latitude)',
+                    //     border: OutlineInputBorder(),
+                    //     contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                    //     alignLabelWithHint: true,
+                    //     hintText: 'مثال: 30.0444',
+                    //   ),
+                    //   keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                    // ),
+                    // SizedBox(height: 16.h),
 
-                    // Longitude input field
-                    TextField(
-                      controller: longitudeController,
-                      textAlign: TextAlign.right,
-                      decoration: const InputDecoration(
-                        labelText: 'خط الطول (Longitude)',
-                        border: OutlineInputBorder(),
-                        contentPadding:
-                            EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                        alignLabelWithHint: true,
-                        hintText: 'مثال: 31.2357',
-                      ),
-                      keyboardType:
-                          const TextInputType.numberWithOptions(decimal: true),
-                    ),
-                    SizedBox(height: 16.h),
+                    // // Longitude input field
+                    // TextField(
+                    //   controller: longitudeController,
+                    //   textAlign: TextAlign.right,
+                    //   decoration: const InputDecoration(
+                    //     labelText: 'خط الطول (Longitude)',
+                    //     border: OutlineInputBorder(),
+                    //     contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                    //     alignLabelWithHint: true,
+                    //     hintText: 'مثال: 31.2357',
+                    //   ),
+                    //   keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                    // ),
+                    // SizedBox(height: 16.h),
 
                     // Location helper button
                     OutlinedButton.icon(
-                      onPressed: _getCurrentLocation,
+                      onPressed: () {
+                        SoundManager().playClickSound();
+                        _getCurrentLocation(context);
+                      },
                       icon: const Icon(Icons.my_location),
                       label: const Text('الحصول على الموقع الحالي'),
                       style: OutlinedButton.styleFrom(
@@ -414,68 +488,65 @@ class _AddClientPageState extends State<AddClientPage> {
                     SizedBox(height: 16.h),
 
                     // State dropdown
-                    DropdownButtonFormField<loc.State>(
-                      decoration: const InputDecoration(
-                        labelText: 'المحافظة',
-                        border: OutlineInputBorder(),
-                        alignLabelWithHint: true,
-                        contentPadding:
-                            EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                      ),
-                      value: selectedState,
-                      hint: const Text('اختر المحافظة'),
-                      isExpanded: true,
-                      items: states.map((state) {
-                        return DropdownMenuItem<loc.State>(
-                          value: state,
-                          child: Text(state.name),
-                        );
-                      }).toList(),
-                      onChanged: (newValue) {
-                        if (newValue != null) {
-                          _updateCities(newValue);
-                        }
-                      },
-                    ),
-                    SizedBox(height: 16.h),
+                    // DropdownButtonFormField<loc.State>(
+                    //   decoration: const InputDecoration(
+                    //     labelText: 'المحافظة',
+                    //     border: OutlineInputBorder(),
+                    //     alignLabelWithHint: true,
+                    //     contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                    //   ),
+                    //   value: selectedState,
+                    //   hint: const Text('اختر المحافظة'),
+                    //   isExpanded: true,
+                    //   items: states.map((state) {
+                    //     return DropdownMenuItem<loc.State>(
+                    //       value: state,
+                    //       child: Text(state.name),
+                    //     );
+                    //   }).toList(),
+                    //   onChanged: (newValue) {
+                    //     if (newValue != null) {
+                    //       _updateCities(newValue);
+                    //     }
+                    //   },
+                    // ),
+                    // SizedBox(height: 16.h),
 
-                    // City dropdown
-                    DropdownButtonFormField<loc.City>(
-                      decoration: const InputDecoration(
-                        labelText: 'المدينة',
-                        border: OutlineInputBorder(),
-                        alignLabelWithHint: true,
-                        contentPadding:
-                            EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                      ),
-                      value: selectedCity,
-                      hint: const Text('اختر المدينة'),
-                      isExpanded: true,
-                      items: availableCities.map((city) {
-                        return DropdownMenuItem<loc.City>(
-                          value: city,
-                          child: Text(city.name),
-                        );
-                      }).toList(),
-                      onChanged: (newValue) {
-                        setState(() {
-                          selectedCity = newValue;
-                        });
-                      },
-                    ),
-                    SizedBox(height: 16.h),
+                    // // City dropdown
+                    // DropdownButtonFormField<loc.City>(
+                    //   decoration: const InputDecoration(
+                    //     labelText: 'المدينة',
+                    //     border: OutlineInputBorder(),
+                    //     alignLabelWithHint: true,
+                    //     contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                    //   ),
+                    //   value: selectedCity,
+                    //   hint: const Text('اختر المدينة'),
+                    //   isExpanded: true,
+                    //   items: availableCities.map((city) {
+                    //     return DropdownMenuItem<loc.City>(
+                    //       value: city,
+                    //       child: Text(city.name),
+                    //     );
+                    //   }).toList(),
+                    //   onChanged: (newValue) {
+                    //     setState(() {
+                    //       selectedCity = newValue;
+                    //     });
+                    //   },
+                    // ),
+                    // SizedBox(height: 16.h),
 
                     // Work type dropdown
                     DropdownButtonFormField<loc.WorkType>(
                       decoration: const InputDecoration(
-                        labelText: 'نوع النشاط',
+                        labelText: 'مجموعة العملاء',
                         border: OutlineInputBorder(),
                         alignLabelWithHint: true,
-                        contentPadding:
-                            EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                        contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                       ),
                       value: selectedWorkType,
-                      hint: const Text('اختر نوع النشاط'),
+                      hint: const Text('اختر مجموعة العملاء'),
                       isExpanded: true,
                       items: workTypes.map((type) {
                         return DropdownMenuItem<loc.WorkType>(
@@ -489,32 +560,31 @@ class _AddClientPageState extends State<AddClientPage> {
                         });
                       },
                     ),
-                    SizedBox(height: 16.h),
+                    // SizedBox(height: 16.h),
 
-                    // Responsible person dropdown
-                    DropdownButtonFormField<loc.Responsible>(
-                      decoration: const InputDecoration(
-                        labelText: 'المسؤول',
-                        border: OutlineInputBorder(),
-                        alignLabelWithHint: true,
-                        contentPadding:
-                            EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                      ),
-                      value: selectedResponsible,
-                      hint: const Text('اختر المسؤول'),
-                      isExpanded: true,
-                      items: responsibles.map((person) {
-                        return DropdownMenuItem<loc.Responsible>(
-                          value: person,
-                          child: Text(person.name),
-                        );
-                      }).toList(),
-                      onChanged: (newValue) {
-                        setState(() {
-                          selectedResponsible = newValue;
-                        });
-                      },
-                    ),
+                    // // Responsible person dropdown
+                    // DropdownButtonFormField<loc.Responsible>(
+                    //   decoration: const InputDecoration(
+                    //     labelText: 'المسؤول',
+                    //     border: OutlineInputBorder(),
+                    //     alignLabelWithHint: true,
+                    //     contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                    //   ),
+                    //   value: selectedResponsible,
+                    //   hint: const Text('اختر المسؤول'),
+                    //   isExpanded: true,
+                    //   items: responsibles.map((person) {
+                    //     return DropdownMenuItem<loc.Responsible>(
+                    //       value: person,
+                    //       child: Text(person.name),
+                    //     );
+                    //   }).toList(),
+                    //   onChanged: (newValue) {
+                    //     setState(() {
+                    //       selectedResponsible = newValue;
+                    //     });
+                    //   },
+                    // ),
                     SizedBox(height: 32.h),
 
                     // Save button
@@ -526,6 +596,7 @@ class _AddClientPageState extends State<AddClientPage> {
                           fontSize: 18.sp,
                           fontWeight: FontWeight.bold,
                         ),
+                        backgroundColor: const Color(0xFF148ccd),
                       ),
                       child: const Text('إضافة العميل'),
                     ),

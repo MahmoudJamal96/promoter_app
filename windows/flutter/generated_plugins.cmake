@@ -3,9 +3,18 @@
 #
 
 list(APPEND FLUTTER_PLUGIN_LIST
+  audioplayers_windows
+  charset_converter
+  file_selector_windows
+  flutter_pos_printer_platform_image_3_sdt
   flutter_secure_storage_windows
+  gal
   geolocator_windows
+  local_auth_windows
+  pdfx
+  permission_handler_windows
   printing
+  share_plus
   url_launcher_windows
 )
 

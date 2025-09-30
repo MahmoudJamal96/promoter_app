@@ -2,18 +2,24 @@ import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:promoter_app/core/constants/assets.dart';
-import 'package:promoter_app/core/view/widgets/image_loader.dart';
-import 'package:promoter_app/features/inventory/widgets/warehouse_card.dart';
-import 'package:promoter_app/features/inventory_transfer/services/inventory_transfer_service.dart';
-import 'package:promoter_app/features/inventory_transfer/models/inventory_transfer_model.dart';
+import 'package:promoter_app/core/constants/strings.dart';
 import 'package:promoter_app/core/di/injection_container.dart';
+import 'package:promoter_app/core/error/exceptions.dart';
+import 'package:promoter_app/core/utils/sound_manager.dart';
+import 'package:promoter_app/core/view/widgets/image_loader.dart';
+import 'package:promoter_app/features/inventory/models/product_model.dart';
+import 'package:promoter_app/features/inventory/services/inventory_service.dart';
+import 'package:promoter_app/features/inventory/widgets/warehouse_card.dart';
+import 'package:promoter_app/features/inventory_transfer/models/inventory_transfer_model.dart';
+import 'package:promoter_app/features/inventory_transfer/services/inventory_transfer_service.dart';
+import 'package:promoter_app/features/products/services/products_service.dart';
+import 'package:promoter_app/features/sales_invoice/services/order_service.dart';
 
 class WarehouseTransferScreen extends StatefulWidget {
-  const WarehouseTransferScreen({Key? key}) : super(key: key);
+  const WarehouseTransferScreen({super.key});
 
   @override
-  State<WarehouseTransferScreen> createState() =>
-      _WarehouseTransferScreenState();
+  State<WarehouseTransferScreen> createState() => _WarehouseTransferScreenState();
 }
 
 class _WarehouseTransferScreenState extends State<WarehouseTransferScreen>
@@ -27,17 +33,17 @@ class _WarehouseTransferScreenState extends State<WarehouseTransferScreen>
       'itemsCount': 120,
     },
     {
-      'name': 'مخزن الفرع',
+      'name': 'مخزن 1',
       'code': 'WH002',
       'itemsCount': 85,
     },
     {
-      'name': 'المخزن الجديد',
+      'name': 'المخزن 2',
       'code': 'WH003',
       'itemsCount': 42,
     },
     {
-      'name': 'مخزن المرتجعات',
+      'name': 'مخزن 3',
       'code': 'WH004',
       'itemsCount': 16,
     },
@@ -62,14 +68,14 @@ class _WarehouseTransferScreenState extends State<WarehouseTransferScreen>
     super.initState();
     _tabController = TabController(length: 2, vsync: this);
 
-    // Navigate directly to transfer form since you have only one warehouse
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      _navigateToTransferForm(
-        defaultSourceWarehouse,
-        defaultDestinationWarehouse,
-        isTransferRequest: true,
-      );
-    });
+    // // Navigate directly to transfer form since you have only one warehouse
+    // WidgetsBinding.instance.addPostFrameCallback((_) {
+    //   _navigateToTransferForm(
+    //     defaultSourceWarehouse,
+    //     defaultDestinationWarehouse,
+    //     isTransferRequest: true,
+    //   );
+    // });
   }
 
   @override
@@ -93,10 +99,11 @@ class _WarehouseTransferScreenState extends State<WarehouseTransferScreen>
       appBar: AppBar(
         title: Text(
           'تحويل المخزون',
-          style: TextStyle(fontSize: 18.sp),
+          style: TextStyle(fontSize: 18.sp, fontWeight: FontWeight.bold, color: Colors.white),
         ),
+        iconTheme: const IconThemeData(color: Colors.white),
         centerTitle: true,
-        backgroundColor: Theme.of(context).primaryColor,
+        backgroundColor: const Color(0xFF148ccd),
         bottom: TabBar(
           controller: _tabController,
           tabs: const [
@@ -120,20 +127,20 @@ class _WarehouseTransferScreenState extends State<WarehouseTransferScreen>
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: () {
+          SoundManager().playClickSound();
           // Navigate to add new warehouse
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('إضافة مخزن جديد')),
+            const SnackBar(content: Text('إضافة مخزن جديد')),
           );
         },
         backgroundColor: Theme.of(context).primaryColor,
-        child: Icon(Icons.add),
+        child: const Icon(Icons.add),
       ),
     ).animate().fadeIn(duration: 500.ms);
   }
 
   // Transfer Request Tab
-  Widget _buildTransferRequestTab(
-      List<Map<String, dynamic>> filteredWarehouses) {
+  Widget _buildTransferRequestTab(List<Map<String, dynamic>> filteredWarehouses) {
     // Filter out the default destination warehouse from source options
     final sourceWarehouses = filteredWarehouses.where((warehouse) {
       return warehouse['code'] != defaultDestinationWarehouse['code'];
@@ -146,63 +153,17 @@ class _WarehouseTransferScreenState extends State<WarehouseTransferScreen>
           child: Column(
             children: [
               // Show destination warehouse info
-              Container(
-                padding: EdgeInsets.all(16.r),
-                decoration: BoxDecoration(
-                  color: Colors.green.shade50,
-                  borderRadius: BorderRadius.circular(15.r),
-                  border: Border.all(color: Colors.green.shade200),
-                ),
-                child: Row(
-                  children: [
-                    Icon(
-                      Icons.warehouse,
-                      color: Colors.green.shade700,
-                      size: 24.sp,
-                    ),
-                    SizedBox(width: 12.w),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'المخزن المستهدف للتحويل',
-                            style: TextStyle(
-                              fontSize: 14.sp,
-                              color: Colors.green.shade700,
-                            ),
-                          ),
-                          SizedBox(height: 4.h),
-                          Text(
-                            defaultDestinationWarehouse['name'],
-                            style: TextStyle(
-                              fontSize: 16.sp,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                          Text(
-                            'كود: ${defaultDestinationWarehouse['code']}',
-                            style: TextStyle(
-                              fontSize: 12.sp,
-                              color: Colors.grey[600],
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              SizedBox(height: 16.h),
+
               TextField(
                 controller: _searchController,
                 decoration: InputDecoration(
                   hintText: 'بحث عن مخزن مصدر...',
-                  prefixIcon: Icon(Icons.search, color: Colors.grey),
+                  prefixIcon: const Icon(Icons.search, color: Colors.grey),
                   suffixIcon: _searchQuery.isNotEmpty
                       ? IconButton(
-                          icon: Icon(Icons.clear, color: Colors.grey),
+                          icon: const Icon(Icons.clear, color: Colors.grey),
                           onPressed: () {
+                            SoundManager().playClickSound();
                             setState(() {
                               _searchController.clear();
                               _searchQuery = '';
@@ -220,11 +181,9 @@ class _WarehouseTransferScreenState extends State<WarehouseTransferScreen>
                   ),
                   focusedBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(15.r),
-                    borderSide:
-                        BorderSide(color: Theme.of(context).primaryColor),
+                    borderSide: BorderSide(color: Theme.of(context).primaryColor),
                   ),
-                  contentPadding:
-                      EdgeInsets.symmetric(vertical: 12.h, horizontal: 16.w),
+                  contentPadding: EdgeInsets.symmetric(vertical: 12.h, horizontal: 16.w),
                   filled: true,
                   fillColor: Colors.grey.shade100,
                 ),
@@ -239,8 +198,8 @@ class _WarehouseTransferScreenState extends State<WarehouseTransferScreen>
         ),
         Expanded(
           child: sourceWarehouses.isEmpty
-              ? _buildEmptyState('لا توجد مخازن مطابقة للبحث',
-                  'حاول البحث بكلمات أخرى أو أضف مخزن جديد')
+              ? _buildEmptyState(
+                  'لا توجد مخازن مطابقة للبحث', 'حاول البحث بكلمات أخرى أو أضف مخزن جديد')
               : ListView.builder(
                   padding: EdgeInsets.all(16.r),
                   itemCount: sourceWarehouses.length,
@@ -271,63 +230,15 @@ class _WarehouseTransferScreenState extends State<WarehouseTransferScreen>
           padding: EdgeInsets.all(16.r),
           child: Column(
             children: [
-              // Show destination warehouse info for returns
-              Container(
-                padding: EdgeInsets.all(16.r),
-                decoration: BoxDecoration(
-                  color: Colors.amber.shade50,
-                  borderRadius: BorderRadius.circular(15.r),
-                  border: Border.all(color: Colors.amber.shade200),
-                ),
-                child: Row(
-                  children: [
-                    Icon(
-                      Icons.keyboard_return,
-                      color: Colors.amber.shade700,
-                      size: 24.sp,
-                    ),
-                    SizedBox(width: 12.w),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'مخزن استقبال المرتجعات',
-                            style: TextStyle(
-                              fontSize: 14.sp,
-                              color: Colors.amber.shade700,
-                            ),
-                          ),
-                          SizedBox(height: 4.h),
-                          Text(
-                            defaultDestinationWarehouse['name'],
-                            style: TextStyle(
-                              fontSize: 16.sp,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                          Text(
-                            'كود: ${defaultDestinationWarehouse['code']}',
-                            style: TextStyle(
-                              fontSize: 12.sp,
-                              color: Colors.grey[600],
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              SizedBox(height: 16.h),
               TextField(
                 decoration: InputDecoration(
-                  hintText: 'بحث عن مخزن مصدر...',
-                  prefixIcon: Icon(Icons.search, color: Colors.grey),
+                  hintText: 'بحث عن مخزن مستقبل...',
+                  prefixIcon: const Icon(Icons.search, color: Colors.grey),
                   suffixIcon: _searchQuery.isNotEmpty
                       ? IconButton(
-                          icon: Icon(Icons.clear, color: Colors.grey),
+                          icon: const Icon(Icons.clear, color: Colors.grey),
                           onPressed: () {
+                            SoundManager().playClickSound();
                             setState(() {
                               _searchController.clear();
                               _searchQuery = '';
@@ -345,11 +256,9 @@ class _WarehouseTransferScreenState extends State<WarehouseTransferScreen>
                   ),
                   focusedBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(15.r),
-                    borderSide:
-                        BorderSide(color: Theme.of(context).primaryColor),
+                    borderSide: BorderSide(color: Theme.of(context).primaryColor),
                   ),
-                  contentPadding:
-                      EdgeInsets.symmetric(vertical: 12.h, horizontal: 16.w),
+                  contentPadding: EdgeInsets.symmetric(vertical: 12.h, horizontal: 16.w),
                   filled: true,
                   fillColor: Colors.grey.shade100,
                 ),
@@ -365,17 +274,16 @@ class _WarehouseTransferScreenState extends State<WarehouseTransferScreen>
         ),
         Expanded(
           child: filteredWarehouses.isEmpty
-              ? _buildEmptyState('لا توجد مخازن مطابقة للبحث',
-                  'حاول البحث بكلمات أخرى أو أضف مخزن جديد')
+              ? _buildEmptyState(
+                  'لا توجد مخازن مطابقة للبحث', 'حاول البحث بكلمات أخرى أو أضف مخزن جديد')
               : ListView.builder(
                   padding: EdgeInsets.all(16.r),
                   itemCount: filteredWarehouses.length,
                   itemBuilder: (context, index) {
                     final warehouse = filteredWarehouses[index];
                     // Filter out the destination warehouse from source options for returns
-                    if (warehouse['code'] ==
-                        defaultDestinationWarehouse['code']) {
-                      return SizedBox
+                    if (warehouse['code'] == defaultDestinationWarehouse['code']) {
+                      return const SizedBox
                           .shrink(); // Don't show the destination warehouse as source
                     }
                     return WarehouseCard(
@@ -454,27 +362,144 @@ class WarehouseTransferFormScreen extends StatefulWidget {
   final bool isTransferRequest;
 
   const WarehouseTransferFormScreen({
-    Key? key,
+    super.key,
     required this.sourceWarehouse,
     required this.destinationWarehouse,
     required this.isTransferRequest,
-  }) : super(key: key);
+  });
 
   @override
-  State<WarehouseTransferFormScreen> createState() =>
-      _WarehouseTransferFormScreenState();
+  State<WarehouseTransferFormScreen> createState() => _WarehouseTransferFormScreenState();
 }
 
-class _WarehouseTransferFormScreenState
-    extends State<WarehouseTransferFormScreen> {
+class _WarehouseTransferFormScreenState extends State<WarehouseTransferFormScreen> {
   final _formKey = GlobalKey<FormState>();
   final TextEditingController _productController = TextEditingController();
   final TextEditingController _quantityController = TextEditingController();
   final TextEditingController _notesController = TextEditingController();
   final TextEditingController _reasonController = TextEditingController();
   bool _isSubmitting = false;
-
+  late ProductsService _productsService;
+  late OrderService _orderService;
+  final TextEditingController _searchController = TextEditingController();
+  bool _isSearching = false;
+  List<Product> _searchResults = [];
+  final List<SalesItem> _cartItems = [];
   // Mock product data
+  // Search products by name or barcode using API
+  @override
+  initState() {
+    super.initState();
+    _productsService = sl<ProductsService>();
+    _orderService = OrderService();
+    _searchController.addListener(() {
+      _searchProducts(_searchController.text);
+    });
+  }
+
+  Future<void> _searchProducts(String query) async {
+    if (query.isEmpty) {
+      setState(() {
+        _searchResults = [];
+        _isSearching = false;
+      });
+      return;
+    }
+
+    setState(() {
+      _isSearching = true;
+    });
+
+    try {
+      // Use ProductsService to search products via API
+      final apiResults = await _productsService.scanProduct(name: query);
+
+      // Convert API products to local Product model
+      final List<Product> results = apiResults
+          .map((apiProduct) => Product(
+                id: apiProduct.id.toString(),
+                name: apiProduct.name,
+                category: apiProduct.categoryName,
+                price: apiProduct.price,
+                quantity: apiProduct.quantity,
+                imageUrl: apiProduct.imageUrl ?? 'assets/images/yasin_app_logo.JPG',
+                barcode: apiProduct.barcode,
+                location: 'الرف ${apiProduct.categoryId}',
+                supplier: apiProduct.companyName ?? 'غير محدد',
+                lastUpdated: DateTime.tryParse(apiProduct.updatedAt) ?? DateTime.now(),
+                units: apiProduct.units, // Include units if available
+              ))
+          .toList();
+
+      setState(() {
+        _searchResults = results;
+        _isSearching = false;
+      });
+    } catch (e) {
+      setState(() {
+        _searchResults = [];
+        _isSearching = false;
+      });
+      if (e is ApiException) {
+        // _showErrorSnackBar('فشل في البحث عن المنتجات: ${e.message}');
+      } else {
+        // _showErrorSnackBar('حدث خطأ أثناء البحث: ${e.toString()}');
+      }
+    }
+  }
+
+  // Add product to cart
+  void _addToCart(Product product) {
+    SoundManager().playClickSound();
+    final existingItemIndex = _cartItems.indexWhere((item) => item.product.id == product.id);
+
+    if (existingItemIndex >= 0) {
+      // Increment quantity
+      setState(() {
+        _cartItems[existingItemIndex] = _cartItems[existingItemIndex].copyWith(
+          quantity: _cartItems[existingItemIndex].quantity + 1,
+        );
+      });
+    } else {
+      // Add new item
+      setState(() {
+        _cartItems.add(SalesItem(
+          product: product,
+          quantity: 1,
+          price: product.price,
+        ));
+      });
+    }
+
+    // Clear search
+    _searchController.clear();
+    setState(() {
+      _searchResults = [];
+    });
+
+    //   _showSuccessSnackBar('تم إضافة ${product.name} إلى الفاتورة');
+  }
+
+  // Remove product from cart
+  void _removeFromCart(int index) {
+    SoundManager().playClickSound();
+    setState(() {
+      _cartItems.removeAt(index);
+    });
+  }
+
+  // Update cart item quantity
+  void _updateCartItemQuantity(int index, int newQuantity) {
+    if (newQuantity <= 0) {
+      _removeFromCart(index);
+      return;
+    }
+
+    setState(() {
+      _cartItems[index] = _cartItems[index].copyWith(quantity: newQuantity);
+    });
+  }
+
   final List<Map<String, String>> products = [
     {'name': 'لابتوب أيسر', 'code': 'P001'},
     {'name': 'طابعة HP', 'code': 'P002'},
@@ -494,19 +519,34 @@ class _WarehouseTransferFormScreenState
     super.dispose();
   }
 
+  Widget _buildQuantityButton({required IconData icon, required VoidCallback onTap}) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(4.r),
+      child: Container(
+        padding: EdgeInsets.all(4.w),
+        decoration: BoxDecoration(
+          color: Colors.grey.shade200,
+          borderRadius: BorderRadius.circular(4.r),
+        ),
+        child: Icon(icon, size: 18.sp),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
-    final title =
-        widget.isTransferRequest ? 'نموذج طلب التحويل' : 'نموذج طلب المرتجع';
+    final title = widget.isTransferRequest ? 'نموذج طلب التحويل' : 'نموذج طلب المرتجع';
 
     return Scaffold(
       appBar: AppBar(
         title: Text(
           title,
-          style: TextStyle(fontSize: 18.sp),
+          style: TextStyle(fontSize: 18.sp, fontWeight: FontWeight.bold, color: Colors.white),
         ),
         centerTitle: true,
-        backgroundColor: Theme.of(context).primaryColor,
+        iconTheme: const IconThemeData(color: Colors.white),
+        backgroundColor: const Color(0xFF148ccd),
       ),
       body: Form(
         key: _formKey,
@@ -532,234 +572,218 @@ class _WarehouseTransferFormScreenState
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      'تفاصيل الطلب',
-                      style: TextStyle(
-                        fontSize: 18.sp,
-                        fontWeight: FontWeight.bold,
+                    TextField(
+                      controller: _searchController,
+                      decoration: InputDecoration(
+                        hintText: 'ابحث عن منتج...',
+                        prefixIcon: const Icon(Icons.search),
+                        suffixIcon: _searchController.text.isNotEmpty
+                            ? IconButton(
+                                icon: const Icon(Icons.clear),
+                                onPressed: () {
+                                  SoundManager().playClickSound();
+                                  _searchController.clear();
+                                  setState(() {
+                                    _searchResults = [];
+                                  });
+                                },
+                              )
+                            : null,
+                        filled: true,
+                        fillColor: Colors.white,
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12.r),
+                          borderSide: BorderSide(color: Colors.grey.shade300),
+                        ),
                       ),
+                      onChanged: (value) {
+                        if (value.isNotEmpty) {
+                          _searchProducts(value);
+                        } else {
+                          setState(() {
+                            _searchResults = [];
+                          });
+                        }
+                      },
                     ),
-                    SizedBox(height: 16.h),
-                    Container(
-                      padding: EdgeInsets.all(12.r),
-                      decoration: BoxDecoration(
-                        color: Colors.grey.shade50,
-                        borderRadius: BorderRadius.circular(12.r),
-                        border: Border.all(color: Colors.grey.shade200),
+
+                    // Search results
+                    if (_isSearching)
+                      Container(
+                        height: 200.h,
+                        margin: EdgeInsets.symmetric(horizontal: 16.w),
+                        padding: EdgeInsets.all(16.w),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(12.r),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withOpacity(0.1),
+                              blurRadius: 4,
+                              offset: const Offset(0, 2),
+                            ),
+                          ],
+                        ),
+                        child: const Center(
+                          child: CircularProgressIndicator(),
+                        ),
+                      )
+                    else if (_searchResults.isNotEmpty)
+                      Container(
+                        height: 200.h,
+                        margin: EdgeInsets.symmetric(horizontal: 16.w),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(12.r),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withOpacity(0.1),
+                              blurRadius: 4,
+                              offset: const Offset(0, 2),
+                            ),
+                          ],
+                        ),
+                        child: ListView.separated(
+                          padding: EdgeInsets.all(8.w),
+                          itemCount: _searchResults.length,
+                          separatorBuilder: (context, index) =>
+                              Divider(height: 1, color: Colors.grey.shade200),
+                          itemBuilder: (context, index) {
+                            final product = _searchResults[index];
+                            return ListTile(
+                              leading: CircleAvatar(
+                                backgroundImage: AssetImage(product.imageUrl),
+                                onBackgroundImageError: (_, __) {},
+                                child: product.imageUrl.isEmpty
+                                    ? Icon(Icons.inventory, size: 20.sp)
+                                    : null,
+                              ),
+                              title: Text(
+                                product.name,
+                                style: TextStyle(
+                                  fontWeight: FontWeight.w600,
+                                  fontSize: 14.sp,
+                                ),
+                              ),
+                              subtitle: Text(
+                                'سعر: ${product.price.toStringAsFixed(2)} ${Strings.CURRENCY} | المتاح: ${product.quantity}',
+                                style: TextStyle(
+                                  fontSize: 12.sp,
+                                  color: Colors.grey.shade600,
+                                ),
+                              ),
+                              trailing: IconButton(
+                                icon: const Icon(Icons.add_circle, color: Colors.green),
+                                onPressed: () => _addToCart(product),
+                              ),
+                              onTap: () => _addToCart(product),
+                            );
+                          },
+                        ),
+                      ).animate().fade(duration: 200.ms),
+                    if (_cartItems.isNotEmpty) SizedBox(height: 16.h),
+                    if (_cartItems.isNotEmpty)
+                      Text(
+                        'المنتجات المضافة إلى الطلب',
+                        style: TextStyle(
+                          fontSize: 16.sp,
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
-                      child: Row(
+                    SizedBox(height: 8.h),
+                    Padding(
+                      padding: EdgeInsets.all(0.w),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Expanded(
-                            child: Text(
-                              'نوع الطلب',
-                              style: TextStyle(
-                                fontSize: 14.sp,
-                                color: Colors.grey[700],
-                              ),
-                            ),
-                          ),
-                          Container(
-                            padding: EdgeInsets.symmetric(
-                              horizontal: 12.w,
-                              vertical: 6.h,
-                            ),
-                            decoration: BoxDecoration(
-                              color: widget.isTransferRequest
-                                  ? Colors.blue.shade50
-                                  : Colors.amber.shade50,
-                              borderRadius: BorderRadius.circular(20.r),
-                            ),
-                            child: Text(
-                              widget.isTransferRequest
-                                  ? 'طلب تحويل'
-                                  : 'طلب مرتجع',
-                              style: TextStyle(
-                                color: widget.isTransferRequest
-                                    ? Colors.blue.shade700
-                                    : Colors.amber.shade700,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                          ),
+                          ...List.generate(_cartItems.length, (index) {
+                            final item = _cartItems[index];
+                            return Column(
+                              children: [
+                                Padding(
+                                  padding: EdgeInsets.symmetric(vertical: 8.h),
+                                  child: Row(
+                                    children: [
+                                      Expanded(
+                                        flex: 2,
+                                        child: Column(
+                                          crossAxisAlignment: CrossAxisAlignment.start,
+                                          children: [
+                                            Text(
+                                              item.product.name,
+                                              style: TextStyle(
+                                                fontWeight: FontWeight.w600,
+                                                fontSize: 14.sp,
+                                              ),
+                                              maxLines: 1,
+                                              overflow: TextOverflow.ellipsis,
+                                            ),
+                                            SizedBox(height: 4.h),
+                                            Text(
+                                              '${item.price.toStringAsFixed(2)} ${Strings.CURRENCY}',
+                                              style: TextStyle(
+                                                fontSize: 12.sp,
+                                                color: Theme.of(context).colorScheme.primary,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                      SizedBox(width: 8.w),
+                                      Row(
+                                        children: [
+                                          _buildQuantityButton(
+                                            icon: Icons.remove,
+                                            onTap: () =>
+                                                _updateCartItemQuantity(index, item.quantity - 1),
+                                          ),
+                                          SizedBox(width: 8.w),
+                                          Text(
+                                            item.quantity.toString(),
+                                            style: TextStyle(
+                                              fontWeight: FontWeight.bold,
+                                              fontSize: 16.sp,
+                                            ),
+                                          ),
+                                          SizedBox(width: 8.w),
+                                          _buildQuantityButton(
+                                            icon: Icons.add,
+                                            onTap: () =>
+                                                _updateCartItemQuantity(index, item.quantity + 1),
+                                          ),
+                                        ],
+                                      ),
+                                      SizedBox(width: 16.w),
+                                      Text(
+                                        '${item.total.toStringAsFixed(2)} ${Strings.CURRENCY}',
+                                        style: TextStyle(
+                                          fontWeight: FontWeight.bold,
+                                          fontSize: 14.sp,
+                                        ),
+                                      ),
+                                      IconButton(
+                                        icon: const Icon(Icons.delete_outline, color: Colors.red),
+                                        onPressed: () => _removeFromCart(index),
+                                        iconSize: 20.sp,
+                                        padding: EdgeInsets.zero,
+                                        constraints: const BoxConstraints(),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                if (index < _cartItems.length - 1)
+                                  Divider(
+                                    height: 16.h,
+                                    thickness: 1,
+                                    color: Colors.grey.shade200,
+                                  ),
+                              ],
+                            );
+                          }),
                         ],
                       ),
                     ),
                     SizedBox(height: 16.h),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: Container(
-                            padding: EdgeInsets.all(12.r),
-                            decoration: BoxDecoration(
-                              color: Colors.blue.shade50,
-                              borderRadius: BorderRadius.circular(10.r),
-                            ),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  widget.isTransferRequest ? 'من' : 'الى',
-                                  style: TextStyle(
-                                    fontSize: 14.sp,
-                                    color: Colors.blue.shade700,
-                                  ),
-                                ),
-                                SizedBox(height: 4.h),
-                                Text(
-                                  widget.sourceWarehouse['name'],
-                                  style: TextStyle(
-                                    fontSize: 16.sp,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                                SizedBox(height: 4.h),
-                                Text(
-                                  'كود: ${widget.sourceWarehouse['code']}',
-                                  style: TextStyle(
-                                    fontSize: 12.sp,
-                                    color: Colors.grey[600],
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                        SizedBox(width: 16.w),
-                        Icon(
-                          widget.isTransferRequest
-                              ? Icons.arrow_forward
-                              : Icons.arrow_back,
-                          color: Colors.grey,
-                        ),
-                        SizedBox(width: 16.w),
-                        Expanded(
-                          child: Container(
-                            padding: EdgeInsets.all(12.r),
-                            decoration: BoxDecoration(
-                              color: Colors.green.shade50,
-                              borderRadius: BorderRadius.circular(10.r),
-                            ),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  widget.isTransferRequest ? 'إلى' : 'من',
-                                  style: TextStyle(
-                                    fontSize: 14.sp,
-                                    color: Colors.green.shade700,
-                                  ),
-                                ),
-                                SizedBox(height: 4.h),
-                                Text(
-                                  widget.destinationWarehouse['name'],
-                                  style: TextStyle(
-                                    fontSize: 16.sp,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                                SizedBox(height: 4.h),
-                                Text(
-                                  'كود: ${widget.destinationWarehouse['code']}',
-                                  style: TextStyle(
-                                    fontSize: 12.sp,
-                                    color: Colors.grey[600],
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-              SizedBox(height: 16.h),
-              Container(
-                padding: EdgeInsets.all(16.r),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(15.r),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.grey.withOpacity(0.2),
-                      spreadRadius: 1,
-                      blurRadius: 6,
-                      offset: const Offset(0, 3),
-                    ),
-                  ],
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'اختر المنتج',
-                      style: TextStyle(
-                        fontSize: 16.sp,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    SizedBox(height: 12.h),
-                    DropdownButtonFormField<Map<String, String>>(
-                      decoration: InputDecoration(
-                        hintText: 'اختر المنتج',
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(10.r),
-                        ),
-                        contentPadding: EdgeInsets.symmetric(
-                            horizontal: 16.w, vertical: 12.h),
-                      ),
-                      value: _selectedProduct,
-                      items: products.map((product) {
-                        return DropdownMenuItem<Map<String, String>>(
-                          value: product,
-                          child:
-                              Text('${product['name']} (${product['code']})'),
-                        );
-                      }).toList(),
-                      onChanged: (Map<String, String>? value) {
-                        setState(() {
-                          _selectedProduct = value;
-                        });
-                      },
-                      validator: (value) {
-                        if (value == null) {
-                          return 'برجاء اختيار المنتج';
-                        }
-                        return null;
-                      },
-                    ),
-                    SizedBox(height: 16.h),
-                    Text(
-                      'الكمية',
-                      style: TextStyle(
-                        fontSize: 16.sp,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    SizedBox(height: 8.h),
-                    TextFormField(
-                      controller: _quantityController,
-                      decoration: InputDecoration(
-                        hintText: 'أدخل الكمية',
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(10.r),
-                        ),
-                        contentPadding: EdgeInsets.symmetric(
-                            horizontal: 16.w, vertical: 12.h),
-                      ),
-                      keyboardType: TextInputType.number,
-                      validator: (value) {
-                        if (value == null || value.isEmpty) {
-                          return 'برجاء إدخال الكمية';
-                        }
-                        if (int.tryParse(value) == null ||
-                            int.parse(value) <= 0) {
-                          return 'برجاء إدخال كمية صحيحة';
-                        }
-                        return null;
-                      },
-                    ),
 
                     // Conditional reason field for return requests
                     if (!widget.isTransferRequest) ...[
@@ -779,20 +803,46 @@ class _WarehouseTransferFormScreenState
                           border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(10.r),
                           ),
-                          contentPadding: EdgeInsets.symmetric(
-                              horizontal: 16.w, vertical: 12.h),
+                          contentPadding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 12.h),
                         ),
                         validator: (value) {
-                          if (!widget.isTransferRequest &&
-                              (value == null || value.isEmpty)) {
+                          if (!widget.isTransferRequest && (value == null || value.isEmpty)) {
                             return 'برجاء إدخال سبب الإرجاع';
                           }
                           return null;
                         },
                       ),
                     ],
+                    if (_cartItems.isNotEmpty) SizedBox(height: 8.h),
+                    if (_cartItems.isNotEmpty)
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text("إجمالي الكمية : ",
+                              style: TextStyle(fontSize: 16.sp, fontWeight: FontWeight.bold)),
+                          Text("( ${_cartItems.fold(0, (sum, item) => sum + item.quantity)} )",
+                              style: TextStyle(fontSize: 16.sp, fontWeight: FontWeight.bold)),
+                        ],
+                      ),
+                    if (_cartItems.isNotEmpty) SizedBox(height: 8.h),
+                    if (_cartItems.isNotEmpty)
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text("المجموع الكلي : ",
+                              style: TextStyle(fontSize: 16.sp, fontWeight: FontWeight.bold)),
+                          Text(
+                              "( ${_cartItems.fold(0.0, (sum, item) => sum + (item.total * item.quantity)).toStringAsFixed(2)} ${Strings.CURRENCY}   )",
+                              style: TextStyle(fontSize: 16.sp, fontWeight: FontWeight.bold)),
+                        ],
+                      ),
+                    if (_cartItems.isNotEmpty) SizedBox(height: 8.h),
+                    if (_cartItems.isNotEmpty)
+                      Divider(
+                        height: 1,
+                        color: Colors.grey.shade300,
+                      ),
 
-                    SizedBox(height: 16.h),
                     Text(
                       'ملاحظات (اختياري)',
                       style: TextStyle(
@@ -808,8 +858,7 @@ class _WarehouseTransferFormScreenState
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(10.r),
                         ),
-                        contentPadding: EdgeInsets.symmetric(
-                            horizontal: 16.w, vertical: 16.h),
+                        contentPadding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 16.h),
                       ),
                       maxLines: 3,
                     ),
@@ -832,15 +881,13 @@ class _WarehouseTransferFormScreenState
                       ? SizedBox(
                           width: 20.w,
                           height: 20.h,
-                          child: CircularProgressIndicator(
+                          child: const CircularProgressIndicator(
                             strokeWidth: 2,
                             color: Colors.white,
                           ),
                         )
                       : Text(
-                          widget.isTransferRequest
-                              ? 'إرسال طلب التحويل'
-                              : 'إرسال طلب المرتجع',
+                          widget.isTransferRequest ? 'إرسال طلب التحويل' : 'إرسال طلب المرتجع',
                           style: TextStyle(
                             fontSize: 16.sp,
                             fontWeight: FontWeight.bold,
@@ -856,6 +903,7 @@ class _WarehouseTransferFormScreenState
   }
 
   Future<void> _submitForm() async {
+    SoundManager().playClickSound();
     if (_formKey.currentState?.validate() ?? false) {
       setState(() {
         _isSubmitting = true;
@@ -867,8 +915,7 @@ class _WarehouseTransferFormScreenState
         // Prepare request data
         final items = [
           {
-            'product_id': int.parse(
-                _selectedProduct!['code']!.substring(1)), // Convert P001 to 001
+            'product_id': int.parse(_selectedProduct!['code']!.substring(1)), // Convert P001 to 001
             'quantity': int.parse(_quantityController.text),
           }
         ];
@@ -879,8 +926,7 @@ class _WarehouseTransferFormScreenState
           // Handle transfer request
           result = await inventoryTransferService.requestTransfer(
             items: items,
-            notes:
-                _notesController.text.isNotEmpty ? _notesController.text : null,
+            notes: _notesController.text.isNotEmpty ? _notesController.text : null,
           );
 
           _showTransferSuccessDialog(
@@ -888,17 +934,14 @@ class _WarehouseTransferFormScreenState
             transferNumber: result.transferNumber,
             fromWarehouse: widget.sourceWarehouse['name'],
             toWarehouse: widget.destinationWarehouse['name'],
-            products: [
-              '${_selectedProduct!['name']} (${_quantityController.text})'
-            ],
+            products: ['${_selectedProduct!['name']} (${_quantityController.text})'],
           );
         } else {
           // Handle return request
           result = await inventoryTransferService.requestReturn(
             items: items,
             reason: _reasonController.text,
-            notes:
-                _notesController.text.isNotEmpty ? _notesController.text : null,
+            notes: _notesController.text.isNotEmpty ? _notesController.text : null,
           );
 
           _showTransferSuccessDialog(
@@ -906,9 +949,7 @@ class _WarehouseTransferFormScreenState
             transferNumber: result.transferNumber,
             fromWarehouse: widget.sourceWarehouse['name'],
             toWarehouse: widget.destinationWarehouse['name'],
-            products: [
-              '${_selectedProduct!['name']} (${_quantityController.text})'
-            ],
+            products: ['${_selectedProduct!['name']} (${_quantityController.text})'],
             reason: _reasonController.text,
           );
         }
@@ -944,9 +985,7 @@ class _WarehouseTransferFormScreenState
               ),
               SizedBox(width: 8.w),
               Text(
-                isTransfer
-                    ? 'تم إرسال طلب التحويل بنجاح'
-                    : 'تم إرسال طلب المرتجع بنجاح',
+                isTransfer ? 'تم إرسال طلب التحويل بنجاح' : 'تم إرسال طلب المرتجع بنجاح',
               ),
             ],
           ),
@@ -959,7 +998,7 @@ class _WarehouseTransferFormScreenState
               Text('من: $fromWarehouse'),
               Text('إلى: $toWarehouse'),
               SizedBox(height: 8.h),
-              Text('المنتجات:'),
+              const Text('المنتجات:'),
               ...products.map((product) => Padding(
                     padding: EdgeInsets.only(right: 16.w, top: 4.h),
                     child: Text('- $product'),
@@ -973,10 +1012,11 @@ class _WarehouseTransferFormScreenState
           actions: [
             TextButton(
               onPressed: () {
+                SoundManager().playClickSound();
                 Navigator.of(context).pop();
                 Navigator.of(context).pop(); // Go back to previous screen
               },
-              child: Text('إغلاق'),
+              child: const Text('إغلاق'),
             ),
           ],
         );

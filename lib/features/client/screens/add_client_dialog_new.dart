@@ -1,17 +1,16 @@
 // filepath: f:\Flutter_Projects\promoter_app\lib\features\client\screens\add_client_dialog_new.dart
 import 'package:flutter/material.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:promoter_app/core/di/injection_container.dart';
+import 'package:promoter_app/core/utils/sound_manager.dart';
 
+import '../cubit/client_cubit_service.dart';
 import '../models/location_models.dart' as loc;
 import '../services/client_service.dart';
-import '../cubit/client_cubit_service.dart';
 
 // Helper function to show the add client dialog
-Future<void> showAddClientDialog(
-    BuildContext context, ClientCubit clientCubit) async {
+Future<void> showAddClientDialog(BuildContext context, ClientCubit clientCubit) async {
   final nameController = TextEditingController();
   final phoneController = TextEditingController();
   final codeController = TextEditingController();
@@ -152,6 +151,7 @@ class _AddClientDialogContentState extends State<_AddClientDialogContent> {
 
   // Get current location
   Future<void> _getCurrentLocation() async {
+    SoundManager().playClickSound();
     try {
       // Check if location services are enabled
       bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
@@ -190,8 +190,7 @@ class _AddClientDialogContentState extends State<_AddClientDialogContent> {
       if (mounted) {
         setState(() {
           widget.latitudeController.text = position.latitude.toStringAsFixed(6);
-          widget.longitudeController.text =
-              position.longitude.toStringAsFixed(6);
+          widget.longitudeController.text = position.longitude.toStringAsFixed(6);
         });
 
         ScaffoldMessenger.of(context).showSnackBar(
@@ -209,6 +208,7 @@ class _AddClientDialogContentState extends State<_AddClientDialogContent> {
 
   // Create new client
   void _createClient() {
+    SoundManager().playClickSound();
     // Validate required fields
     if (widget.nameController.text.trim().isEmpty ||
         widget.phoneController.text.trim().isEmpty ||
@@ -242,8 +242,7 @@ class _AddClientDialogContentState extends State<_AddClientDialogContent> {
       final parsedLat = double.tryParse(widget.latitudeController.text.trim());
       if (parsedLat == null || parsedLat < -90 || parsedLat > 90) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-              content: Text('خط العرض غير صحيح (يجب أن يكون بين -90 و 90)')),
+          const SnackBar(content: Text('خط العرض غير صحيح (يجب أن يكون بين -90 و 90)')),
         );
         return;
       }
@@ -255,8 +254,7 @@ class _AddClientDialogContentState extends State<_AddClientDialogContent> {
       final parsedLon = double.tryParse(widget.longitudeController.text.trim());
       if (parsedLon == null || parsedLon < -180 || parsedLon > 180) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-              content: Text('خط الطول غير صحيح (يجب أن يكون بين -180 و 180)')),
+          const SnackBar(content: Text('خط الطول غير صحيح (يجب أن يكون بين -180 و 180)')),
         );
         return;
       }
@@ -276,6 +274,7 @@ class _AddClientDialogContentState extends State<_AddClientDialogContent> {
       latitude: latitude,
       longitude: longitude,
       responsibleId: responsibleId,
+      shopName: widget.nameController.text, // Assuming shop name is same as client name
     )
         .then((client) {
       // Create a complete client with all fields for display
@@ -328,8 +327,7 @@ class _AddClientDialogContentState extends State<_AddClientDialogContent> {
                       decoration: const InputDecoration(
                         labelText: 'اسم العميل',
                         border: OutlineInputBorder(),
-                        contentPadding:
-                            EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                        contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                         alignLabelWithHint: true,
                       ),
                     ),
@@ -340,8 +338,7 @@ class _AddClientDialogContentState extends State<_AddClientDialogContent> {
                       decoration: const InputDecoration(
                         labelText: 'رقم الهاتف',
                         border: OutlineInputBorder(),
-                        contentPadding:
-                            EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                        contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                         alignLabelWithHint: true,
                       ),
                       keyboardType: TextInputType.phone,
@@ -353,8 +350,7 @@ class _AddClientDialogContentState extends State<_AddClientDialogContent> {
                       decoration: const InputDecoration(
                         labelText: 'كود العميل',
                         border: OutlineInputBorder(),
-                        contentPadding:
-                            EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                        contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                         alignLabelWithHint: true,
                       ),
                     ),
@@ -365,8 +361,7 @@ class _AddClientDialogContentState extends State<_AddClientDialogContent> {
                       decoration: const InputDecoration(
                         labelText: 'العنوان',
                         border: OutlineInputBorder(),
-                        contentPadding:
-                            EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                        contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                         alignLabelWithHint: true,
                       ),
                       maxLines: 2,
@@ -379,13 +374,11 @@ class _AddClientDialogContentState extends State<_AddClientDialogContent> {
                       decoration: const InputDecoration(
                         labelText: 'خط العرض (Latitude)',
                         border: OutlineInputBorder(),
-                        contentPadding:
-                            EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                        contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                         alignLabelWithHint: true,
                         hintText: 'مثال: 30.0444',
                       ),
-                      keyboardType:
-                          const TextInputType.numberWithOptions(decimal: true),
+                      keyboardType: const TextInputType.numberWithOptions(decimal: true),
                     ),
                     SizedBox(height: 16.h),
                     // Longitude input field
@@ -395,13 +388,11 @@ class _AddClientDialogContentState extends State<_AddClientDialogContent> {
                       decoration: const InputDecoration(
                         labelText: 'خط الطول (Longitude)',
                         border: OutlineInputBorder(),
-                        contentPadding:
-                            EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                        contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                         alignLabelWithHint: true,
                         hintText: 'مثال: 31.2357',
                       ),
-                      keyboardType:
-                          const TextInputType.numberWithOptions(decimal: true),
+                      keyboardType: const TextInputType.numberWithOptions(decimal: true),
                     ),
                     SizedBox(height: 16.h),
                     // Location helper button
@@ -426,8 +417,7 @@ class _AddClientDialogContentState extends State<_AddClientDialogContent> {
                         labelText: 'المحافظة',
                         border: OutlineInputBorder(),
                         alignLabelWithHint: true,
-                        contentPadding:
-                            EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                        contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                       ),
                       value: selectedState,
                       hint: const Text('اختر المحافظة'),
@@ -451,8 +441,7 @@ class _AddClientDialogContentState extends State<_AddClientDialogContent> {
                         labelText: 'المدينة',
                         border: OutlineInputBorder(),
                         alignLabelWithHint: true,
-                        contentPadding:
-                            EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                        contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                       ),
                       value: selectedCity,
                       hint: const Text('اختر المدينة'),
@@ -473,14 +462,13 @@ class _AddClientDialogContentState extends State<_AddClientDialogContent> {
                     // Work type dropdown
                     DropdownButtonFormField<loc.WorkType>(
                       decoration: const InputDecoration(
-                        labelText: 'نوع النشاط',
+                        labelText: 'مجموعة العملاء',
                         border: OutlineInputBorder(),
                         alignLabelWithHint: true,
-                        contentPadding:
-                            EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                        contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                       ),
                       value: selectedWorkType,
-                      hint: const Text('اختر نوع النشاط'),
+                      hint: const Text('اختر مجموعة العملاء'),
                       isExpanded: true,
                       items: workTypes.map((type) {
                         return DropdownMenuItem<loc.WorkType>(
@@ -501,8 +489,7 @@ class _AddClientDialogContentState extends State<_AddClientDialogContent> {
                         labelText: 'المسؤول',
                         border: OutlineInputBorder(),
                         alignLabelWithHint: true,
-                        contentPadding:
-                            EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                        contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                       ),
                       value: selectedResponsible,
                       hint: const Text('اختر المسؤول'),
@@ -524,11 +511,17 @@ class _AddClientDialogContentState extends State<_AddClientDialogContent> {
               ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.of(context).pop(),
+            onPressed: () {
+              SoundManager().playClickSound();
+              Navigator.of(context).pop();
+            },
             child: const Text('إلغاء'),
           ),
           ElevatedButton(
             onPressed: _createClient,
+            style: ButtonStyle(
+              backgroundColor: WidgetStateProperty.all<Color>(const Color(0xFF148ccd)),
+            ),
             child: const Text('إضافة'),
           ),
         ],

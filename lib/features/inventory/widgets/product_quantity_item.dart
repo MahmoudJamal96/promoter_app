@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:promoter_app/core/utils/sound_manager.dart';
 
 class ProductQuantityItem extends StatelessWidget {
   final String productName;
@@ -9,20 +10,22 @@ class ProductQuantityItem extends StatelessWidget {
   final VoidCallback? onTap;
 
   const ProductQuantityItem({
-    Key? key,
+    super.key,
     required this.productName,
     required this.productCode,
     required this.warehouseQuantities,
     this.onTap,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {
-    final totalQuantity =
-        warehouseQuantities.values.fold<int>(0, (prev, qty) => prev + qty);
+    final totalQuantity = warehouseQuantities.values.fold<int>(0, (prev, qty) => prev + qty);
 
     return GestureDetector(
-      onTap: onTap,
+      onTap: () {
+        onTap!();
+        SoundManager().playClickSound();
+      },
       child: Container(
         margin: EdgeInsets.symmetric(vertical: 8.h),
         decoration: BoxDecoration(
@@ -70,8 +73,7 @@ class ProductQuantityItem extends StatelessWidget {
                     ),
                   ),
                   Container(
-                    padding:
-                        EdgeInsets.symmetric(horizontal: 12.w, vertical: 6.h),
+                    padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 6.h),
                     decoration: BoxDecoration(
                       color: Theme.of(context).primaryColor.withOpacity(0.1),
                       borderRadius: BorderRadius.circular(20.r),
@@ -93,20 +95,15 @@ class ProductQuantityItem extends StatelessWidget {
                 runSpacing: 8.h,
                 children: warehouseQuantities.entries.map((entry) {
                   return Container(
-                    padding:
-                        EdgeInsets.symmetric(horizontal: 12.w, vertical: 6.h),
+                    padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 6.h),
                     decoration: BoxDecoration(
-                      color: entry.value > 0
-                          ? Colors.green.shade50
-                          : Colors.red.shade50,
+                      color: entry.value > 0 ? Colors.green.shade50 : Colors.red.shade50,
                       borderRadius: BorderRadius.circular(8.r),
                     ),
                     child: Text(
                       '${entry.key}: ${entry.value}',
                       style: TextStyle(
-                        color: entry.value > 0
-                            ? Colors.green.shade700
-                            : Colors.red.shade700,
+                        color: entry.value > 0 ? Colors.green.shade700 : Colors.red.shade700,
                         fontWeight: FontWeight.w500,
                         fontSize: 14.sp,
                       ),

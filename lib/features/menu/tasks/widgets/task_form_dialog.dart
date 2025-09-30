@@ -1,13 +1,15 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import '../models/task_model.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:promoter_app/core/utils/sound_manager.dart';
+
 import '../cubit/task_cubit.dart';
+import '../models/task_model.dart';
 
 class TaskFormDialog extends StatefulWidget {
   final Task? task; // If provided, we are editing. If null, we are adding.
 
-  const TaskFormDialog({Key? key, this.task}) : super(key: key);
+  const TaskFormDialog({super.key, this.task});
 
   @override
   State<TaskFormDialog> createState() => _TaskFormDialogState();
@@ -27,10 +29,8 @@ class _TaskFormDialogState extends State<TaskFormDialog> {
 
     // Initialize with task data if editing, or with defaults if creating
     _titleController = TextEditingController(text: widget.task?.title ?? '');
-    _descriptionController =
-        TextEditingController(text: widget.task?.description ?? '');
-    _selectedDate =
-        widget.task?.deadline ?? DateTime.now().add(const Duration(days: 1));
+    _descriptionController = TextEditingController(text: widget.task?.description ?? '');
+    _selectedDate = widget.task?.deadline ?? DateTime.now().add(const Duration(days: 1));
     _selectedPriority = widget.task?.priority ?? TaskPriority.medium;
     _selectedStatus = widget.task?.status ?? TaskStatus.notStarted;
   }
@@ -43,6 +43,7 @@ class _TaskFormDialogState extends State<TaskFormDialog> {
   }
 
   Future<void> _selectDate(BuildContext context) async {
+    SoundManager().playClickSound();
     final DateTime? picked = await showDatePicker(
       context: context,
       initialDate: _selectedDate,
@@ -67,6 +68,7 @@ class _TaskFormDialogState extends State<TaskFormDialog> {
   }
 
   void _saveTask() {
+    SoundManager().playClickSound();
     if (!_formKey.currentState!.validate()) {
       return;
     }
@@ -150,7 +152,7 @@ class _TaskFormDialogState extends State<TaskFormDialog> {
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(8.r),
                       ),
-                      suffixIcon: Icon(Icons.calendar_today),
+                      suffixIcon: const Icon(Icons.calendar_today),
                     ),
                     child: Text(
                       '${_selectedDate.day}/${_selectedDate.month}/${_selectedDate.year}',
@@ -167,7 +169,7 @@ class _TaskFormDialogState extends State<TaskFormDialog> {
                       borderRadius: BorderRadius.circular(8.r),
                     ),
                   ),
-                  items: [
+                  items: const [
                     DropdownMenuItem(
                       value: TaskPriority.high,
                       child: Text('عالية'),
@@ -198,7 +200,7 @@ class _TaskFormDialogState extends State<TaskFormDialog> {
                       borderRadius: BorderRadius.circular(8.r),
                     ),
                   ),
-                  items: [
+                  items: const [
                     DropdownMenuItem(
                       value: TaskStatus.notStarted,
                       child: Text('لم تبدأ'),
@@ -225,8 +227,11 @@ class _TaskFormDialogState extends State<TaskFormDialog> {
                   mainAxisAlignment: MainAxisAlignment.end,
                   children: [
                     TextButton(
-                      onPressed: () => Navigator.pop(context),
-                      child: Text('إلغاء'),
+                      onPressed: () {
+                        SoundManager().playClickSound();
+                        Navigator.pop(context);
+                      },
+                      child: const Text('إلغاء'),
                     ),
                     SizedBox(width: 16.w),
                     ElevatedButton(

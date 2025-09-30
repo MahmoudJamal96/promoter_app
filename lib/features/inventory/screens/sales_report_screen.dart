@@ -2,8 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:intl/intl.dart';
+import 'package:promoter_app/core/utils/sound_manager.dart';
+
 import '../services/inventory_service.dart';
-import 'package:promoter_app/core/constants/strings.dart';
 
 class SalesReportScreen extends StatefulWidget {
   const SalesReportScreen({super.key});
@@ -71,8 +72,7 @@ class _SalesReportScreenState extends State<SalesReportScreen> {
 
   // Scroll listener for pagination
   void _scrollListener() {
-    if (_scrollController.position.pixels >=
-            _scrollController.position.maxScrollExtent - 200 &&
+    if (_scrollController.position.pixels >= _scrollController.position.maxScrollExtent - 200 &&
         !_isLoading &&
         _hasMoreData) {
       _loadInvoices();
@@ -90,6 +90,7 @@ class _SalesReportScreenState extends State<SalesReportScreen> {
 
   // Reset filters and reload
   void _resetFilters() {
+    SoundManager().playClickSound();
     setState(() {
       _startDate = null;
       _endDate = null;
@@ -105,6 +106,7 @@ class _SalesReportScreenState extends State<SalesReportScreen> {
 
   // Apply filters
   void _applyFilters() {
+    SoundManager().playClickSound();
     // In a real app, we would send these filters to the API
     // For now, we'll just reset pagination and reload
     setState(() {
@@ -119,6 +121,7 @@ class _SalesReportScreenState extends State<SalesReportScreen> {
 
   // Show filter dialog
   void _showFilterDialog() {
+    SoundManager().playClickSound();
     showDialog(
       context: context,
       builder: (context) => StatefulBuilder(
@@ -137,6 +140,7 @@ class _SalesReportScreenState extends State<SalesReportScreen> {
                       Expanded(
                         child: InkWell(
                           onTap: () async {
+                            SoundManager().playClickSound();
                             final date = await showDatePicker(
                               context: context,
                               initialDate: _startDate ?? DateTime.now(),
@@ -151,8 +155,7 @@ class _SalesReportScreenState extends State<SalesReportScreen> {
                             }
                           },
                           child: Container(
-                            padding: EdgeInsets.symmetric(
-                                vertical: 12.h, horizontal: 16.w),
+                            padding: EdgeInsets.symmetric(vertical: 12.h, horizontal: 16.w),
                             decoration: BoxDecoration(
                               border: Border.all(color: Colors.grey.shade400),
                               borderRadius: BorderRadius.circular(8.r),
@@ -169,6 +172,7 @@ class _SalesReportScreenState extends State<SalesReportScreen> {
                       Expanded(
                         child: InkWell(
                           onTap: () async {
+                            SoundManager().playClickSound();
                             final date = await showDatePicker(
                               context: context,
                               initialDate: _endDate ?? DateTime.now(),
@@ -183,8 +187,7 @@ class _SalesReportScreenState extends State<SalesReportScreen> {
                             }
                           },
                           child: Container(
-                            padding: EdgeInsets.symmetric(
-                                vertical: 12.h, horizontal: 16.w),
+                            padding: EdgeInsets.symmetric(vertical: 12.h, horizontal: 16.w),
                             decoration: BoxDecoration(
                               border: Border.all(color: Colors.grey.shade400),
                               borderRadius: BorderRadius.circular(8.r),
@@ -241,12 +244,14 @@ class _SalesReportScreenState extends State<SalesReportScreen> {
             actions: [
               TextButton(
                 onPressed: () {
+                  SoundManager().playClickSound();
                   Navigator.pop(context);
                 },
                 child: const Text('إلغاء'),
               ),
               TextButton(
                 onPressed: () {
+                  SoundManager().playClickSound();
                   setState(() {
                     _startDate = null;
                     _endDate = null;
@@ -280,6 +285,7 @@ class _SalesReportScreenState extends State<SalesReportScreen> {
 
     return InkWell(
       onTap: () {
+        SoundManager().playClickSound();
         setState(() {
           _selectedStatus = status;
         });
@@ -309,7 +315,7 @@ class _SalesReportScreenState extends State<SalesReportScreen> {
     return Scaffold(
       backgroundColor: theme.colorScheme.surface,
       appBar: AppBar(
-        backgroundColor: Colors.transparent,
+        backgroundColor: const Color(0xFF148ccd),
         elevation: 0,
         title: Text(
           'تقرير المبيعات',
@@ -367,8 +373,7 @@ class _SalesReportScreenState extends State<SalesReportScreen> {
                   borderRadius: BorderRadius.circular(12.r),
                   borderSide: BorderSide.none,
                 ),
-                contentPadding:
-                    EdgeInsets.symmetric(vertical: 12.h, horizontal: 16.w),
+                contentPadding: EdgeInsets.symmetric(vertical: 12.h, horizontal: 16.w),
                 filled: true,
                 fillColor: Colors.white,
               ),
@@ -393,7 +398,7 @@ class _SalesReportScreenState extends State<SalesReportScreen> {
               ),
               child: Row(
                 children: [
-                  Expanded(
+                  const Expanded(
                     flex: 2,
                     child: Text(
                       'رقم الفاتورة',
@@ -404,7 +409,7 @@ class _SalesReportScreenState extends State<SalesReportScreen> {
                     ),
                   ),
                   SizedBox(width: 8.w),
-                  Expanded(
+                  const Expanded(
                     flex: 2,
                     child: Text(
                       'التاريخ',
@@ -415,7 +420,7 @@ class _SalesReportScreenState extends State<SalesReportScreen> {
                     ),
                   ),
                   SizedBox(width: 8.w),
-                  Expanded(
+                  const Expanded(
                     flex: 3,
                     child: Text(
                       'العميل',
@@ -426,7 +431,7 @@ class _SalesReportScreenState extends State<SalesReportScreen> {
                     ),
                   ),
                   SizedBox(width: 8.w),
-                  Expanded(
+                  const Expanded(
                     flex: 2,
                     child: Text(
                       'المبلغ',
@@ -438,7 +443,7 @@ class _SalesReportScreenState extends State<SalesReportScreen> {
                     ),
                   ),
                   SizedBox(width: 8.w),
-                  Expanded(
+                  const Expanded(
                     flex: 2,
                     child: Text(
                       'الحالة',
@@ -496,8 +501,7 @@ class _SalesReportScreenState extends State<SalesReportScreen> {
                                 shape: RoundedRectangleBorder(
                                   borderRadius: BorderRadius.circular(12.r),
                                 ),
-                                padding: EdgeInsets.symmetric(
-                                    horizontal: 24.w, vertical: 12.h),
+                                padding: EdgeInsets.symmetric(horizontal: 24.w, vertical: 12.h),
                               ),
                               child: const Text('إعادة تحميل'),
                             ),
@@ -508,8 +512,7 @@ class _SalesReportScreenState extends State<SalesReportScreen> {
                         margin: EdgeInsets.symmetric(horizontal: 16.w),
                         decoration: BoxDecoration(
                           color: Colors.white,
-                          borderRadius: BorderRadius.vertical(
-                              bottom: Radius.circular(12.r)),
+                          borderRadius: BorderRadius.vertical(bottom: Radius.circular(12.r)),
                           boxShadow: [
                             BoxShadow(
                               color: Colors.black.withOpacity(0.05),
@@ -551,6 +554,7 @@ class _SalesReportScreenState extends State<SalesReportScreen> {
       ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () {
+          SoundManager().playClickSound();
           // TODO: Navigate to create invoice screen
         },
         backgroundColor: theme.colorScheme.primary,
@@ -632,13 +636,13 @@ class _SalesReportScreenState extends State<SalesReportScreen> {
     );
   }
 
-  Widget _buildInvoiceRow(
-      BuildContext context, SalesInvoice invoice, int index) {
+  Widget _buildInvoiceRow(BuildContext context, SalesInvoice invoice, int index) {
     final theme = Theme.of(context);
     final statusColor = Color(SalesService.invoiceStatusColor(invoice.status));
 
     return InkWell(
       onTap: () {
+        SoundManager().playClickSound();
         // TODO: Navigate to invoice details
       },
       child: Padding(

@@ -9,43 +9,38 @@ import 'package:promoter_app/features/auth/data/datasources/auth_local_data_sour
 import 'package:promoter_app/features/auth/data/datasources/auth_remote_data_source.dart';
 import 'package:promoter_app/features/auth/data/repositories/auth_repository_impl.dart';
 import 'package:promoter_app/features/auth/domain/repositories/auth_repository.dart';
+import 'package:promoter_app/features/auth/domain/usecases/get_current_user_usecase.dart';
 import 'package:promoter_app/features/auth/domain/usecases/login_usecase.dart';
 import 'package:promoter_app/features/auth/domain/usecases/logout_usecase.dart';
-import 'package:promoter_app/features/auth/domain/usecases/get_current_user_usecase.dart';
 import 'package:promoter_app/features/auth/presentation/bloc/auth_bloc.dart';
 import 'package:promoter_app/features/client/cubit/client_cubit_service.dart';
 import 'package:promoter_app/features/client/data/datasources/client_remote_data_source.dart';
 import 'package:promoter_app/features/client/data/repositories/client_repository_impl.dart';
 import 'package:promoter_app/features/client/domain/repositories/client_repository.dart';
+import 'package:promoter_app/features/client/domain/usecases/create_client_usecase.dart';
 import 'package:promoter_app/features/client/domain/usecases/get_clients_usecase.dart';
 import 'package:promoter_app/features/client/domain/usecases/update_client_status_usecase.dart';
-import 'package:promoter_app/features/client/domain/usecases/create_client_usecase.dart';
-import 'package:promoter_app/features/client/presentation/bloc/client_bloc.dart';
+import 'package:promoter_app/features/client/services/client_service.dart';
 import 'package:promoter_app/features/collection/cubit/collection_cubit.dart'; // Added import
-import 'package:shared_preferences/shared_preferences.dart';
-
+import 'package:promoter_app/features/collection/services/collection_service.dart';
+import 'package:promoter_app/features/dashboard/controllers/dashboard_controller.dart';
 // Feature service imports
 import 'package:promoter_app/features/dashboard/services/dashboard_service.dart';
-import 'package:promoter_app/features/dashboard/controllers/dashboard_controller.dart';
-import 'package:promoter_app/features/client/services/client_service.dart';
-import 'package:promoter_app/features/sales_invoice/services/sales_invoice_service.dart';
-import 'package:promoter_app/features/collection/services/collection_service.dart';
 import 'package:promoter_app/features/expense/services/expense_service.dart';
-import 'package:promoter_app/features/treasury/services/treasury_service.dart';
-import 'package:promoter_app/features/returns/services/returns_service.dart';
-import 'package:promoter_app/features/products/services/products_service.dart';
 import 'package:promoter_app/features/inventory_transfer/services/inventory_transfer_service.dart';
-import 'package:promoter_app/features/menu/leave_request/services/leave_request_service.dart';
-import 'package:promoter_app/features/menu/leave_request/controllers/leave_request_controller.dart';
 import 'package:promoter_app/features/menu/delivery/services/delivery_service.dart';
+import 'package:promoter_app/features/menu/leave_request/controllers/leave_request_controller.dart';
+import 'package:promoter_app/features/menu/leave_request/services/leave_request_service.dart';
 import 'package:promoter_app/features/menu/messages/services/notification_service.dart';
-import 'package:promoter_app/features/salary/services/salary_service.dart';
+import 'package:promoter_app/features/products/services/products_service.dart';
+import 'package:promoter_app/features/returns/services/returns_service.dart';
 import 'package:promoter_app/features/salary/cubit/salary_cubit.dart';
-
+import 'package:promoter_app/features/salary/services/salary_service.dart';
 // Feature controllers imports
 import 'package:promoter_app/features/sales_invoice/controllers/sales_invoice_controller.dart';
-
-import '../../features/menu/leave_request/di/leave_request_di.dart';
+import 'package:promoter_app/features/sales_invoice/services/sales_invoice_service.dart';
+import 'package:promoter_app/features/treasury/services/treasury_service.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 final sl = GetIt.instance;
 
@@ -241,8 +236,7 @@ void _registerFeatureServices() {
 // Added method to register cubits
 void _registerCubits() {
   sl.registerFactory(
-    () => CollectionCubit(
-        collectionService: sl<CollectionService>()), // Corrected argument
+    () => CollectionCubit(collectionService: sl<CollectionService>()), // Corrected argument
   );
 
   // Register Salary Cubit

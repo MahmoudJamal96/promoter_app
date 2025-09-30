@@ -1,14 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
-import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:promoter_app/core/di/injection_container.dart';
+import 'package:promoter_app/core/utils/sound_manager.dart';
+
 import 'cubit/notification_cubit.dart';
 import 'models/notification_model.dart';
 import 'services/notification_service.dart';
 
 class MessagesScreen extends StatefulWidget {
-  const MessagesScreen({Key? key}) : super(key: key);
+  const MessagesScreen({super.key});
 
   @override
   State<MessagesScreen> createState() => _MessagesScreenState();
@@ -18,26 +20,25 @@ class _MessagesScreenState extends State<MessagesScreen> {
   @override
   Widget build(BuildContext context) {
     return BlocProvider(
-      create: (context) =>
-          NotificationCubit(sl<NotificationService>())..loadNotifications(),
+      create: (context) => NotificationCubit(sl<NotificationService>())..loadNotifications(),
       child: Scaffold(
         appBar: AppBar(
-          title:
-              Text('الإشعارات', style: TextStyle(fontWeight: FontWeight.bold)),
+          backgroundColor: const Color(0xFF148ccd),
+          title: const Text('الإشعارات', style: TextStyle(fontWeight: FontWeight.bold)),
           centerTitle: true,
           actions: [
             BlocBuilder<NotificationCubit, NotificationState>(
               builder: (context, state) {
                 if (state is NotificationLoaded && state.unreadCount > 0) {
                   return PopupMenuButton<String>(
-                    icon: Icon(Icons.more_vert),
+                    icon: const Icon(Icons.more_vert),
                     onSelected: (value) {
                       if (value == 'mark_all_read') {
                         context.read<NotificationCubit>().markAllAsRead();
                       }
                     },
                     itemBuilder: (context) => [
-                      PopupMenuItem(
+                      const PopupMenuItem(
                         value: 'mark_all_read',
                         child: Text('تسجيل الكل كمقروء'),
                       ),
@@ -45,8 +46,9 @@ class _MessagesScreenState extends State<MessagesScreen> {
                   );
                 }
                 return IconButton(
-                  icon: Icon(Icons.refresh),
+                  icon: const Icon(Icons.refresh),
                   onPressed: () {
+                    SoundManager().playClickSound();
                     context.read<NotificationCubit>().refreshNotifications();
                   },
                 );
@@ -66,14 +68,14 @@ class _MessagesScreenState extends State<MessagesScreen> {
                 );
               } else if (state is NotificationMarkAsReadSuccess) {
                 ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
+                  const SnackBar(
                     content: Text('تم تسجيل الإشعار كمقروء'),
                     backgroundColor: Colors.green,
                   ),
                 );
               } else if (state is NotificationMarkAllAsReadSuccess) {
                 ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
+                  const SnackBar(
                     content: Text('تم تسجيل جميع الإشعارات كمقروءة'),
                     backgroundColor: Colors.green,
                   ),
@@ -82,7 +84,7 @@ class _MessagesScreenState extends State<MessagesScreen> {
             },
             builder: (context, state) {
               if (state is NotificationLoading) {
-                return Center(child: CircularProgressIndicator());
+                return const Center(child: CircularProgressIndicator());
               } else if (state is NotificationLoaded) {
                 if (state.notifications.isEmpty) {
                   return _buildEmptyState();
@@ -97,8 +99,7 @@ class _MessagesScreenState extends State<MessagesScreen> {
                         Container(
                           width: double.infinity,
                           padding: EdgeInsets.all(16.w),
-                          color:
-                              Theme.of(context).primaryColor.withOpacity(0.1),
+                          color: Theme.of(context).primaryColor.withOpacity(0.1),
                           child: Text(
                             'لديك ${state.unreadCount} إشعار غير مقروء',
                             style: TextStyle(
@@ -123,8 +124,8 @@ class _MessagesScreenState extends State<MessagesScreen> {
                                   delay: (50 * index).ms,
                                 )
                                 .slide(
-                                    begin: Offset(.1, 0),
-                                    end: Offset(0, 0),
+                                    begin: const Offset(.1, 0),
+                                    end: const Offset(0, 0),
                                     duration: 300.ms,
                                     curve: Curves.easeOut);
                           },
@@ -149,7 +150,7 @@ class _MessagesScreenState extends State<MessagesScreen> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(
+          const Icon(
             Icons.notifications_none,
             size: 80,
             color: Colors.grey,
@@ -181,7 +182,7 @@ class _MessagesScreenState extends State<MessagesScreen> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(
+          const Icon(
             Icons.error_outline,
             size: 80,
             color: Colors.red,
@@ -207,25 +208,23 @@ class _MessagesScreenState extends State<MessagesScreen> {
           SizedBox(height: 16.h),
           ElevatedButton(
             onPressed: () {
+              SoundManager().playClickSound();
               context.read<NotificationCubit>().loadNotifications();
             },
-            child: Text('إعادة المحاولة'),
+            child: const Text('إعادة المحاولة'),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildNotificationTile(
-      BuildContext context, NotificationModel notification) {
+  Widget _buildNotificationTile(BuildContext context, NotificationModel notification) {
     return Card(
       margin: EdgeInsets.symmetric(horizontal: 8.w, vertical: 4.h),
       child: ListTile(
         contentPadding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 8.h),
         leading: CircleAvatar(
-          backgroundColor: notification.isRead
-              ? Colors.grey
-              : Theme.of(context).primaryColor,
+          backgroundColor: notification.isRead ? Colors.grey : Theme.of(context).primaryColor,
           child: Icon(
             _getNotificationIcon(notification.type),
             color: Colors.white,
@@ -238,8 +237,7 @@ class _MessagesScreenState extends State<MessagesScreen> {
               child: Text(
                 notification.title,
                 style: TextStyle(
-                  fontWeight:
-                      notification.isRead ? FontWeight.normal : FontWeight.bold,
+                  fontWeight: notification.isRead ? FontWeight.normal : FontWeight.bold,
                 ),
               ),
             ),
@@ -271,6 +269,7 @@ class _MessagesScreenState extends State<MessagesScreen> {
               )
             : null,
         onTap: () {
+          SoundManager().playClickSound();
           if (!notification.isRead) {
             context.read<NotificationCubit>().markAsRead(notification.id);
           }
@@ -314,8 +313,7 @@ class _MessagesScreenState extends State<MessagesScreen> {
     }
   }
 
-  void _showNotificationDetails(
-      BuildContext context, NotificationModel notification) {
+  void _showNotificationDetails(BuildContext context, NotificationModel notification) {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -384,12 +382,15 @@ class _MessagesScreenState extends State<MessagesScreen> {
             SizedBox(
               width: double.infinity,
               child: ElevatedButton(
-                onPressed: () => Navigator.pop(context),
+                onPressed: () {
+                  SoundManager().playClickSound();
+                  Navigator.pop(context);
+                },
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Theme.of(context).primaryColor,
                   padding: EdgeInsets.symmetric(vertical: 12.h),
                 ),
-                child: Text('إغلاق', style: TextStyle(color: Colors.white)),
+                child: const Text('إغلاق', style: TextStyle(color: Colors.white)),
               ),
             ),
           ],

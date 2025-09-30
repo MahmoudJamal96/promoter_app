@@ -12,6 +12,7 @@ class Product {
   final String? companyName;
   final String createdAt;
   final String updatedAt;
+  final List<ProductUnit> units;
 
   Product({
     required this.id,
@@ -27,7 +28,8 @@ class Product {
     this.companyName,
     required this.createdAt,
     required this.updatedAt,
-  });
+    List<ProductUnit>? units,
+  }) : units = units ?? [];
 
   factory Product.fromJson(Map<String, dynamic> json) {
     return Product(
@@ -38,16 +40,22 @@ class Product {
       price: double.tryParse(json['price']?.toString() ?? "0") ?? 0,
       quantity: int.tryParse(json['quantity']?.toString() ??
               json['stock']?.toString() ??
-              json['current_stock']?.toString() ??
+              json['warehouse_quantity']?.toString() ??
               '0') ??
           0,
-      imageUrl: json['image_url'] as String? ?? '',
+      imageUrl: json['image_url'] as String?,
       categoryId: json['category_id'] as int? ?? 0,
       categoryName: json['category_name'] as String? ?? '',
       companyId: json['company_id'] as int?,
       companyName: json['company_name'] as String?,
       createdAt: json['created_at'] as String? ?? "",
       updatedAt: json['updated_at'] as String? ?? "",
+      units: (json["units"] ?? []).isEmpty
+          ? [ProductUnit(name: 'علبة', price: 0.0)]
+          : (json['units'] as List<dynamic>?)
+                  ?.map((unit) => ProductUnit.fromJson(unit as Map<String, dynamic>))
+                  .toList() ??
+              [ProductUnit(name: 'علبة', price: 0.0)],
     );
   }
 
@@ -66,6 +74,31 @@ class Product {
       'company_name': companyName,
       'created_at': createdAt,
       'updated_at': updatedAt,
+      'units': units.map((unit) => unit.toJson()).toList(),
+    };
+  }
+}
+
+class ProductUnit {
+  final String name;
+  final double price;
+
+  ProductUnit({
+    required this.name,
+    required this.price,
+  });
+
+  factory ProductUnit.fromJson(Map<String, dynamic> json) {
+    return ProductUnit(
+      name: json['name'] as String? ?? '',
+      price: double.tryParse(json['price']?.toString() ?? "0") ?? 0,
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'name': name,
+      'price': price,
     };
   }
 }
@@ -85,6 +118,13 @@ class ProductCategory {
       name: json['name'] as String,
     );
   }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'name': name,
+    };
+  }
 }
 
 class ProductCompany {
@@ -101,5 +141,12 @@ class ProductCompany {
       id: json['id'] as int,
       name: json['name'] as String,
     );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'name': name,
+    };
   }
 }

@@ -1,28 +1,28 @@
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:promoter_app/features/returns/models/return_model.dart';
-import 'package:promoter_app/features/returns/services/returns_service.dart';
-import 'package:promoter_app/core/di/injection_container.dart';
-import 'package:promoter_app/features/products/models/product_model.dart';
-import 'package:promoter_app/features/products/services/products_service.dart';
-import 'package:promoter_app/features/client/services/client_service.dart';
-import 'package:promoter_app/features/sales_invoice/models/sales_invoice_model.dart'
-    as invoice_model;
-import 'package:promoter_app/features/sales_invoice/services/sales_service.dart'
-    as invoice_service;
 import 'package:mobile_scanner/mobile_scanner.dart';
 import 'package:promoter_app/core/constants/strings.dart';
+import 'package:promoter_app/core/di/injection_container.dart';
+import 'package:promoter_app/core/utils/sound_manager.dart';
+import 'package:promoter_app/features/client/services/client_service.dart';
+import 'package:promoter_app/features/products/models/product_model.dart';
+import 'package:promoter_app/features/products/services/products_service.dart';
+import 'package:promoter_app/features/returns/models/return_model.dart';
+import 'package:promoter_app/features/returns/services/returns_service.dart';
+import 'package:promoter_app/features/sales_invoice/models/sales_invoice_model.dart'
+    as invoice_model;
+import 'package:promoter_app/features/sales_invoice/services/sales_service.dart' as invoice_service;
 
 class ReturnTransactionScreen extends StatefulWidget {
   // Optional invoice ID parameter allows return creation for a specific invoice
   final String? invoiceId;
 
-  const ReturnTransactionScreen({Key? key, this.invoiceId}) : super(key: key);
+  const ReturnTransactionScreen({super.key, this.invoiceId});
 
   @override
-  State<ReturnTransactionScreen> createState() =>
-      _ReturnTransactionScreenState();
+  State<ReturnTransactionScreen> createState() => _ReturnTransactionScreenState();
 }
 
 // ReturnItemModel for managing return items with quantity
@@ -52,8 +52,7 @@ class _ReturnTransactionScreenState extends State<ReturnTransactionScreen>
   final TextEditingController _searchController = TextEditingController();
   final TextEditingController _reasonController = TextEditingController();
   final TextEditingController _notesController = TextEditingController();
-  final TextEditingController _invoiceSearchController =
-      TextEditingController();
+  final TextEditingController _invoiceSearchController = TextEditingController();
   final MobileScannerController _scannerController = MobileScannerController();
 
   bool _isLoading = false;
@@ -269,6 +268,7 @@ class _ReturnTransactionScreenState extends State<ReturnTransactionScreen>
 
   // Toggle barcode scanner
   void _toggleScanner() {
+    SoundManager().playClickSound();
     setState(() {
       _isScanning = !_isScanning;
     });
@@ -281,9 +281,9 @@ class _ReturnTransactionScreenState extends State<ReturnTransactionScreen>
 
   // Add product to return items
   void _addToReturnItems(Product product) {
+    SoundManager().playClickSound();
     // Check if product already exists in return items
-    final existingIndex =
-        _returnItems.indexWhere((item) => item.product.id == product.id);
+    final existingIndex = _returnItems.indexWhere((item) => item.product.id == product.id);
 
     if (existingIndex >= 0) {
       setState(() {
@@ -311,6 +311,8 @@ class _ReturnTransactionScreenState extends State<ReturnTransactionScreen>
 
   // Remove product from return items
   void _removeFromReturnItems(int index) {
+    SoundManager().playClickSound();
+    SoundManager().playClickSound();
     final removedItem = _returnItems[index];
     setState(() {
       _returnItems.removeAt(index);
@@ -321,6 +323,7 @@ class _ReturnTransactionScreenState extends State<ReturnTransactionScreen>
 
   // Update product quantity in return items
   void _updateReturnItemQuantity(int index, int newQuantity) {
+    SoundManager().playClickSound();
     if (newQuantity <= 0) {
       _removeFromReturnItems(index);
       return;
@@ -335,6 +338,7 @@ class _ReturnTransactionScreenState extends State<ReturnTransactionScreen>
 
   // Validate return form data
   bool _validateReturnForm({bool showErrors = true}) {
+    SoundManager().playClickSound();
     List<String> errors = [];
 
     if (_returnItems.isEmpty) {
@@ -360,6 +364,8 @@ class _ReturnTransactionScreenState extends State<ReturnTransactionScreen>
 
   // Submit standalone return
   Future<void> _submitStandaloneReturn() async {
+    SoundManager().playClickSound();
+    SoundManager().playClickSound();
     if (!_validateReturnForm()) {
       return;
     }
@@ -401,6 +407,7 @@ class _ReturnTransactionScreenState extends State<ReturnTransactionScreen>
 
   // Submit invoice-based return
   Future<void> _submitInvoiceReturn() async {
+    SoundManager().playClickSound();
     // Add invoice-specific validations
     if (_selectedInvoice == null) {
       _showErrorSnackBar('اختر فاتورة للإرجاع');
@@ -469,13 +476,13 @@ class _ReturnTransactionScreenState extends State<ReturnTransactionScreen>
           children: [
             Text('رقم المرتجع: ${returnOrder.returnNumber}'),
             SizedBox(height: 8.h),
-            Text(
-                'إجمالي المرتجع: ${returnOrder.total.toStringAsFixed(2)} ${Strings.CURRENCY}'),
+            Text('إجمالي المرتجع: ${returnOrder.total.toStringAsFixed(2)} ${Strings.CURRENCY}'),
           ],
         ),
         actions: [
           TextButton(
             onPressed: () {
+              SoundManager().playClickSound();
               Navigator.pop(context);
               _resetForm();
             },
@@ -483,6 +490,7 @@ class _ReturnTransactionScreenState extends State<ReturnTransactionScreen>
           ),
           ElevatedButton(
             onPressed: () {
+              SoundManager().playClickSound();
               Navigator.pop(context);
               // TODO: Navigate to return details screen
               _resetForm();
@@ -538,7 +546,7 @@ class _ReturnTransactionScreenState extends State<ReturnTransactionScreen>
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(message),
-        backgroundColor: Colors.blue,
+        backgroundColor: const Color(0xFF148ccd),
       ),
     );
   }
@@ -548,6 +556,7 @@ class _ReturnTransactionScreenState extends State<ReturnTransactionScreen>
     required IconData icon,
     required VoidCallback onTap,
   }) {
+    SoundManager().playClickSound();
     return InkWell(
       onTap: onTap,
       child: Container(
@@ -565,6 +574,7 @@ class _ReturnTransactionScreenState extends State<ReturnTransactionScreen>
     );
   }
 
+  bool _type = false; // Track return type (standalone or invoice)
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -577,16 +587,21 @@ class _ReturnTransactionScreenState extends State<ReturnTransactionScreen>
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('تسجيل مرتجع'),
+        title: const Text(
+          'تسجيل مرتجع',
+          style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white),
+        ),
         centerTitle: true,
+        backgroundColor: const Color(0xFF148ccd),
+        iconTheme: const IconThemeData(color: Colors.white),
         bottom: TabBar(
           controller: _tabController,
           tabs: const [
             Tab(text: 'مرتجع منفصل'),
             Tab(text: 'مرتجع على فاتورة'),
           ],
-          labelColor: theme.primaryColor,
-          unselectedLabelColor: Colors.grey,
+          labelColor: Colors.white,
+          unselectedLabelColor: Colors.black,
         ),
         actions: [
           IconButton(
@@ -600,7 +615,7 @@ class _ReturnTransactionScreenState extends State<ReturnTransactionScreen>
         children: [
           // Barcode scanner
           if (_isScanning)
-            Container(
+            SizedBox(
               height: 200.h,
               width: double.infinity,
               child: Stack(
@@ -609,12 +624,11 @@ class _ReturnTransactionScreenState extends State<ReturnTransactionScreen>
                     controller: _scannerController,
                     onDetect: (capture) {
                       final barcodes = capture.barcodes;
-                      if (barcodes.isNotEmpty &&
-                          barcodes.first.rawValue != null) {
+                      if (barcodes.isNotEmpty && barcodes.first.rawValue != null) {
                         _scanProductBarcode(barcodes.first.rawValue!);
                         // Temporarily stop scanning after successful scan
                         _scannerController.stop();
-                        Future.delayed(Duration(seconds: 2), () {
+                        Future.delayed(const Duration(seconds: 2), () {
                           if (_isScanning) {
                             _scannerController.start();
                           }
@@ -626,8 +640,7 @@ class _ReturnTransactionScreenState extends State<ReturnTransactionScreen>
                     alignment: Alignment.topCenter,
                     child: Container(
                       margin: EdgeInsets.only(top: 10.h),
-                      padding:
-                          EdgeInsets.symmetric(horizontal: 16.w, vertical: 8.h),
+                      padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 8.h),
                       decoration: BoxDecoration(
                         color: Colors.black.withOpacity(0.7),
                         borderRadius: BorderRadius.circular(20.r),
@@ -651,7 +664,7 @@ class _ReturnTransactionScreenState extends State<ReturnTransactionScreen>
                         borderRadius: BorderRadius.circular(20.r),
                       ),
                       child: IconButton(
-                        icon: Icon(Icons.close, color: Colors.white),
+                        icon: const Icon(Icons.close, color: Colors.white),
                         onPressed: _toggleScanner,
                       ),
                     ),
@@ -672,6 +685,7 @@ class _ReturnTransactionScreenState extends State<ReturnTransactionScreen>
                     ? IconButton(
                         icon: const Icon(Icons.clear),
                         onPressed: () {
+                          SoundManager().playClickSound();
                           setState(() {
                             _searchController.clear();
                             _searchResults = [];
@@ -683,8 +697,7 @@ class _ReturnTransactionScreenState extends State<ReturnTransactionScreen>
                   borderRadius: BorderRadius.circular(12.r),
                   borderSide: BorderSide(color: Colors.grey.shade300),
                 ),
-                contentPadding:
-                    EdgeInsets.symmetric(vertical: 12.h, horizontal: 16.w),
+                contentPadding: EdgeInsets.symmetric(vertical: 12.h, horizontal: 16.w),
               ),
               onChanged: (value) {
                 if (value.isEmpty) {
@@ -701,7 +714,7 @@ class _ReturnTransactionScreenState extends State<ReturnTransactionScreen>
             Container(
               padding: EdgeInsets.symmetric(horizontal: 16.w),
               height: 80.h,
-              child: Center(
+              child: const Center(
                 child: CircularProgressIndicator(),
               ),
             )
@@ -899,8 +912,8 @@ class _ReturnTransactionScreenState extends State<ReturnTransactionScreen>
                                     children: [
                                       _buildQuantityButton(
                                         icon: Icons.remove,
-                                        onTap: () => _updateReturnItemQuantity(
-                                            index, item.quantity - 1),
+                                        onTap: () =>
+                                            _updateReturnItemQuantity(index, item.quantity - 1),
                                       ),
                                       SizedBox(width: 8.w),
                                       Text(
@@ -913,8 +926,8 @@ class _ReturnTransactionScreenState extends State<ReturnTransactionScreen>
                                       SizedBox(width: 8.w),
                                       _buildQuantityButton(
                                         icon: Icons.add,
-                                        onTap: () => _updateReturnItemQuantity(
-                                            index, item.quantity + 1),
+                                        onTap: () =>
+                                            _updateReturnItemQuantity(index, item.quantity + 1),
                                       ),
                                     ],
                                   ),
@@ -927,10 +940,8 @@ class _ReturnTransactionScreenState extends State<ReturnTransactionScreen>
                                     ),
                                   ),
                                   IconButton(
-                                    icon: const Icon(Icons.delete_outline,
-                                        color: Colors.red),
-                                    onPressed: () =>
-                                        _removeFromReturnItems(index),
+                                    icon: const Icon(Icons.delete_outline, color: Colors.red),
+                                    onPressed: () => _removeFromReturnItems(index),
                                     iconSize: 20.sp,
                                     padding: EdgeInsets.zero,
                                     constraints: const BoxConstraints(),
@@ -968,30 +979,74 @@ class _ReturnTransactionScreenState extends State<ReturnTransactionScreen>
                         SizedBox(height: 8.h),
                         _isLoadingClients
                             ? const Center(child: CircularProgressIndicator())
-                            : DropdownButtonFormField<Map<String, dynamic>>(
-                                decoration: InputDecoration(
-                                  labelText: 'اختر العميل',
-                                  border: OutlineInputBorder(
-                                    borderRadius: BorderRadius.circular(12.r),
+                            : Column(
+                                children: [
+                                  DropdownButtonFormField<Map<String, dynamic>>(
+                                    decoration: InputDecoration(
+                                      labelText: 'اختر العميل',
+                                      border: OutlineInputBorder(
+                                        borderRadius: BorderRadius.circular(12.r),
+                                      ),
+                                      contentPadding: EdgeInsets.symmetric(
+                                        horizontal: 16.w,
+                                        vertical: 12.h,
+                                      ),
+                                    ),
+                                    value: _selectedClient,
+                                    items: _clients.map((client) {
+                                      return DropdownMenuItem<Map<String, dynamic>>(
+                                        value: client,
+                                        child: SizedBox(
+                                          width: 230.w,
+                                          child: Text(
+                                            '${client['name']} - ${client['phone']}',
+                                            maxLines: 1,
+                                            overflow: TextOverflow.ellipsis,
+                                          ),
+                                        ),
+                                      );
+                                    }).toList(),
+                                    onChanged: (value) {
+                                      setState(() {
+                                        _selectedClient = value;
+                                      });
+                                    },
                                   ),
-                                  contentPadding: EdgeInsets.symmetric(
-                                    horizontal: 16.w,
-                                    vertical: 12.h,
-                                  ),
-                                ),
-                                value: _selectedClient,
-                                items: _clients.map((client) {
-                                  return DropdownMenuItem<Map<String, dynamic>>(
-                                    value: client,
-                                    child: Text(
-                                        '${client['name']} - ${client['phone']}'),
-                                  );
-                                }).toList(),
-                                onChanged: (value) {
-                                  setState(() {
-                                    _selectedClient = value;
-                                  });
-                                },
+                                  SizedBox(height: 8.h),
+                                  Row(
+                                    children: [
+                                      Text(
+                                        'نوع المرتجع:',
+                                        style: TextStyle(
+                                          fontSize: 14.sp,
+                                          color: Colors.grey.shade700,
+                                        ),
+                                      ),
+                                      const Spacer(),
+                                      Text(
+                                        'كرتونة',
+                                        style: TextStyle(
+                                          fontSize: 14.sp,
+                                          color: Colors.grey.shade700,
+                                        ),
+                                      ),
+                                      CupertinoSwitch(
+                                          value: _type,
+                                          onChanged: (val) {
+                                            setState(() {
+                                              _type = val;
+                                            });
+                                          }),
+                                      Text(
+                                        'قطعة',
+                                        style: TextStyle(
+                                          fontSize: 14.sp,
+                                          color: Colors.grey.shade700,
+                                        ),
+                                      ),
+                                    ],
+                                  )
+                                ],
                               ),
                       ],
                     ),
@@ -1030,8 +1085,7 @@ class _ReturnTransactionScreenState extends State<ReturnTransactionScreen>
                               horizontal: 16.w,
                               vertical: 12.h,
                             ),
-                            errorText:
-                                _reasonController.text.isEmpty ? 'مطلوب' : null,
+                            errorText: _reasonController.text.isEmpty ? 'مطلوب' : null,
                           ),
                         ),
                         SizedBox(height: 16.h),
@@ -1091,8 +1145,7 @@ class _ReturnTransactionScreenState extends State<ReturnTransactionScreen>
                           width: double.infinity,
                           height: 50.h,
                           child: ElevatedButton(
-                            onPressed:
-                                _isSubmitting ? null : _submitStandaloneReturn,
+                            onPressed: _isSubmitting ? null : _submitStandaloneReturn,
                             style: ElevatedButton.styleFrom(
                               backgroundColor: theme.colorScheme.primary,
                               foregroundColor: theme.colorScheme.onPrimary,
@@ -1101,7 +1154,7 @@ class _ReturnTransactionScreenState extends State<ReturnTransactionScreen>
                                 ? SizedBox(
                                     width: 20.w,
                                     height: 20.h,
-                                    child: CircularProgressIndicator(
+                                    child: const CircularProgressIndicator(
                                       strokeWidth: 2,
                                       color: Colors.white,
                                     ),
@@ -1175,6 +1228,7 @@ class _ReturnTransactionScreenState extends State<ReturnTransactionScreen>
                           SizedBox(width: 8.w),
                           ElevatedButton(
                             onPressed: () {
+                              SoundManager().playClickSound();
                               final invoiceId = _invoiceSearchController.text;
                               if (invoiceId.isNotEmpty) {
                                 _loadInvoice(invoiceId);
@@ -1185,10 +1239,9 @@ class _ReturnTransactionScreenState extends State<ReturnTransactionScreen>
                             style: ElevatedButton.styleFrom(
                               backgroundColor: theme.colorScheme.primary,
                               foregroundColor: theme.colorScheme.onPrimary,
-                              padding: EdgeInsets.symmetric(
-                                  vertical: 12.h, horizontal: 16.w),
+                              padding: EdgeInsets.symmetric(vertical: 12.h, horizontal: 16.w),
                             ),
-                            child: Text('بحث'),
+                            child: const Text('بحث'),
                           ),
                         ],
                       ),
@@ -1223,7 +1276,7 @@ class _ReturnTransactionScreenState extends State<ReturnTransactionScreen>
                             Row(
                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
-                                Text('رقم الفاتورة:'),
+                                const Text('رقم الفاتورة:'),
                                 Text(_selectedInvoice!.id.toString()),
                               ],
                             ),
@@ -1231,17 +1284,15 @@ class _ReturnTransactionScreenState extends State<ReturnTransactionScreen>
                             Row(
                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
-                                Text('تاريخ الفاتورة:'),
-                                Text(_selectedInvoice!.createdAt
-                                    .toString()
-                                    .split(' ')[0]),
+                                const Text('تاريخ الفاتورة:'),
+                                Text(_selectedInvoice!.createdAt.toString().split(' ')[0]),
                               ],
                             ),
                             SizedBox(height: 4.h),
                             Row(
                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
-                                Text('العميل:'),
+                                const Text('العميل:'),
                                 Text(_selectedInvoice!.clientName),
                               ],
                             ),
@@ -1249,9 +1300,8 @@ class _ReturnTransactionScreenState extends State<ReturnTransactionScreen>
                             Row(
                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
-                                Text('إجمالي الفاتورة:'),
-                                Text(
-                                    '${_selectedInvoice!.total.toStringAsFixed(2)} جنيه'),
+                                const Text('إجمالي الفاتورة:'),
+                                Text('${_selectedInvoice!.total.toStringAsFixed(2)} جنيه'),
                               ],
                             ),
                           ],
@@ -1288,8 +1338,7 @@ class _ReturnTransactionScreenState extends State<ReturnTransactionScreen>
                                 final item = _selectedInvoice!.items[index];
                                 final isSelected = _returnItems.any(
                                   (returnItem) =>
-                                      returnItem.product.id.toString() ==
-                                      item.productId.toString(),
+                                      returnItem.product.id.toString() == item.productId.toString(),
                                 );
                                 return ListTile(
                                   title: Text(item.productName),
@@ -1297,30 +1346,23 @@ class _ReturnTransactionScreenState extends State<ReturnTransactionScreen>
                                     'الكمية: ${item.quantity} | السعر: ${item.price.toStringAsFixed(2)} جنيه',
                                   ),
                                   trailing: isSelected
-                                      ? Icon(Icons.check_circle,
-                                          color: Colors.green)
+                                      ? const Icon(Icons.check_circle, color: Colors.green)
                                       : IconButton(
-                                          icon: Icon(Icons.add_circle),
+                                          icon: const Icon(Icons.add_circle),
                                           onPressed: () {
+                                            SoundManager().playClickSound();
                                             final product = Product(
                                               id: item.productId,
                                               name: item.productName,
-                                              sku: 'SKU-' +
-                                                  item.productId
-                                                      .toString(), // Placeholder SKU
-                                              barcode: 'BC-' +
-                                                  item.productId
-                                                      .toString(), // Placeholder barcode
+                                              sku: 'SKU-${item.productId}', // Placeholder SKU
+                                              barcode:
+                                                  'BC-${item.productId}', // Placeholder barcode
                                               quantity: item.quantity,
                                               price: item.price,
-                                              categoryId:
-                                                  1, // Default category ID
-                                              categoryName:
-                                                  'Default', // Default category name
-                                              createdAt:
-                                                  DateTime.now().toString(),
-                                              updatedAt:
-                                                  DateTime.now().toString(),
+                                              categoryId: 1, // Default category ID
+                                              categoryName: 'Default', // Default category name
+                                              createdAt: DateTime.now().toString(),
+                                              updatedAt: DateTime.now().toString(),
                                             );
                                             _addToReturnItems(product);
                                           },
@@ -1361,8 +1403,7 @@ class _ReturnTransactionScreenState extends State<ReturnTransactionScreen>
                                 itemBuilder: (context, index) {
                                   final item = _returnItems[index];
                                   return Padding(
-                                    padding:
-                                        EdgeInsets.symmetric(vertical: 8.h),
+                                    padding: EdgeInsets.symmetric(vertical: 8.h),
                                     child: Row(
                                       children: [
                                         Expanded(
@@ -1382,9 +1423,8 @@ class _ReturnTransactionScreenState extends State<ReturnTransactionScreen>
                                           children: [
                                             _buildQuantityButton(
                                               icon: Icons.remove,
-                                              onTap: () =>
-                                                  _updateReturnItemQuantity(
-                                                      index, item.quantity - 1),
+                                              onTap: () => _updateReturnItemQuantity(
+                                                  index, item.quantity - 1),
                                             ),
                                             SizedBox(width: 8.w),
                                             Text(
@@ -1397,9 +1437,8 @@ class _ReturnTransactionScreenState extends State<ReturnTransactionScreen>
                                             SizedBox(width: 8.w),
                                             _buildQuantityButton(
                                               icon: Icons.add,
-                                              onTap: () =>
-                                                  _updateReturnItemQuantity(
-                                                      index, item.quantity + 1),
+                                              onTap: () => _updateReturnItemQuantity(
+                                                  index, item.quantity + 1),
                                             ),
                                           ],
                                         ),
@@ -1412,10 +1451,8 @@ class _ReturnTransactionScreenState extends State<ReturnTransactionScreen>
                                           ),
                                         ),
                                         IconButton(
-                                          icon: const Icon(Icons.delete_outline,
-                                              color: Colors.red),
-                                          onPressed: () =>
-                                              _removeFromReturnItems(index),
+                                          icon: const Icon(Icons.delete_outline, color: Colors.red),
+                                          onPressed: () => _removeFromReturnItems(index),
                                           iconSize: 20.sp,
                                           padding: EdgeInsets.zero,
                                           constraints: const BoxConstraints(),
@@ -1463,9 +1500,7 @@ class _ReturnTransactionScreenState extends State<ReturnTransactionScreen>
                                   horizontal: 16.w,
                                   vertical: 12.h,
                                 ),
-                                errorText: _reasonController.text.isEmpty
-                                    ? 'مطلوب'
-                                    : null,
+                                errorText: _reasonController.text.isEmpty ? 'مطلوب' : null,
                               ),
                             ),
                             SizedBox(height: 16.h),
@@ -1525,8 +1560,7 @@ class _ReturnTransactionScreenState extends State<ReturnTransactionScreen>
                               width: double.infinity,
                               height: 50.h,
                               child: ElevatedButton(
-                                onPressed:
-                                    _isSubmitting ? null : _submitInvoiceReturn,
+                                onPressed: _isSubmitting ? null : _submitInvoiceReturn,
                                 style: ElevatedButton.styleFrom(
                                   backgroundColor: theme.colorScheme.primary,
                                   foregroundColor: theme.colorScheme.onPrimary,
@@ -1535,7 +1569,7 @@ class _ReturnTransactionScreenState extends State<ReturnTransactionScreen>
                                     ? SizedBox(
                                         width: 20.w,
                                         height: 20.h,
-                                        child: CircularProgressIndicator(
+                                        child: const CircularProgressIndicator(
                                           strokeWidth: 2,
                                           color: Colors.white,
                                         ),

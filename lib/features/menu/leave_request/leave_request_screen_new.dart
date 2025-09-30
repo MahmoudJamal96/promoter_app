@@ -1,19 +1,24 @@
+import 'dart:typed_data';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:intl/intl.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:printing/printing.dart';
-import 'package:intl/intl.dart';
-import 'dart:typed_data';
+import 'package:promoter_app/core/utils/sound_manager.dart';
+import 'package:promoter_app/features/auth/data/datasources/auth_local_data_source.dart';
+import 'package:promoter_app/features/auth/data/models/user_model.dart';
 import 'package:provider/provider.dart';
+
 import '../../../core/di/injection_container.dart';
-import 'providers/leave_request_provider.dart';
-import 'models/leave_request_model.dart';
 import 'controllers/leave_request_controller.dart';
+import 'models/leave_request_model.dart';
+import 'providers/leave_request_provider.dart';
 
 class LeaveRequestScreen extends StatefulWidget {
-  const LeaveRequestScreen({Key? key}) : super(key: key);
+  const LeaveRequestScreen({super.key});
 
   @override
   State<LeaveRequestScreen> createState() => _LeaveRequestScreenState();
@@ -35,14 +40,19 @@ class _LeaveRequestScreenState extends State<LeaveRequestScreen> {
     'إجازة بدون راتب',
     'أخرى',
   ];
-
+  UserModel? user;
   @override
   void initState() {
     super.initState();
+    loadUser();
     // Initialize the provider
     _leaveRequestProvider = LeaveRequestProvider(
       leaveRequestController: sl<LeaveRequestController>(),
     );
+  }
+
+  loadUser() async {
+    user = await sl<AuthLocalDataSource>().getLastUser();
   }
 
   @override
@@ -57,29 +67,30 @@ class _LeaveRequestScreenState extends State<LeaveRequestScreen> {
       value: _leaveRequestProvider,
       child: Scaffold(
         appBar: AppBar(
-          title:
-              Text('طلب إجازة', style: TextStyle(fontWeight: FontWeight.bold)),
+          title: const Text('طلب إجازة', style: TextStyle(fontWeight: FontWeight.bold)),
           centerTitle: true,
+          backgroundColor: const Color(0xFF148ccd),
         ),
         body: SafeArea(
           child: Consumer<LeaveRequestProvider>(
             builder: (context, provider, _) {
-              if (provider.status == LoadingStatus.loading &&
-                  provider.leaveRequests.isEmpty) {
-                return Center(child: CircularProgressIndicator());
+              if (provider.status == LoadingStatus.loading && provider.leaveRequests.isEmpty) {
+                return const Center(child: CircularProgressIndicator());
               }
 
-              if (provider.status == LoadingStatus.error &&
-                  provider.leaveRequests.isEmpty) {
+              if (provider.status == LoadingStatus.error && provider.leaveRequests.isEmpty) {
                 return Center(
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Text('حدث خطأ أثناء تحميل البيانات'),
+                      const Text('حدث خطأ أثناء تحميل البيانات'),
                       SizedBox(height: 16.h),
                       ElevatedButton(
-                        onPressed: () => provider.fetchLeaveRequests(),
-                        child: Text('إعادة المحاولة'),
+                        onPressed: () {
+                          SoundManager().playClickSound();
+                          provider.fetchLeaveRequests();
+                        },
+                        child: const Text('إعادة المحاولة'),
                       ),
                     ],
                   ),
@@ -126,8 +137,8 @@ class _LeaveRequestScreenState extends State<LeaveRequestScreen> {
                       SizedBox(height: 16.h),
                       _buildLeaveHistory(provider),
                     ].animate(interval: 50.ms).fadeIn(duration: 300.ms).slide(
-                        begin: Offset(0, 0.5),
-                        end: Offset(0, 0),
+                        begin: const Offset(0, 0.5),
+                        end: const Offset(0, 0),
                         duration: 300.ms,
                         curve: Curves.easeOut),
                   ),
@@ -183,7 +194,10 @@ class _LeaveRequestScreenState extends State<LeaveRequestScreen> {
 
   Widget _buildDatePicker(String label, DateTime? date, Function() onTap) {
     return InkWell(
-      onTap: onTap,
+      onTap: () {
+        onTap();
+        SoundManager().playClickSound();
+      },
       child: Container(
         padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 16.h),
         decoration: BoxDecoration(
@@ -202,9 +216,7 @@ class _LeaveRequestScreenState extends State<LeaveRequestScreen> {
             ),
             SizedBox(height: 8.h),
             Text(
-              date == null
-                  ? 'اختر التاريخ'
-                  : '${date.day}/${date.month}/${date.year}',
+              date == null ? 'اختر التاريخ' : '${date.day}/${date.month}/${date.year}',
               style: TextStyle(
                 fontSize: 16.sp,
                 fontWeight: date == null ? FontWeight.normal : FontWeight.bold,
@@ -249,14 +261,12 @@ class _LeaveRequestScreenState extends State<LeaveRequestScreen> {
               ),
               backgroundColor: Theme.of(context).primaryColor,
             ),
-            onPressed: provider.isSubmitting
-                ? null
-                : () => _submitLeaveRequest(provider),
+            onPressed: provider.isSubmitting ? null : () => _submitLeaveRequest(provider),
             child: provider.isSubmitting
                 ? SizedBox(
                     height: 20.h,
                     width: 20.h,
-                    child: CircularProgressIndicator(
+                    child: const CircularProgressIndicator(
                       color: Colors.white,
                       strokeWidth: 2,
                     ),
@@ -323,19 +333,21 @@ class _LeaveRequestScreenState extends State<LeaveRequestScreen> {
                 if (provider.status == LoadingStatus.loaded ||
                     provider.status == LoadingStatus.error)
                   IconButton(
-                    icon: Icon(Icons.refresh),
-                    onPressed: () => provider.fetchLeaveRequests(),
+                    icon: const Icon(Icons.refresh),
+                    onPressed: () {
+                      SoundManager().playClickSound();
+                      provider.fetchLeaveRequests();
+                    },
                     tooltip: 'تحديث',
                   ),
               ],
             ),
             SizedBox(height: 12.h),
-            if (provider.status == LoadingStatus.loading &&
-                leaveRequests.isNotEmpty)
+            if (provider.status == LoadingStatus.loading && leaveRequests.isNotEmpty)
               Center(
                 child: Padding(
                   padding: EdgeInsets.symmetric(vertical: 16.h),
-                  child: CircularProgressIndicator(),
+                  child: const CircularProgressIndicator(),
                 ),
               )
             else if (leaveRequests.isEmpty)
@@ -352,9 +364,7 @@ class _LeaveRequestScreenState extends State<LeaveRequestScreen> {
                 ),
               )
             else
-              ...leaveRequests
-                  .map((request) => _buildLeaveHistoryItemFromRequest(request))
-                  .toList(),
+              ...leaveRequests.map((request) => _buildLeaveHistoryItemFromRequest(request)),
           ],
         ),
       ),
@@ -431,7 +441,7 @@ class _LeaveRequestScreenState extends State<LeaveRequestScreen> {
       context: context,
       initialDate: _startDate ?? DateTime.now(),
       firstDate: DateTime.now(),
-      lastDate: DateTime.now().add(Duration(days: 365)),
+      lastDate: DateTime.now().add(const Duration(days: 365)),
     );
     if (picked != null && picked != _startDate) {
       setState(() {
@@ -449,7 +459,7 @@ class _LeaveRequestScreenState extends State<LeaveRequestScreen> {
       context: context,
       initialDate: _startDate ?? DateTime.now(),
       firstDate: _startDate ?? DateTime.now(),
-      lastDate: DateTime.now().add(Duration(days: 365)),
+      lastDate: DateTime.now().add(const Duration(days: 365)),
     );
     if (picked != null && picked != _endDate) {
       setState(() {
@@ -459,6 +469,7 @@ class _LeaveRequestScreenState extends State<LeaveRequestScreen> {
   }
 
   void _submitLeaveRequest(LeaveRequestProvider provider) async {
+    SoundManager().playClickSound();
     if (_formKey.currentState!.validate()) {
       if (_startDate == null) {
         _showErrorMessage('الرجاء اختيار تاريخ البدء');
@@ -521,6 +532,7 @@ class _LeaveRequestScreenState extends State<LeaveRequestScreen> {
   }
 
   void _printLeaveRequest() async {
+    SoundManager().playClickSound();
     if (_startDate == null || _endDate == null) {
       _showErrorMessage('الرجاء إكمال بيانات الإجازة قبل الطباعة');
       return;
@@ -535,293 +547,322 @@ class _LeaveRequestScreenState extends State<LeaveRequestScreen> {
 
   Future<Uint8List> _generateLeaveRequestPdf() async {
     final pdf = pw.Document();
+
     final arabicFont = await PdfGoogleFonts.cairoRegular();
     final arabicFontBold = await PdfGoogleFonts.cairoBold();
 
     // Calculate the number of days between start and end date
     final difference = _endDate!.difference(_startDate!).inDays + 1;
 
+    // Improved Arabic text handling function
+    String processArabicText(String text) {
+      // Remove the string reversal - let the PDF library handle Arabic properly
+      // The key is to use proper RTL directionality and appropriate fonts
+      return text;
+    }
+
     pdf.addPage(
       pw.Page(
         pageFormat: PdfPageFormat.a4,
         build: (pw.Context context) {
-          return pw.Container(
-            padding: pw.EdgeInsets.all(20),
-            child: pw.Column(
-              crossAxisAlignment: pw.CrossAxisAlignment.end, // For RTL layout
-              children: [
-                // Header with logo and title
-                pw.Row(
-                  mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
-                  children: [
-                    pw.Column(
+          return pw.Directionality(
+            textDirection: pw.TextDirection.rtl, // Changed to RTL for proper Arabic rendering
+            child: pw.Container(
+              padding: const pw.EdgeInsets.all(20),
+              child: pw.Column(
+                crossAxisAlignment: pw.CrossAxisAlignment.start, // Changed to start for RTL
+                children: [
+                  // Header with logo and title
+                  pw.Row(
+                    mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+                    children: [
+                      pw.Column(
+                        crossAxisAlignment: pw.CrossAxisAlignment.end, // Swapped for RTL
+                        children: [
+                          pw.Text(
+                            'طلب إجازة',
+                            style: pw.TextStyle(
+                              font: arabicFontBold,
+                              fontSize: 24,
+                              color: PdfColors.indigo900,
+                            ),
+                            textDirection: pw.TextDirection.rtl,
+                          ),
+                          pw.Text(
+                            'آل الياسين للتجارة والتوزيع',
+                            style: pw.TextStyle(font: arabicFont, fontSize: 14),
+                            textDirection: pw.TextDirection.rtl,
+                          ),
+                        ],
+                      ),
+                      pw.Column(
+                        crossAxisAlignment: pw.CrossAxisAlignment.start, // Swapped for RTL
+                        children: [
+                          pw.Text(
+                            'رقم الطلب: ${DateTime.now().millisecondsSinceEpoch.toString().substring(5)}',
+                            style: pw.TextStyle(font: arabicFont, fontSize: 10),
+                            textDirection: pw.TextDirection.rtl,
+                          ),
+                          pw.Text(
+                            'التاريخ: ${DateFormat('yyyy/MM/dd').format(DateTime.now())}',
+                            style: pw.TextStyle(font: arabicFont, fontSize: 10),
+                            textDirection: pw.TextDirection.rtl,
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+
+                  pw.SizedBox(height: 40),
+
+                  // Employee information
+                  pw.Container(
+                    padding: const pw.EdgeInsets.all(10),
+                    decoration: pw.BoxDecoration(
+                      color: PdfColors.grey100,
+                      borderRadius: pw.BorderRadius.circular(8),
+                    ),
+                    child: pw.Column(
                       crossAxisAlignment: pw.CrossAxisAlignment.start,
                       children: [
                         pw.Text(
-                          'رقم الطلب: ${DateTime.now().millisecondsSinceEpoch.toString().substring(5)}',
-                          style: pw.TextStyle(font: arabicFont, fontSize: 10),
+                          'معلومات الموظف',
+                          style: pw.TextStyle(font: arabicFontBold, fontSize: 16),
+                          textDirection: pw.TextDirection.rtl,
                         ),
-                        pw.Text(
-                          'التاريخ: ${DateFormat('yyyy/MM/dd').format(DateTime.now())}',
-                          style: pw.TextStyle(font: arabicFont, fontSize: 10),
+                        pw.SizedBox(height: 10),
+                        pw.Row(
+                          mainAxisAlignment: pw.MainAxisAlignment.start,
+                          children: [
+                            pw.Text(
+                              'اسم الموظف:',
+                              style: pw.TextStyle(font: arabicFontBold),
+                              textDirection: pw.TextDirection.rtl,
+                            ),
+                            pw.SizedBox(width: 5),
+                            pw.Text(
+                              user?.name ?? '',
+                              style: pw.TextStyle(font: arabicFont),
+                              textDirection: pw.TextDirection.rtl,
+                            ),
+                          ],
+                        ),
+                        pw.SizedBox(height: 5),
+                        pw.Row(
+                          mainAxisAlignment: pw.MainAxisAlignment.start,
+                          children: [
+                            pw.Text(
+                              'رقم الموظف:',
+                              style: pw.TextStyle(font: arabicFontBold),
+                              textDirection: pw.TextDirection.rtl,
+                            ),
+                            pw.SizedBox(width: 5),
+                            pw.Text(
+                              user?.id.toString() ?? '',
+                              style: pw.TextStyle(font: arabicFont),
+                            ),
+                          ],
+                        ),
+                        pw.SizedBox(height: 5),
+                        pw.Row(
+                          mainAxisAlignment: pw.MainAxisAlignment.start,
+                          children: [
+                            pw.Text(
+                              'المسمى الوظيفي:',
+                              style: pw.TextStyle(font: arabicFontBold),
+                              textDirection: pw.TextDirection.rtl,
+                            ),
+                            pw.SizedBox(width: 5),
+                            pw.Text(
+                              user?.role ?? '',
+                              style: pw.TextStyle(font: arabicFont),
+                              textDirection: pw.TextDirection.rtl,
+                            ),
+                          ],
                         ),
                       ],
                     ),
-                    pw.Column(
-                      crossAxisAlignment: pw.CrossAxisAlignment.end,
-                      children: [
-                        pw.Text(
-                          'طلب إجازة',
-                          style: pw.TextStyle(
-                            font: arabicFontBold,
-                            fontSize: 24,
-                            color: PdfColors.indigo900,
-                          ),
-                        ),
-                        pw.Text(
-                          'شركة البرومتر | Promoter Company',
-                          style: pw.TextStyle(font: arabicFont, fontSize: 14),
-                        ),
-                      ],
+                  ),
+
+                  pw.SizedBox(height: 20),
+
+                  // Leave information
+                  pw.Container(
+                    padding: const pw.EdgeInsets.all(10),
+                    decoration: pw.BoxDecoration(
+                      color: PdfColors.grey100,
+                      borderRadius: pw.BorderRadius.circular(8),
                     ),
-                  ],
-                ),
-
-                pw.SizedBox(height: 40),
-
-                // Employee information
-                pw.Container(
-                  padding: pw.EdgeInsets.all(10),
-                  decoration: pw.BoxDecoration(
-                    color: PdfColors.grey100,
-                    borderRadius: pw.BorderRadius.circular(8),
-                  ),
-                  child: pw.Column(
-                    crossAxisAlignment: pw.CrossAxisAlignment.end,
-                    children: [
-                      pw.Text(
-                        'معلومات الموظف',
-                        style: pw.TextStyle(font: arabicFontBold, fontSize: 16),
-                      ),
-                      pw.SizedBox(height: 10),
-                      pw.Row(
-                        mainAxisAlignment: pw.MainAxisAlignment.end,
-                        children: [
-                          pw.Text(
-                            'كريم',
-                            style: pw.TextStyle(font: arabicFont),
-                          ),
-                          pw.SizedBox(width: 5),
-                          pw.Text(
-                            'اسم الموظف:',
-                            style: pw.TextStyle(font: arabicFontBold),
-                          ),
-                        ],
-                      ),
-                      pw.SizedBox(height: 5),
-                      pw.Row(
-                        mainAxisAlignment: pw.MainAxisAlignment.end,
-                        children: [
-                          pw.Text(
-                            '12345',
-                            style: pw.TextStyle(font: arabicFont),
-                          ),
-                          pw.SizedBox(width: 5),
-                          pw.Text(
-                            'رقم الموظف:',
-                            style: pw.TextStyle(font: arabicFontBold),
-                          ),
-                        ],
-                      ),
-                      pw.SizedBox(height: 5),
-                      pw.Row(
-                        mainAxisAlignment: pw.MainAxisAlignment.end,
-                        children: [
-                          pw.Text(
-                            'مروج مبيعات',
-                            style: pw.TextStyle(font: arabicFont),
-                          ),
-                          pw.SizedBox(width: 5),
-                          pw.Text(
-                            'المسمى الوظيفي:',
-                            style: pw.TextStyle(font: arabicFontBold),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
-
-                pw.SizedBox(height: 20),
-
-                // Leave information
-                pw.Container(
-                  padding: pw.EdgeInsets.all(10),
-                  decoration: pw.BoxDecoration(
-                    color: PdfColors.grey100,
-                    borderRadius: pw.BorderRadius.circular(8),
-                  ),
-                  child: pw.Column(
-                    crossAxisAlignment: pw.CrossAxisAlignment.end,
-                    children: [
-                      pw.Text(
-                        'تفاصيل الإجازة',
-                        style: pw.TextStyle(font: arabicFontBold, fontSize: 16),
-                      ),
-                      pw.SizedBox(height: 10),
-                      pw.Row(
-                        mainAxisAlignment: pw.MainAxisAlignment.end,
-                        children: [
-                          pw.Text(
-                            _leaveType,
-                            style: pw.TextStyle(font: arabicFont),
-                          ),
-                          pw.SizedBox(width: 5),
-                          pw.Text(
-                            'نوع الإجازة:',
-                            style: pw.TextStyle(font: arabicFontBold),
-                          ),
-                        ],
-                      ),
-                      pw.SizedBox(height: 5),
-                      pw.Row(
-                        mainAxisAlignment: pw.MainAxisAlignment.end,
-                        children: [
-                          pw.Text(
-                            '${_startDate!.day}/${_startDate!.month}/${_startDate!.year}',
-                            style: pw.TextStyle(font: arabicFont),
-                          ),
-                          pw.SizedBox(width: 5),
-                          pw.Text(
-                            'تاريخ البدء:',
-                            style: pw.TextStyle(font: arabicFontBold),
-                          ),
-                        ],
-                      ),
-                      pw.SizedBox(height: 5),
-                      pw.Row(
-                        mainAxisAlignment: pw.MainAxisAlignment.end,
-                        children: [
-                          pw.Text(
-                            '${_endDate!.day}/${_endDate!.month}/${_endDate!.year}',
-                            style: pw.TextStyle(font: arabicFont),
-                          ),
-                          pw.SizedBox(width: 5),
-                          pw.Text(
-                            'تاريخ الانتهاء:',
-                            style: pw.TextStyle(font: arabicFontBold),
-                          ),
-                        ],
-                      ),
-                      pw.SizedBox(height: 5),
-                      pw.Row(
-                        mainAxisAlignment: pw.MainAxisAlignment.end,
-                        children: [
-                          pw.Text(
-                            '$difference يوم',
-                            style: pw.TextStyle(font: arabicFont),
-                          ),
-                          pw.SizedBox(width: 5),
-                          pw.Text(
-                            'عدد الأيام:',
-                            style: pw.TextStyle(font: arabicFontBold),
-                          ),
-                        ],
-                      ),
-                      pw.SizedBox(height: 10),
-                      pw.Text(
-                        'سبب الإجازة:',
-                        style: pw.TextStyle(font: arabicFontBold),
-                        textAlign: pw.TextAlign.right,
-                      ),
-                      pw.SizedBox(height: 5),
-                      pw.Container(
-                        padding: pw.EdgeInsets.all(10),
-                        decoration: pw.BoxDecoration(
-                          color: PdfColors.white,
-                          borderRadius: pw.BorderRadius.circular(4),
-                        ),
-                        width: double.infinity,
-                        child: pw.Text(
-                          _reasonController.text.isEmpty
-                              ? 'لا يوجد'
-                              : _reasonController.text,
-                          style: pw.TextStyle(font: arabicFont),
-                          textAlign: pw.TextAlign.right,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-
-                pw.SizedBox(height: 40),
-
-                // Signature spaces
-                pw.Row(
-                  mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
-                  children: [
-                    pw.Column(
-                      crossAxisAlignment: pw.CrossAxisAlignment.center,
+                    child: pw.Column(
+                      crossAxisAlignment: pw.CrossAxisAlignment.start,
                       children: [
-                        pw.Container(
-                          width: 150,
-                          height: 70,
-                          decoration: pw.BoxDecoration(
-                            border: pw.Border(bottom: pw.BorderSide(width: 1)),
-                          ),
+                        pw.Text(
+                          'تفاصيل الإجازة',
+                          style: pw.TextStyle(font: arabicFontBold, fontSize: 16),
+                          textDirection: pw.TextDirection.rtl,
+                        ),
+                        pw.SizedBox(height: 10),
+                        pw.Row(
+                          mainAxisAlignment: pw.MainAxisAlignment.start,
+                          children: [
+                            pw.Text(
+                              'نوع الإجازة:',
+                              style: pw.TextStyle(font: arabicFontBold),
+                              textDirection: pw.TextDirection.rtl,
+                            ),
+                            pw.SizedBox(width: 5),
+                            pw.Text(
+                              _leaveType,
+                              style: pw.TextStyle(font: arabicFont),
+                              textDirection: pw.TextDirection.rtl,
+                            ),
+                          ],
+                        ),
+                        pw.SizedBox(height: 5),
+                        pw.Row(
+                          mainAxisAlignment: pw.MainAxisAlignment.start,
+                          children: [
+                            pw.Text(
+                              'تاريخ البدء:',
+                              style: pw.TextStyle(font: arabicFontBold),
+                              textDirection: pw.TextDirection.rtl,
+                            ),
+                            pw.SizedBox(width: 5),
+                            pw.Text(
+                              '${_startDate!.day}/${_startDate!.month}/${_startDate!.year}',
+                              style: pw.TextStyle(font: arabicFont),
+                            ),
+                          ],
+                        ),
+                        pw.SizedBox(height: 5),
+                        pw.Row(
+                          mainAxisAlignment: pw.MainAxisAlignment.start,
+                          children: [
+                            pw.Text(
+                              'تاريخ الانتهاء:',
+                              style: pw.TextStyle(font: arabicFontBold),
+                              textDirection: pw.TextDirection.rtl,
+                            ),
+                            pw.SizedBox(width: 5),
+                            pw.Text(
+                              '${_endDate!.day}/${_endDate!.month}/${_endDate!.year}',
+                              style: pw.TextStyle(font: arabicFont),
+                            ),
+                          ],
+                        ),
+                        pw.SizedBox(height: 5),
+                        pw.Row(
+                          mainAxisAlignment: pw.MainAxisAlignment.start,
+                          children: [
+                            pw.Text(
+                              'عدد الأيام:',
+                              style: pw.TextStyle(font: arabicFontBold),
+                              textDirection: pw.TextDirection.rtl,
+                            ),
+                            pw.SizedBox(width: 5),
+                            pw.Text(
+                              '$difference يوم',
+                              style: pw.TextStyle(font: arabicFont),
+                              textDirection: pw.TextDirection.rtl,
+                            ),
+                          ],
                         ),
                         pw.SizedBox(height: 10),
                         pw.Text(
-                          'المدير المباشر',
+                          'سبب الإجازة:',
                           style: pw.TextStyle(font: arabicFontBold),
+                          textDirection: pw.TextDirection.rtl,
                         ),
-                      ],
-                    ),
-                    pw.Column(
-                      crossAxisAlignment: pw.CrossAxisAlignment.center,
-                      children: [
+                        pw.SizedBox(height: 5),
                         pw.Container(
-                          width: 150,
-                          height: 70,
+                          padding: const pw.EdgeInsets.all(10),
                           decoration: pw.BoxDecoration(
-                            border: pw.Border(bottom: pw.BorderSide(width: 1)),
+                            color: PdfColors.white,
+                            borderRadius: pw.BorderRadius.circular(4),
+                          ),
+                          width: double.infinity,
+                          child: pw.Text(
+                            _reasonController.text.isEmpty ? 'لا يوجد' : _reasonController.text,
+                            style: pw.TextStyle(font: arabicFont),
+                            textDirection: pw.TextDirection.rtl,
                           ),
                         ),
-                        pw.SizedBox(height: 10),
-                        pw.Text(
-                          'توقيع الموظف',
-                          style: pw.TextStyle(font: arabicFontBold),
-                        ),
                       ],
                     ),
-                  ],
-                ),
-
-                pw.Spacer(),
-
-                // Footer
-                pw.Container(
-                  width: double.infinity,
-                  padding: pw.EdgeInsets.symmetric(vertical: 10),
-                  decoration: pw.BoxDecoration(
-                    border: pw.Border(
-                        top: pw.BorderSide(width: 1, color: PdfColors.grey300)),
                   ),
-                  child: pw.Row(
+
+                  pw.SizedBox(height: 40),
+
+                  // Signature spaces
+                  pw.Row(
                     mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
                     children: [
-                      pw.Text(
-                        'تمت الطباعة بتاريخ: ${DateFormat('yyyy/MM/dd').format(DateTime.now())}',
-                        style: pw.TextStyle(font: arabicFont, fontSize: 10),
+                      pw.Column(
+                        crossAxisAlignment: pw.CrossAxisAlignment.center,
+                        children: [
+                          pw.Container(
+                            width: 150,
+                            height: 70,
+                            decoration: const pw.BoxDecoration(
+                              border: pw.Border(bottom: pw.BorderSide(width: 1)),
+                            ),
+                          ),
+                          pw.SizedBox(height: 10),
+                          pw.Text(
+                            'توقيع الموظف',
+                            style: pw.TextStyle(font: arabicFontBold),
+                            textDirection: pw.TextDirection.rtl,
+                          ),
+                        ],
                       ),
-                      pw.Text(
-                        'شركة البرومتر - نظام إدارة طلبات الإجازة',
-                        style: pw.TextStyle(font: arabicFont, fontSize: 10),
+                      pw.Column(
+                        crossAxisAlignment: pw.CrossAxisAlignment.center,
+                        children: [
+                          pw.Container(
+                            width: 150,
+                            height: 70,
+                            decoration: const pw.BoxDecoration(
+                              border: pw.Border(bottom: pw.BorderSide(width: 1)),
+                            ),
+                          ),
+                          pw.SizedBox(height: 10),
+                          pw.Text(
+                            'المدير المباشر',
+                            style: pw.TextStyle(font: arabicFontBold),
+                            textDirection: pw.TextDirection.rtl,
+                          ),
+                        ],
                       ),
                     ],
                   ),
-                ),
-              ],
+
+                  pw.Spacer(),
+
+                  // Footer
+                  pw.Container(
+                    width: double.infinity,
+                    padding: const pw.EdgeInsets.symmetric(vertical: 10),
+                    decoration: const pw.BoxDecoration(
+                      border: pw.Border(top: pw.BorderSide(width: 1, color: PdfColors.grey300)),
+                    ),
+                    child: pw.Row(
+                      mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+                      children: [
+                        pw.Text(
+                          'آل الياسين للتجارة والتوزيع',
+                          style: pw.TextStyle(font: arabicFont, fontSize: 10),
+                          textDirection: pw.TextDirection.rtl,
+                        ),
+                        pw.Text(
+                          'تمت الطباعة بتاريخ: ${DateFormat('yyyy/MM/dd').format(DateTime.now())}',
+                          style: pw.TextStyle(font: arabicFont, fontSize: 10),
+                          textDirection: pw.TextDirection.rtl,
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
             ),
           );
         },

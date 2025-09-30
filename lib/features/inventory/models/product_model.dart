@@ -1,4 +1,6 @@
 // Model class for Products
+import 'package:promoter_app/features/products/models/product_model.dart';
+
 class Product {
   final String id;
   final String name;
@@ -10,6 +12,7 @@ class Product {
   final String location;
   final String supplier;
   final DateTime lastUpdated;
+  final List<ProductUnit> units;
 
   Product({
     required this.id,
@@ -22,6 +25,7 @@ class Product {
     required this.location,
     required this.supplier,
     required this.lastUpdated,
+    required this.units,
   });
 
   // Copy with method for easy updates
@@ -36,6 +40,7 @@ class Product {
     String? location,
     String? supplier,
     DateTime? lastUpdated,
+    List<ProductUnit>? units,
   }) {
     return Product(
       id: id ?? this.id,
@@ -48,6 +53,7 @@ class Product {
       location: location ?? this.location,
       supplier: supplier ?? this.supplier,
       lastUpdated: lastUpdated ?? this.lastUpdated,
+      units: units ?? this.units,
     );
   }
 }

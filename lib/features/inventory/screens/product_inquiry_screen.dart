@@ -1,20 +1,17 @@
 import 'dart:math';
-import 'package:flutter/material.dart';
+
 import 'package:fl_chart/fl_chart.dart';
-import '../models/product_model.dart';
-import '../services/inventory_service.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:promoter_app/features/products/services/products_service.dart';
-import 'package:promoter_app/core/di/injection_container.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
-import 'package:promoter_app/features/products/models/product_model.dart'
-    as ApiProduct;
 import 'package:promoter_app/core/di/injection_container.dart';
-import 'package:promoter_app/features/tools/scanner/scanner_screen.dart';
-import 'package:promoter_app/features/products/models/product_model.dart'
-    as ApiProduct;
-import 'package:promoter_app/core/constants/strings.dart';
+import 'package:promoter_app/core/utils/sound_manager.dart';
+import 'package:promoter_app/features/products/models/product_model.dart' as ApiProduct;
+import 'package:promoter_app/features/products/services/products_service.dart';
+
+import '../models/product_model.dart';
+import '../services/inventory_service.dart';
 
 class ProductInquiryScreen extends StatefulWidget {
   const ProductInquiryScreen({super.key});
@@ -82,8 +79,7 @@ class _ProductInquiryScreenState extends State<ProductInquiryScreen> {
 
     try {
       final productsService = sl<ProductsService>();
-      final relatedProductsList =
-          await productsService.getRelatedProducts(productId);
+      final relatedProductsList = await productsService.getRelatedProducts(productId);
 
       if (mounted) {
         setState(() {
@@ -133,6 +129,7 @@ class _ProductInquiryScreenState extends State<ProductInquiryScreen> {
           location: 'الرف ${product.categoryId}',
           supplier: product.companyName ?? 'المورد الرئيسي',
           lastUpdated: DateTime.parse(product.updatedAt),
+          units: product.units,
         );
 
         setState(() {
@@ -158,6 +155,7 @@ class _ProductInquiryScreenState extends State<ProductInquiryScreen> {
 
   // Real barcode scanning with MobileScanner
   Future<void> _scanBarcode() async {
+    SoundManager().playClickSound();
     setState(() {
       _isScanning = true;
     });
@@ -192,8 +190,7 @@ class _ProductInquiryScreenState extends State<ProductInquiryScreen> {
                     ),
                     onDetect: (capture) {
                       final List<Barcode> barcodes = capture.barcodes;
-                      if (barcodes.isNotEmpty &&
-                          barcodes.first.rawValue != null) {
+                      if (barcodes.isNotEmpty && barcodes.first.rawValue != null) {
                         Navigator.pop(context, barcodes.first.rawValue);
                       }
                     },
@@ -202,8 +199,11 @@ class _ProductInquiryScreenState extends State<ProductInquiryScreen> {
               ),
               SizedBox(height: 16.h),
               TextButton(
-                onPressed: () => Navigator.pop(context),
-                child: Text('إلغاء'),
+                onPressed: () {
+                  SoundManager().playClickSound();
+                  Navigator.pop(context);
+                },
+                child: const Text('إلغاء'),
               ),
               SizedBox(height: 8.h),
             ],
@@ -246,6 +246,7 @@ class _ProductInquiryScreenState extends State<ProductInquiryScreen> {
           location: 'الرف ${product.categoryId}',
           supplier: product.companyName ?? 'المورد الرئيسي',
           lastUpdated: DateTime.parse(product.updatedAt),
+          units: product.units,
         );
 
         setState(() {
@@ -296,7 +297,7 @@ class _ProductInquiryScreenState extends State<ProductInquiryScreen> {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(message),
-        backgroundColor: Colors.blue,
+        backgroundColor: const Color(0xFF148ccd),
       ),
     );
   }
@@ -308,7 +309,7 @@ class _ProductInquiryScreenState extends State<ProductInquiryScreen> {
     return Scaffold(
       backgroundColor: theme.colorScheme.surface,
       appBar: AppBar(
-        backgroundColor: Colors.transparent,
+        backgroundColor: const Color(0xFF148ccd),
         elevation: 0,
         title: Text(
           'الاستعلام عن صنف',
@@ -325,6 +326,7 @@ class _ProductInquiryScreenState extends State<ProductInquiryScreen> {
               color: theme.colorScheme.onSurface,
             ),
             onPressed: () {
+              SoundManager().playClickSound();
               // Show help dialog
               showDialog(
                 context: context,
@@ -339,7 +341,10 @@ class _ProductInquiryScreenState extends State<ProductInquiryScreen> {
                   ),
                   actions: [
                     TextButton(
-                      onPressed: () => Navigator.pop(context),
+                      onPressed: () {
+                        SoundManager().playClickSound();
+                        Navigator.pop(context);
+                      },
                       child: const Text('فهمت'),
                     ),
                   ],
@@ -367,6 +372,7 @@ class _ProductInquiryScreenState extends State<ProductInquiryScreen> {
                           ? IconButton(
                               icon: const Icon(Icons.clear),
                               onPressed: () {
+                                SoundManager().playClickSound();
                                 setState(() {
                                   _searchController.clear();
                                   _selectedProduct = null;
@@ -378,8 +384,7 @@ class _ProductInquiryScreenState extends State<ProductInquiryScreen> {
                         borderRadius: BorderRadius.circular(12.r),
                         borderSide: BorderSide(color: Colors.grey.shade300),
                       ),
-                      contentPadding: EdgeInsets.symmetric(
-                          vertical: 12.h, horizontal: 16.w),
+                      contentPadding: EdgeInsets.symmetric(vertical: 12.h, horizontal: 16.w),
                     ),
                     onFieldSubmitted: (value) {
                       _searchProduct(value);
@@ -399,7 +404,7 @@ class _ProductInquiryScreenState extends State<ProductInquiryScreen> {
                       borderRadius: BorderRadius.circular(12.r),
                     ),
                     child: _isScanning
-                        ? CircularProgressIndicator(
+                        ? const CircularProgressIndicator(
                             strokeWidth: 2,
                             color: Colors.white,
                           )
@@ -833,8 +838,7 @@ class _ProductInquiryScreenState extends State<ProductInquiryScreen> {
                         child: LinearProgressIndicator(
                           value: product.quantity / 50, // Max is 50
                           backgroundColor: Colors.grey.shade200,
-                          valueColor:
-                              AlwaysStoppedAnimation<Color>(stockStatusColor),
+                          valueColor: AlwaysStoppedAnimation<Color>(stockStatusColor),
                           minHeight: 8.h,
                         ),
                       ),
@@ -861,7 +865,7 @@ class _ProductInquiryScreenState extends State<ProductInquiryScreen> {
                 Expanded(
                   flex: 3,
                   child: Text(
-                    '${product.quantity} قطعة',
+                    '( ${product.quantity} )',
                     style: TextStyle(
                       fontWeight: FontWeight.bold,
                       fontSize: 14.sp,
@@ -930,7 +934,9 @@ class _ProductInquiryScreenState extends State<ProductInquiryScreen> {
               children: [
                 Expanded(
                   child: OutlinedButton.icon(
-                    onPressed: () {},
+                    onPressed: () {
+                      SoundManager().playClickSound();
+                    },
                     icon: Icon(
                       Icons.edit,
                       size: 18.sp,
@@ -949,7 +955,9 @@ class _ProductInquiryScreenState extends State<ProductInquiryScreen> {
                 SizedBox(width: 12.w),
                 Expanded(
                   child: ElevatedButton.icon(
-                    onPressed: () {},
+                    onPressed: () {
+                      SoundManager().playClickSound();
+                    },
                     icon: Icon(
                       Icons.history,
                       size: 18.sp,
@@ -1012,9 +1020,7 @@ class _ProductInquiryScreenState extends State<ProductInquiryScreen> {
             Row(
               children: [
                 Icon(
-                  title.contains('مبيعات')
-                      ? Icons.trending_up
-                      : Icons.inventory,
+                  title.contains('مبيعات') ? Icons.trending_up : Icons.inventory,
                   color: color,
                   size: 20.sp,
                 ),
@@ -1058,8 +1064,7 @@ class _ProductInquiryScreenState extends State<ProductInquiryScreen> {
                       backgroundColor: Colors.grey.shade100,
                       labelStyle: TextStyle(
                         color: isSelected ? color : Colors.grey.shade700,
-                        fontWeight:
-                            isSelected ? FontWeight.bold : FontWeight.normal,
+                        fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
                         fontSize: 12.sp,
                       ),
                       padding: EdgeInsets.symmetric(horizontal: 8.w),
@@ -1100,10 +1105,10 @@ class _ProductInquiryScreenState extends State<ProductInquiryScreen> {
                   ),
                   titlesData: FlTitlesData(
                     show: true,
-                    rightTitles: AxisTitles(
+                    rightTitles: const AxisTitles(
                       sideTitles: SideTitles(showTitles: false),
                     ),
-                    topTitles: AxisTitles(
+                    topTitles: const AxisTitles(
                       sideTitles: SideTitles(showTitles: false),
                     ),
                     bottomTitles: AxisTitles(
@@ -1164,15 +1169,13 @@ class _ProductInquiryScreenState extends State<ProductInquiryScreen> {
                       ),
                       barWidth: 3,
                       isStrokeCapRound: true,
-                      dotData: FlDotData(
+                      dotData: const FlDotData(
                         show: false,
                       ),
                       belowBarData: BarAreaData(
                         show: true,
                         gradient: LinearGradient(
-                          colors: gradientColors
-                              .map((color) => color.withOpacity(0.2))
-                              .toList(),
+                          colors: gradientColors.map((color) => color.withOpacity(0.2)).toList(),
                         ),
                       ),
                     ),
@@ -1184,7 +1187,7 @@ class _ProductInquiryScreenState extends State<ProductInquiryScreen> {
                       getTooltipItems: (List<LineBarSpot> touchedBarSpots) {
                         return touchedBarSpots.map((barSpot) {
                           return LineTooltipItem(
-                            '${barSpot.y.toStringAsFixed(1)}',
+                            barSpot.y.toStringAsFixed(1),
                             TextStyle(
                               color: color,
                               fontWeight: FontWeight.bold,
@@ -1249,8 +1252,8 @@ class _ProductInquiryScreenState extends State<ProductInquiryScreen> {
         ? _relatedProducts
         : List.generate(
             4,
-            (index) => InventoryService
-                .products[Random().nextInt(InventoryService.products.length)],
+            (index) =>
+                InventoryService.products[Random().nextInt(InventoryService.products.length)],
           );
 
     final bool usingApiData = _relatedProducts.isNotEmpty;
@@ -1269,7 +1272,9 @@ class _ProductInquiryScreenState extends State<ProductInquiryScreen> {
               ),
             ),
             TextButton(
-              onPressed: () {},
+              onPressed: () {
+                SoundManager().playClickSound();
+              },
               child: Text(
                 'عرض الكل',
                 style: TextStyle(
@@ -1282,7 +1287,7 @@ class _ProductInquiryScreenState extends State<ProductInquiryScreen> {
         ),
         SizedBox(height: 8.h),
         _isLoadingRelatedProducts
-            ? Center(child: CircularProgressIndicator())
+            ? const Center(child: CircularProgressIndicator())
             : SizedBox(
                 height: 170.h,
                 child: ListView.builder(

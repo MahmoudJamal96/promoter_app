@@ -1,18 +1,29 @@
+import 'dart:developer';
+
 import 'package:flutter/material.dart';
-import 'package:flutter_animate/flutter_animate.dart';
-import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_animate/flutter_animate.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
+import 'package:pdf/pdf.dart';
+import 'package:pdf/widgets.dart' as pw;
+import 'package:promoter_app/core/error/exceptions.dart';
+import 'package:promoter_app/core/utils/sound_manager.dart';
+import 'package:promoter_app/features/client/cubit/client_cubit_service.dart';
+import 'package:promoter_app/features/client/cubit/client_state.dart';
+import 'package:promoter_app/features/client/screens/add_client_page.dart';
+import 'package:promoter_app/features/inventory/screens/print_invoice_screen.dart';
+import 'package:screenshot/screenshot.dart';
+
+import '../../../core/constants/strings.dart';
+import '../../../core/di/injection_container.dart';
+import '../../invoice_generator/invoice_generator.dart';
+import '../../products/services/products_service.dart';
+import '../../sales_invoice/models/sales_invoice_model.dart' as invoice_model;
+import '../../sales_invoice/services/order_service.dart';
 import '../models/product_model.dart';
 import '../services/inventory_service.dart';
-import '../../sales_invoice/models/sales_invoice_model.dart' as invoice_model;
-import '../../products/services/products_service.dart';
-import '../../sales_invoice/services/order_service.dart';
-import '../../../core/di/injection_container.dart';
-import '../../../core/constants/strings.dart';
-import '../../invoice_generator/invoice_generator.dart';
-import 'package:pdf/widgets.dart' as pw;
-import 'package:pdf/pdf.dart';
 
 // Custom converter for sales invoice items
 class SalesInvoiceConverter implements InvoiceConverter<InvoiceItem> {
@@ -24,6 +35,7 @@ class SalesInvoiceConverter implements InvoiceConverter<InvoiceItem> {
   final double tax;
   final double discount;
   final double total;
+  final int totalQuantity;
 
   SalesInvoiceConverter({
     required this.companyName,
@@ -34,6 +46,7 @@ class SalesInvoiceConverter implements InvoiceConverter<InvoiceItem> {
     required this.tax,
     required this.discount,
     required this.total,
+    required this.totalQuantity,
   });
 
   @override
@@ -50,16 +63,13 @@ class SalesInvoiceConverter implements InvoiceConverter<InvoiceItem> {
               children: [
                 pw.Text(
                   companyName,
-                  style: pw.TextStyle(
-                      fontWeight: pw.FontWeight.bold, fontSize: 24),
+                  style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 24),
                 ),
                 pw.SizedBox(height: 8),
-                pw.Text('رقم الفاتورة: $invoiceNumber',
-                    style: pw.TextStyle(fontSize: 14)),
+                pw.Text('رقم الفاتورة: $invoiceNumber', style: const pw.TextStyle(fontSize: 14)),
                 pw.Text('التاريخ: ${date.toString().split(' ')[0]}',
-                    style: pw.TextStyle(fontSize: 14)),
-                pw.Text('العميل: $customerName',
-                    style: pw.TextStyle(fontSize: 14)),
+                    style: const pw.TextStyle(fontSize: 14)),
+                pw.Text('العميل: $customerName', style: const pw.TextStyle(fontSize: 14)),
               ],
             ),
           ],
@@ -77,27 +87,23 @@ class SalesInvoiceConverter implements InvoiceConverter<InvoiceItem> {
           },
           children: [
             pw.TableRow(
-              decoration: pw.BoxDecoration(color: PdfColors.grey200),
+              decoration: const pw.BoxDecoration(color: PdfColors.grey200),
               children: [
                 pw.Padding(
                   padding: const pw.EdgeInsets.all(8),
-                  child: pw.Text('المنتج',
-                      style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
+                  child: pw.Text('المنتج', style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
                 ),
                 pw.Padding(
                   padding: const pw.EdgeInsets.all(8),
-                  child: pw.Text('الكمية',
-                      style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
+                  child: pw.Text('الكمية', style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
                 ),
                 pw.Padding(
                   padding: const pw.EdgeInsets.all(8),
-                  child: pw.Text('السعر',
-                      style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
+                  child: pw.Text('السعر', style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
                 ),
                 pw.Padding(
                   padding: const pw.EdgeInsets.all(8),
-                  child: pw.Text('المجموع',
-                      style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
+                  child: pw.Text('المجموع', style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
                 ),
               ],
             ),
@@ -119,8 +125,7 @@ class SalesInvoiceConverter implements InvoiceConverter<InvoiceItem> {
                     ),
                     pw.Padding(
                       padding: const pw.EdgeInsets.all(8),
-                      child: pw.Text(
-                          '${(item.quantity * item.price).toStringAsFixed(2)} جنيه'),
+                      child: pw.Text('${(item.quantity * item.price).toStringAsFixed(2)} جنيه'),
                     ),
                   ],
                 )),
@@ -138,13 +143,16 @@ class SalesInvoiceConverter implements InvoiceConverter<InvoiceItem> {
               children: [
                 pw.Text('المجموع الفرعي: ${subtotal.toStringAsFixed(2)} جنيه'),
                 pw.Text('الضريبة (15%): ${tax.toStringAsFixed(2)} جنيه'),
-                if (discount > 0)
-                  pw.Text('الخصم: ${discount.toStringAsFixed(2)} جنيه'),
+                if (discount > 0) pw.Text('الخصم: ${discount.toStringAsFixed(2)} جنيه'),
+                pw.SizedBox(height: 8),
+                pw.Text(
+                  'إجمالي الكمية : $totalQuantity ',
+                  style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 16),
+                ),
                 pw.Divider(),
                 pw.Text(
                   'المجموع الكلي: ${total.toStringAsFixed(2)} جنيه',
-                  style: pw.TextStyle(
-                      fontWeight: pw.FontWeight.bold, fontSize: 16),
+                  style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 16),
                 ),
               ],
             ),
@@ -165,9 +173,9 @@ class SalesInvoiceScreen extends StatefulWidget {
 class _SalesInvoiceScreenState extends State<SalesInvoiceScreen> {
   final TextEditingController _searchController = TextEditingController();
   final TextEditingController _customerNameController = TextEditingController();
-  final TextEditingController _customerPhoneController =
-      TextEditingController();
+  final TextEditingController _customerPhoneController = TextEditingController();
   final TextEditingController _discountController = TextEditingController();
+  final TextEditingController _dropSearchController = TextEditingController();
 
   bool _isSearching = false;
   List<Product> _searchResults = [];
@@ -221,13 +229,12 @@ class _SalesInvoiceScreenState extends State<SalesInvoiceScreen> {
                 category: apiProduct.categoryName,
                 price: apiProduct.price,
                 quantity: apiProduct.quantity,
-                imageUrl:
-                    apiProduct.imageUrl ?? 'assets/images/yasin_app_logo.JPG',
+                imageUrl: apiProduct.imageUrl ?? 'assets/images/yasin_app_logo.JPG',
                 barcode: apiProduct.barcode,
                 location: 'الرف ${apiProduct.categoryId}',
                 supplier: apiProduct.companyName ?? 'غير محدد',
-                lastUpdated:
-                    DateTime.tryParse(apiProduct.updatedAt) ?? DateTime.now(),
+                lastUpdated: DateTime.tryParse(apiProduct.updatedAt) ?? DateTime.now(),
+                units: apiProduct.units, // Include units if available
               ))
           .toList();
 
@@ -240,14 +247,18 @@ class _SalesInvoiceScreenState extends State<SalesInvoiceScreen> {
         _searchResults = [];
         _isSearching = false;
       });
-      _showErrorSnackBar('خطأ في البحث: ${e.toString()}');
+      if (e is ApiException) {
+        _showErrorSnackBar('فشل في البحث عن المنتجات: ${e.message}');
+      } else {
+        _showErrorSnackBar('حدث خطأ أثناء البحث: ${e.toString()}');
+      }
     }
   }
 
   // Add product to cart
   void _addToCart(Product product) {
-    final existingItemIndex =
-        _cartItems.indexWhere((item) => item.product.id == product.id);
+    SoundManager().playClickSound();
+    final existingItemIndex = _cartItems.indexWhere((item) => item.product.id == product.id);
 
     if (existingItemIndex >= 0) {
       // Increment quantity
@@ -278,6 +289,7 @@ class _SalesInvoiceScreenState extends State<SalesInvoiceScreen> {
 
   // Remove product from cart
   void _removeFromCart(int index) {
+    SoundManager().playClickSound();
     setState(() {
       _cartItems.removeAt(index);
     });
@@ -285,6 +297,7 @@ class _SalesInvoiceScreenState extends State<SalesInvoiceScreen> {
 
   // Update cart item quantity
   void _updateCartItemQuantity(int index, int newQuantity) {
+    SoundManager().playClickSound();
     if (newQuantity <= 0) {
       _removeFromCart(index);
       return;
@@ -304,8 +317,9 @@ class _SalesInvoiceScreenState extends State<SalesInvoiceScreen> {
 
   double get _total => _subtotal + _vat - _discount;
 
-  // Create invoice using API
-  Future<void> _createInvoice() async {
+  // Create invoice using APISoundManager().playClickSound();
+  Future<void> _saveInvoice() async {
+    SoundManager().playClickSound();
     if (_cartItems.isEmpty) {
       _showErrorSnackBar('لا يمكن إنشاء فاتورة فارغة');
       return;
@@ -321,9 +335,52 @@ class _SalesInvoiceScreenState extends State<SalesInvoiceScreen> {
       final result = await _orderService.createOrder(
         items: _cartItems,
         customerName: _customerNameController.text,
-        customerPhone: _customerPhoneController.text.isEmpty
-            ? 'غير محدد'
-            : _customerPhoneController.text,
+        customerPhone:
+            _customerPhoneController.text.isEmpty ? 'غير محدد' : _customerPhoneController.text,
+        paymentMethod: _selectedPaymentMethod,
+        discount: _discount,
+      );
+
+      // Close loading dialog
+      Navigator.pop(context);
+      Navigator.pop(context);
+
+      _showSuccessSnackBar('تم إنشاء الفاتورة بنجاح');
+
+      // // Print the invoice directly
+      // await _printInvoice(result);
+
+      _resetForm();
+    } catch (e) {
+      // Close loading dialog if open
+      if (Navigator.canPop(context)) Navigator.pop(context);
+      if (e is ApiException) {
+        _showErrorSnackBar('فشل في إنشاء الفاتورة: ${e.message}');
+      } else {
+        _showErrorSnackBar('حدث خطأ أثناء إنشاء الفاتورة: ${e.toString()}');
+      }
+    }
+  }
+
+  Future<void> _createInvoice({required bool isPrinting}) async {
+    SoundManager().playClickSound();
+    if (_cartItems.isEmpty) {
+      _showErrorSnackBar('لا يمكن إنشاء فاتورة فارغة');
+      return;
+    }
+
+    if (_customerNameController.text.isEmpty) {
+      _showErrorSnackBar('يرجى إدخال اسم العميل');
+      return;
+    }
+    try {
+      // Show loading dialog
+      _showLoadingDialog(); // Create order using OrderService
+      final result = await _orderService.createOrder(
+        items: _cartItems,
+        customerName: _customerNameController.text,
+        customerPhone:
+            _customerPhoneController.text.isEmpty ? 'غير محدد' : _customerPhoneController.text,
         paymentMethod: _selectedPaymentMethod,
         discount: _discount,
       );
@@ -333,14 +390,24 @@ class _SalesInvoiceScreenState extends State<SalesInvoiceScreen> {
 
       _showSuccessSnackBar('تم إنشاء الفاتورة بنجاح');
 
-      // Print the invoice directly
-      await _printInvoice(result);
-
+      // // Print the invoice directly
+      // await _printInvoice(result);
+      Navigator.of(context).push(
+        MaterialPageRoute(
+            builder: (context) => PrintInvoiceScreen(
+                  isPrinting: isPrinting,
+                  invoice: result,
+                )),
+      );
       _resetForm();
     } catch (e) {
       // Close loading dialog if open
       if (Navigator.canPop(context)) Navigator.pop(context);
-      _showErrorSnackBar('خطأ في إنشاء الفاتورة: ${e.toString()}');
+      if (e is ApiException) {
+        _showErrorSnackBar('فشل في إنشاء الفاتورة: ${e.message}');
+      } else {
+        _showErrorSnackBar('حدث خطأ أثناء إنشاء الفاتورة: ${e.toString()}');
+      }
     }
   }
 
@@ -366,6 +433,7 @@ class _SalesInvoiceScreenState extends State<SalesInvoiceScreen> {
         tax: invoice.tax,
         discount: invoice.discount,
         total: invoice.total,
+        totalQuantity: invoice.totalQuantity ?? 0,
       );
 
       // Generate PDF
@@ -385,50 +453,101 @@ class _SalesInvoiceScreenState extends State<SalesInvoiceScreen> {
             children: [
               Text('رقم الفاتورة: ${invoice.invoiceNumber}'),
               Text('العميل: ${invoice.clientName}'),
-              Text(
-                  'المجموع: ${invoice.total.toStringAsFixed(2)} ${Strings.CURRENCY}'),
+              Text('إجمالي الكمية: ${invoice.totalQuantity ?? 0}'),
+
+              Text('المجموع: ${invoice.total.toStringAsFixed(2)} ${Strings.CURRENCY}'),
               const SizedBox(height: 20),
+              // First row of buttons
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                 children: [
-                  ElevatedButton.icon(
-                    onPressed: () async {
-                      Navigator.pop(context);
-                      // Show print preview
-                      InvoiceGenerator.showPrintPreview(context, pdfBytes);
-                    },
-                    icon: const Icon(Icons.preview),
-                    label: const Text('معاينة'),
+                  Expanded(
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 4.0),
+                      child: ElevatedButton.icon(
+                        onPressed: () async {
+                          Navigator.pop(context);
+                          // Show print preview
+                          InvoiceGenerator.showPrintPreview(context, pdfBytes);
+                        },
+                        icon: const Icon(Icons.preview, size: 16),
+                        label: const Text('معاينة', style: TextStyle(fontSize: 12)),
+                      ),
+                    ),
                   ),
-                  ElevatedButton.icon(
-                    onPressed: () async {
-                      Navigator.pop(context);
-                      // Print directly
-                      final success =
-                          await InvoiceGenerator.printDocument(pdfBytes);
-                      if (success) {
-                        _showSuccessSnackBar('تم طباعة الفاتورة بنجاح');
-                      } else {
-                        _showErrorSnackBar('فشل في طباعة الفاتورة');
-                      }
-                    },
-                    icon: const Icon(Icons.print),
-                    label: const Text('طباعة'),
+                  Expanded(
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 4.0),
+                      child: ElevatedButton.icon(
+                        onPressed: () async {
+                          SoundManager().playClickSound();
+                          Navigator.pop(context);
+                          // Print directly
+                          final success = await InvoiceGenerator.printDocument(pdfBytes);
+                          if (success) {
+                            _showSuccessSnackBar('تم طباعة الفاتورة بنجاح');
+                          } else {
+                            _showErrorSnackBar('فشل في طباعة الفاتورة');
+                          }
+                        },
+                        icon: const Icon(Icons.print, size: 16),
+                        label: const Text('طباعة', style: TextStyle(fontSize: 12)),
+                      ),
+                    ),
                   ),
                 ],
+              ),
+              const SizedBox(height: 10),
+              // Second row - Download as image button
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton.icon(
+                  onPressed: () async {
+                    SoundManager().playClickSound();
+                    // Navigator.pop(context); // Close the current modal/screen
+
+                    await InvoiceGenerator.pdfToImage(pdfBytes).then(
+                      (imageBytes) async {
+                        // Show success message
+                        showDialog(
+                          context: context,
+                          builder: (context) => ImageDialogSaver(imageBytes: imageBytes),
+                        );
+
+                        // Save image to device or show options
+                        // You can implement saving logic here if needed
+                      },
+                    ).catchError((error) {
+                      _showErrorSnackBar('فشل في تحويل الفاتورة إلى صورة: ${error.toString()}');
+                    });
+                  },
+                  icon: const Icon(Icons.image),
+                  label: const Text('عرض كصورة'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.green,
+                    foregroundColor: Colors.white,
+                  ),
+                ),
               ),
             ],
           ),
           actions: [
             TextButton(
-              onPressed: () => Navigator.pop(context),
+              onPressed: () {
+                SoundManager().playClickSound();
+                Navigator.pop(context);
+              },
               child: const Text('إلغاء'),
             ),
           ],
         ),
       );
     } catch (e) {
-      _showErrorSnackBar('خطأ في تجهيز الفاتورة للطباعة: ${e.toString()}');
+      if (e is ApiException) {
+        _showErrorSnackBar('فشل في إنشاء الفاتورة: ${e.message}');
+      } else {
+        _showErrorSnackBar('حدث خطأ أثناء إنشاء الفاتورة: ${e.toString()}');
+      }
     }
   }
 
@@ -450,13 +569,15 @@ class _SalesInvoiceScreenState extends State<SalesInvoiceScreen> {
           children: [
             Text('رقم الفاتورة: ${invoice.id}'),
             SizedBox(height: 8.h),
-            Text(
-                'إجمالي الفاتورة: ${invoice.total.toStringAsFixed(2)} ${Strings.CURRENCY}'),
+            Text('إجمالي الفاتورة: ${invoice.total.toStringAsFixed(2)} ${Strings.CURRENCY}'),
           ],
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(context),
+            onPressed: () {
+              SoundManager().playClickSound();
+              Navigator.pop(context);
+            },
             child: const Text('موافق'),
           ),
         ],
@@ -494,6 +615,7 @@ class _SalesInvoiceScreenState extends State<SalesInvoiceScreen> {
 
   // Scan barcode using camera
   Future<void> _scanBarcode() async {
+    SoundManager().playClickSound();
     try {
       final result = await showDialog<String>(
         context: context,
@@ -524,8 +646,7 @@ class _SalesInvoiceScreenState extends State<SalesInvoiceScreen> {
                         ),
                         onDetect: (capture) {
                           final List<Barcode> barcodes = capture.barcodes;
-                          if (barcodes.isNotEmpty &&
-                              barcodes.first.rawValue != null) {
+                          if (barcodes.isNotEmpty && barcodes.first.rawValue != null) {
                             Navigator.pop(context, barcodes.first.rawValue);
                           }
                         },
@@ -534,7 +655,10 @@ class _SalesInvoiceScreenState extends State<SalesInvoiceScreen> {
                   ),
                   SizedBox(height: 16.h),
                   ElevatedButton(
-                    onPressed: () => Navigator.pop(context),
+                    onPressed: () {
+                      SoundManager().playClickSound();
+                      Navigator.pop(context);
+                    },
                     child: const Text('إلغاء'),
                   ),
                 ],
@@ -560,8 +684,8 @@ class _SalesInvoiceScreenState extends State<SalesInvoiceScreen> {
             barcode: apiProduct.barcode,
             location: 'الرف ${apiProduct.categoryId}',
             supplier: apiProduct.companyName ?? 'غير محدد',
-            lastUpdated:
-                DateTime.tryParse(apiProduct.updatedAt) ?? DateTime.now(),
+            lastUpdated: DateTime.tryParse(apiProduct.updatedAt) ?? DateTime.now(),
+            units: apiProduct.units, // Include units if available
           );
 
           _addToCart(scannedProduct);
@@ -570,7 +694,11 @@ class _SalesInvoiceScreenState extends State<SalesInvoiceScreen> {
         }
       }
     } catch (e) {
-      _showErrorSnackBar('خطأ في مسح الباركود: ${e.toString()}');
+      if (e is ApiException) {
+        _showErrorSnackBar('فشل في مسح الباركود: ${e.message}');
+      } else {
+        _showErrorSnackBar('حدث خطأ أثناء مسح الباركود: ${e.toString()}');
+      }
     }
   }
 
@@ -588,13 +716,9 @@ class _SalesInvoiceScreenState extends State<SalesInvoiceScreen> {
             if (_customerPhoneController.text.isNotEmpty)
               Text('الهاتف: ${_customerPhoneController.text}'),
             const Divider(),
-            Text(
-                'المجموع الفرعي: ${_subtotal.toStringAsFixed(2)} ${Strings.CURRENCY}'),
-            Text(
-                'ضريبة القيمة المضافة: ${_vat.toStringAsFixed(2)} ${Strings.CURRENCY}'),
-            if (_discount > 0)
-              Text(
-                  'الخصم: ${_discount.toStringAsFixed(2)} ${Strings.CURRENCY}'),
+            Text('المجموع الفرعي: ${_subtotal.toStringAsFixed(2)} ${Strings.CURRENCY}'),
+            Text('ضريبة القيمة المضافة: ${_vat.toStringAsFixed(2)} ${Strings.CURRENCY}'),
+            if (_discount > 0) Text('الخصم: ${_discount.toStringAsFixed(2)} ${Strings.CURRENCY}'),
             const Divider(),
             Text(
               'المجموع الكلي: ${_total.toStringAsFixed(2)} ${Strings.CURRENCY}',
@@ -605,13 +729,17 @@ class _SalesInvoiceScreenState extends State<SalesInvoiceScreen> {
         actions: [
           TextButton(
             onPressed: () {
+              SoundManager().playClickSound();
               Navigator.pop(context);
               _resetForm();
             },
             child: const Text('بدء فاتورة جديدة'),
           ),
           ElevatedButton(
-            onPressed: () => Navigator.pop(context),
+            onPressed: () {
+              SoundManager().playClickSound();
+              Navigator.pop(context);
+            },
             child: const Text('موافق'),
           ),
         ],
@@ -640,12 +768,13 @@ class _SalesInvoiceScreenState extends State<SalesInvoiceScreen> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    String searchQuery = '';
 
     return Scaffold(
       backgroundColor: Colors.grey[50],
       appBar: AppBar(
         title: const Text('فاتورة مبيعات جديدة'),
-        backgroundColor: theme.colorScheme.primary,
+        backgroundColor: const Color(0xFF148ccd),
         foregroundColor: Colors.white,
         actions: [
           IconButton(
@@ -669,6 +798,7 @@ class _SalesInvoiceScreenState extends State<SalesInvoiceScreen> {
                     ? IconButton(
                         icon: const Icon(Icons.clear),
                         onPressed: () {
+                          SoundManager().playClickSound();
                           _searchController.clear();
                           setState(() {
                             _searchResults = [];
@@ -742,9 +872,7 @@ class _SalesInvoiceScreenState extends State<SalesInvoiceScreen> {
                     leading: CircleAvatar(
                       backgroundImage: AssetImage(product.imageUrl),
                       onBackgroundImageError: (_, __) {},
-                      child: product.imageUrl.isEmpty
-                          ? Icon(Icons.inventory, size: 20.sp)
-                          : null,
+                      child: product.imageUrl.isEmpty ? Icon(Icons.inventory, size: 20.sp) : null,
                     ),
                     title: Text(
                       product.name,
@@ -822,8 +950,7 @@ class _SalesInvoiceScreenState extends State<SalesInvoiceScreen> {
                                   style: TextStyle(
                                     fontSize: 18.sp,
                                     fontWeight: FontWeight.bold,
-                                    color:
-                                        Theme.of(context).colorScheme.primary,
+                                    color: Theme.of(context).colorScheme.primary,
                                   ),
                                 ),
                                 SizedBox(height: 12.h),
@@ -832,34 +959,29 @@ class _SalesInvoiceScreenState extends State<SalesInvoiceScreen> {
                                   return Column(
                                     children: [
                                       Padding(
-                                        padding:
-                                            EdgeInsets.symmetric(vertical: 8.h),
+                                        padding: EdgeInsets.symmetric(vertical: 8.h),
                                         child: Row(
                                           children: [
                                             Expanded(
                                               flex: 2,
                                               child: Column(
-                                                crossAxisAlignment:
-                                                    CrossAxisAlignment.start,
+                                                crossAxisAlignment: CrossAxisAlignment.start,
                                                 children: [
                                                   Text(
                                                     item.product.name,
                                                     style: TextStyle(
-                                                      fontWeight:
-                                                          FontWeight.w600,
+                                                      fontWeight: FontWeight.w600,
                                                       fontSize: 14.sp,
                                                     ),
                                                     maxLines: 1,
-                                                    overflow:
-                                                        TextOverflow.ellipsis,
+                                                    overflow: TextOverflow.ellipsis,
                                                   ),
                                                   SizedBox(height: 4.h),
                                                   Text(
                                                     '${item.price.toStringAsFixed(2)} ${Strings.CURRENCY}',
                                                     style: TextStyle(
                                                       fontSize: 12.sp,
-                                                      color: theme
-                                                          .colorScheme.primary,
+                                                      color: theme.colorScheme.primary,
                                                     ),
                                                   ),
                                                 ],
@@ -870,10 +992,8 @@ class _SalesInvoiceScreenState extends State<SalesInvoiceScreen> {
                                               children: [
                                                 _buildQuantityButton(
                                                   icon: Icons.remove,
-                                                  onTap: () =>
-                                                      _updateCartItemQuantity(
-                                                          index,
-                                                          item.quantity - 1),
+                                                  onTap: () => _updateCartItemQuantity(
+                                                      index, item.quantity - 1),
                                                 ),
                                                 SizedBox(width: 8.w),
                                                 Text(
@@ -886,10 +1006,8 @@ class _SalesInvoiceScreenState extends State<SalesInvoiceScreen> {
                                                 SizedBox(width: 8.w),
                                                 _buildQuantityButton(
                                                   icon: Icons.add,
-                                                  onTap: () =>
-                                                      _updateCartItemQuantity(
-                                                          index,
-                                                          item.quantity + 1),
+                                                  onTap: () => _updateCartItemQuantity(
+                                                      index, item.quantity + 1),
                                                 ),
                                               ],
                                             ),
@@ -902,15 +1020,12 @@ class _SalesInvoiceScreenState extends State<SalesInvoiceScreen> {
                                               ),
                                             ),
                                             IconButton(
-                                              icon: const Icon(
-                                                  Icons.delete_outline,
+                                              icon: const Icon(Icons.delete_outline,
                                                   color: Colors.red),
-                                              onPressed: () =>
-                                                  _removeFromCart(index),
+                                              onPressed: () => _removeFromCart(index),
                                               iconSize: 20.sp,
                                               padding: EdgeInsets.zero,
-                                              constraints:
-                                                  const BoxConstraints(),
+                                              constraints: const BoxConstraints(),
                                             ),
                                           ],
                                         ),
@@ -951,35 +1066,86 @@ class _SalesInvoiceScreenState extends State<SalesInvoiceScreen> {
                                   ),
                                 ),
                                 SizedBox(height: 12.h),
-                                Row(
-                                  children: [
-                                    Expanded(
-                                      child: TextField(
-                                        controller: _customerNameController,
-                                        decoration: InputDecoration(
-                                          labelText: 'اسم العميل *',
-                                          border: OutlineInputBorder(
-                                            borderRadius:
-                                                BorderRadius.circular(8.r),
+                                BlocProvider(
+                                  create: (context) => sl<ClientCubit>()..loadClients(null),
+                                  child: BlocBuilder<ClientCubit, ClientState>(
+                                    builder: (context, state) {
+                                      final clientsList = context.read<ClientCubit>().clientsList;
+
+                                      // Filter clients based on search query
+                                      final filteredClients = clientsList.where((client) {
+                                        return client.name
+                                                .toLowerCase()
+                                                .contains(searchQuery.toLowerCase()) ||
+                                            (client.phone
+                                                    ?.toLowerCase()
+                                                    .contains(searchQuery.toLowerCase()) ??
+                                                false);
+                                      }).toList();
+
+                                      return Column(
+                                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                                        children: [
+                                          // Dropdown with filtered results
+                                          DropdownMenu(
+                                            width: 290.w,
+                                            dropdownMenuEntries: filteredClients.map((client) {
+                                              return DropdownMenuEntry(
+                                                value: client.id,
+                                                label: client.name,
+                                              );
+                                            }).toList(),
+                                            inputDecorationTheme: InputDecorationTheme(
+                                              border: OutlineInputBorder(
+                                                borderRadius: BorderRadius.circular(8.r),
+                                              ),
+                                            ),
+                                            menuHeight: 300.h,
+                                            menuStyle: MenuStyle(
+                                              backgroundColor:
+                                                  WidgetStateProperty.all(Colors.white),
+                                              shape: WidgetStateProperty.all(
+                                                RoundedRectangleBorder(
+                                                  borderRadius: BorderRadius.circular(12.r),
+                                                ),
+                                              ),
+                                            ),
+                                            controller: _dropSearchController,
+                                            onSelected: (value) {
+                                              if (value != null) {
+                                                final selectedClient = filteredClients
+                                                    .firstWhere((client) => client.id == value);
+                                                _customerNameController.text = selectedClient.name;
+                                                _customerPhoneController.text =
+                                                    selectedClient.phone ?? '';
+                                              }
+                                            },
+                                            requestFocusOnTap: true,
+                                            enableFilter: true,
+                                            hintText: 'اختر العميل',
                                           ),
-                                        ),
-                                      ),
-                                    ),
-                                    SizedBox(width: 16.w),
-                                    Expanded(
-                                      child: TextField(
-                                        controller: _customerPhoneController,
-                                        decoration: InputDecoration(
-                                          labelText: 'رقم الهاتف',
-                                          border: OutlineInputBorder(
-                                            borderRadius:
-                                                BorderRadius.circular(8.r),
+
+                                          const SizedBox(height: 8),
+
+                                          // Show "No results" message and add button when filtered list is empty
+                                          ElevatedButton.icon(
+                                            onPressed: () {
+                                              SoundManager().playClickSound();
+                                              Navigator.push(
+                                                  context,
+                                                  MaterialPageRoute(
+                                                    builder: (context) => AddClientPage(
+                                                      clientCubit: context.read<ClientCubit>(),
+                                                    ),
+                                                  ));
+                                            },
+                                            icon: const Icon(Icons.person_add),
+                                            label: const Text('إضافة عميل جديد'),
                                           ),
-                                        ),
-                                        keyboardType: TextInputType.phone,
-                                      ),
-                                    ),
-                                  ],
+                                        ],
+                                      );
+                                    },
+                                  ),
                                 ),
                               ],
                             ),
@@ -1047,8 +1213,24 @@ class _SalesInvoiceScreenState extends State<SalesInvoiceScreen> {
                             child: Column(
                               children: [
                                 Row(
-                                  mainAxisAlignment:
-                                      MainAxisAlignment.spaceBetween,
+                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                  children: [
+                                    Text(
+                                      'إجمالي الكمية : ',
+                                      style: TextStyle(fontSize: 16.sp),
+                                    ),
+                                    Text(
+                                      '( ${_cartItems.fold(0, (sum, item) => sum + item.quantity)} )',
+                                      style: TextStyle(
+                                        fontSize: 16.sp,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                SizedBox(height: 8.h),
+                                Row(
+                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                   children: [
                                     Text(
                                       'المجموع الفرعي:',
@@ -1065,8 +1247,7 @@ class _SalesInvoiceScreenState extends State<SalesInvoiceScreen> {
                                 ),
                                 SizedBox(height: 8.h),
                                 Row(
-                                  mainAxisAlignment:
-                                      MainAxisAlignment.spaceBetween,
+                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                   children: [
                                     Text(
                                       'ضريبة القيمة المضافة (15%):',
@@ -1094,8 +1275,7 @@ class _SalesInvoiceScreenState extends State<SalesInvoiceScreen> {
                                         controller: _discountController,
                                         decoration: InputDecoration(
                                           border: OutlineInputBorder(
-                                            borderRadius:
-                                                BorderRadius.circular(8.r),
+                                            borderRadius: BorderRadius.circular(8.r),
                                           ),
                                           suffixText: Strings.CURRENCY,
                                           isDense: true,
@@ -1113,11 +1293,10 @@ class _SalesInvoiceScreenState extends State<SalesInvoiceScreen> {
                                   ],
                                 ),
                                 SizedBox(height: 16.h),
-                                Divider(thickness: 1),
+                                const Divider(thickness: 1),
                                 SizedBox(height: 8.h),
                                 Row(
-                                  mainAxisAlignment:
-                                      MainAxisAlignment.spaceBetween,
+                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                   children: [
                                     Text(
                                       'المجموع الإجمالي:',
@@ -1137,29 +1316,6 @@ class _SalesInvoiceScreenState extends State<SalesInvoiceScreen> {
                                   ],
                                 ),
                                 SizedBox(height: 16.h),
-                                SizedBox(
-                                  width: double.infinity,
-                                  child: ElevatedButton(
-                                    onPressed: _cartItems.isNotEmpty
-                                        ? _createInvoice
-                                        : null,
-                                    style: ElevatedButton.styleFrom(
-                                      backgroundColor:
-                                          theme.colorScheme.primary,
-                                      foregroundColor: Colors.white,
-                                      padding:
-                                          EdgeInsets.symmetric(vertical: 14.h),
-                                      minimumSize: Size(double.infinity, 50.h),
-                                    ),
-                                    child: Text(
-                                      'إنشاء الفاتورة',
-                                      style: TextStyle(
-                                        fontSize: 16.sp,
-                                        fontWeight: FontWeight.bold,
-                                      ),
-                                    ),
-                                  ),
-                                ),
                               ],
                             ),
                           ),
@@ -1172,13 +1328,82 @@ class _SalesInvoiceScreenState extends State<SalesInvoiceScreen> {
           ),
         ],
       ),
+      bottomNavigationBar: Padding(
+        padding: EdgeInsets.all(16.w),
+        child: Row(
+          children: [
+            Expanded(
+              child: ElevatedButton(
+                onPressed: _cartItems.isEmpty ? null : _saveInvoice,
+                style: ElevatedButton.styleFrom(
+                  padding: EdgeInsets.symmetric(vertical: 16.h),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12.r),
+                  ),
+                  backgroundColor: _cartItems.isEmpty ? Colors.grey : theme.colorScheme.primary,
+                ),
+                child: Text(
+                  'حفظ',
+                  style: TextStyle(fontSize: 18.sp, fontWeight: FontWeight.bold),
+                ),
+              ),
+            ),
+            SizedBox(width: 16.w),
+            Expanded(
+              child: ElevatedButton(
+                onPressed: _cartItems.isEmpty
+                    ? null
+                    : () {
+                        SoundManager().playClickSound();
+                        _createInvoice(isPrinting: true);
+                      },
+                style: ElevatedButton.styleFrom(
+                  padding: EdgeInsets.symmetric(vertical: 16.h),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12.r),
+                  ),
+                  backgroundColor: _cartItems.isEmpty ? Colors.grey : theme.colorScheme.primary,
+                ),
+                child: Text(
+                  'طباعة',
+                  style: TextStyle(fontSize: 18.sp, fontWeight: FontWeight.bold),
+                ),
+              ),
+            ),
+            SizedBox(width: 16.w),
+            Expanded(
+              child: ElevatedButton(
+                onPressed: _cartItems.isEmpty
+                    ? null
+                    : () {
+                        SoundManager().playClickSound();
+                        _createInvoice(isPrinting: false);
+                      },
+                style: ElevatedButton.styleFrom(
+                  padding: EdgeInsets.symmetric(vertical: 16.h),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12.r),
+                  ),
+                  backgroundColor: _cartItems.isEmpty ? Colors.grey : theme.colorScheme.primary,
+                ),
+                child: Text(
+                  'مشاركة',
+                  style: TextStyle(fontSize: 18.sp, fontWeight: FontWeight.bold),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 
-  Widget _buildQuantityButton(
-      {required IconData icon, required VoidCallback onTap}) {
+  Widget _buildQuantityButton({required IconData icon, required VoidCallback onTap}) {
     return InkWell(
-      onTap: onTap,
+      onTap: () {
+        onTap();
+        SoundManager().playClickSound();
+      },
       borderRadius: BorderRadius.circular(4.r),
       child: Container(
         padding: EdgeInsets.all(4.w),
@@ -1202,6 +1427,7 @@ class _SalesInvoiceScreenState extends State<SalesInvoiceScreen> {
     return Expanded(
       child: InkWell(
         onTap: () {
+          SoundManager().playClickSound();
           setState(() {
             _selectedPaymentMethod = method;
           });
@@ -1210,13 +1436,10 @@ class _SalesInvoiceScreenState extends State<SalesInvoiceScreen> {
         child: Container(
           padding: EdgeInsets.symmetric(vertical: 12.h, horizontal: 8.w),
           decoration: BoxDecoration(
-            color: isSelected
-                ? theme.colorScheme.primary.withOpacity(0.1)
-                : Colors.grey.shade100,
+            color: isSelected ? theme.colorScheme.primary.withOpacity(0.1) : Colors.grey.shade100,
             borderRadius: BorderRadius.circular(8.r),
             border: Border.all(
-              color:
-                  isSelected ? theme.colorScheme.primary : Colors.grey.shade300,
+              color: isSelected ? theme.colorScheme.primary : Colors.grey.shade300,
               width: 2,
             ),
           ),
@@ -1224,18 +1447,14 @@ class _SalesInvoiceScreenState extends State<SalesInvoiceScreen> {
             children: [
               Icon(
                 icon,
-                color: isSelected
-                    ? theme.colorScheme.primary
-                    : Colors.grey.shade600,
+                color: isSelected ? theme.colorScheme.primary : Colors.grey.shade600,
                 size: 24.sp,
               ),
               SizedBox(height: 4.h),
               Text(
                 label,
                 style: TextStyle(
-                  color: isSelected
-                      ? theme.colorScheme.primary
-                      : Colors.grey.shade600,
+                  color: isSelected ? theme.colorScheme.primary : Colors.grey.shade600,
                   fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
                   fontSize: 12.sp,
                 ),
@@ -1244,6 +1463,77 @@ class _SalesInvoiceScreenState extends State<SalesInvoiceScreen> {
           ),
         ),
       ),
+    );
+  }
+}
+
+class ImageDialogSaver extends StatefulWidget {
+  final Uint8List imageBytes;
+  const ImageDialogSaver({super.key, required this.imageBytes});
+
+  @override
+  State<ImageDialogSaver> createState() => _ImageDialogSaverState();
+}
+
+class _ImageDialogSaverState extends State<ImageDialogSaver> {
+  final GlobalKey _globalKey = GlobalKey();
+  ScreenshotController screenshotController = ScreenshotController();
+
+  Future<void> _saveScreenshot() async {
+    screenshotController
+        .capture(delay: const Duration(milliseconds: 10))
+        .then((capturedImage) async {
+      if (capturedImage != null) {
+        // final result = await ImageGallerySaver.saveImage(capturedImage, quality: 100);
+
+        // if (result['isSuccess']) {
+        //   Navigator.pop(context);
+        //   Navigator.pop(context);
+        //   ScaffoldMessenger.of(context).showSnackBar(
+        //     const SnackBar(content: Text('تم حفظ الصورة في المعرض')),
+        //   );
+        // } else {
+        //   ScaffoldMessenger.of(context).showSnackBar(
+        //     const SnackBar(content: Text('فشل في حفظ الصورة')),
+        //   );
+        // }
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('فشل في التقاط الصورة')),
+        );
+      }
+    }).catchError((onError) {
+      log(onError.toString());
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: const Text('فاتورة كصورة'),
+      content: SizedBox(
+        width: double.maxFinite,
+        child: Screenshot(
+          controller: screenshotController,
+          child: Container(
+            color: Colors.white,
+            child: Image.memory(
+              widget.imageBytes,
+              fit: BoxFit.contain, // or BoxFit.cover depending on your use case
+              filterQuality: FilterQuality.high,
+            ),
+          ),
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () async {
+            SoundManager().playClickSound();
+            await _saveScreenshot();
+          },
+          child: const Text('تحميل الصورة'),
+        ),
+      ],
     );
   }
 }

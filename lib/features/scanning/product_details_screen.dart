@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:promoter_app/core/utils/sound_manager.dart';
 import 'package:promoter_app/features/tools/scanner/generator_screen.dart';
 import 'package:url_launcher/url_launcher.dart';
 
@@ -91,7 +92,8 @@ class _OriginalProductScreen extends StatefulWidget {
   State<_OriginalProductScreen> createState() => _OriginalProductScreenState();
 }
 
-class _OriginalProductScreenState extends State<_OriginalProductScreen> with SingleTickerProviderStateMixin {
+class _OriginalProductScreenState extends State<_OriginalProductScreen>
+    with SingleTickerProviderStateMixin {
   late TabController tabBarController;
   final Product product = dummyProduct;
   final Supplier supplier = dummySupplier;
@@ -103,6 +105,7 @@ class _OriginalProductScreenState extends State<_OriginalProductScreen> with Sin
   }
 
   void _launchURL(String url) async {
+    SoundManager().playClickSound();
     if (!url.startsWith('http')) url = 'https://$url';
     final Uri uri = Uri.parse(url);
     if (!await launchUrl(uri)) {
@@ -122,13 +125,16 @@ class _OriginalProductScreenState extends State<_OriginalProductScreen> with Sin
       bottomNavigationBar: Container(
         margin: EdgeInsets.all(24.h),
         child: OutlinedButton(
-          onPressed: () => Navigator.pop(context),
-          child: Text('اضافة إلي المخزن'),
+          onPressed: () {
+            SoundManager().playClickSound();
+            Navigator.pop(context);
+          },
           style: OutlinedButton.styleFrom(
-            backgroundColor: Colors.blue,
+            backgroundColor: const Color(0xFF148ccd),
             padding: EdgeInsets.symmetric(vertical: 16.h),
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30.r)),
           ),
+          child: const Text('اضافة إلي المخزن'),
         ),
       ),
       body: DefaultTabController(
@@ -150,7 +156,7 @@ class _OriginalProductScreenState extends State<_OriginalProductScreen> with Sin
                     Positioned(
                       left: 80.w,
                       top: 20.h,
-                      child: Icon(Icons.qr_code, size: 35),
+                      child: const Icon(Icons.qr_code, size: 35),
                     ),
                 ],
               ),
@@ -178,7 +184,7 @@ class _OriginalProductScreenState extends State<_OriginalProductScreen> with Sin
                           height: 40.h,
                           alignment: Alignment.center,
                           decoration: BoxDecoration(
-                            color: Colors.blue,
+                            color: const Color(0xFF148ccd),
                             borderRadius: BorderRadius.circular(7.r),
                           ),
                           child: const Icon(Icons.link, color: Colors.white),
@@ -334,7 +340,8 @@ class _OriginalProductScreenState extends State<_OriginalProductScreen> with Sin
           if (label == 'Brand')
             CircleAvatar(
               radius: 15.r,
-              backgroundImage: NetworkImage(product.supplierImage ?? 'https://via.placeholder.com/150'),
+              backgroundImage:
+                  NetworkImage(product.supplierImage ?? 'https://via.placeholder.com/150'),
             ),
         ],
       ),

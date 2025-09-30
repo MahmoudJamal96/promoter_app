@@ -31,7 +31,7 @@
 
 ## 🔄 CURRENT STATUS:
 - App is running in the background
-- All currency references updated to use "جنيه" instead of "ر.س"
+- All currency references updated to use "جنيه" instead of "ج.م"
 - Inventory system now fetches products from API instead of dummy data
 - Categories are loaded from API
 - Search and filtering work with real API data

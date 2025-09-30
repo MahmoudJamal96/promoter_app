@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:promoter_app/core/utils/sound_manager.dart';
+
 import '../models/client_model.dart';
 
 class EnhancedClientCard extends StatelessWidget {
@@ -8,11 +10,11 @@ class EnhancedClientCard extends StatelessWidget {
   final VoidCallback? onNavigate;
 
   const EnhancedClientCard({
-    Key? key,
+    super.key,
     required this.client,
     required this.onTap,
     this.onNavigate,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -24,7 +26,10 @@ class EnhancedClientCard extends StatelessWidget {
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12.r)),
       elevation: 2,
       child: InkWell(
-        onTap: onTap,
+        onTap: () {
+          onTap();
+          SoundManager().playClickSound();
+        },
         borderRadius: BorderRadius.circular(12.r),
         child: Padding(
           padding: EdgeInsets.all(16.r),
@@ -80,17 +85,17 @@ class EnhancedClientCard extends StatelessWidget {
                         style: TextStyle(
                           fontSize: 14.sp,
                           fontWeight: FontWeight.bold,
-                          color: Colors.blue,
+                          color: const Color(0xFF148ccd),
                         ),
                       ),
-                      SizedBox(height: 4.h),
-                      Text(
-                        client.getStatusText(),
-                        style: TextStyle(
-                          fontSize: 12.sp,
-                          color: client.getStatusColor(),
-                        ),
-                      ),
+                      // SizedBox(height: 4.h),
+                      // Text(
+                      //   client.getStatusText(),
+                      //   style: TextStyle(
+                      //     fontSize: 12.sp,
+                      //     color: client.getStatusColor(),
+                      //   ),
+                      // ),
                     ],
                   ),
                 ],
@@ -124,7 +129,10 @@ class EnhancedClientCard extends StatelessWidget {
                   // Navigate button
                   if (onNavigate != null)
                     ElevatedButton.icon(
-                      onPressed: onNavigate,
+                      onPressed: () {
+                        SoundManager().playClickSound();
+                        onNavigate!();
+                      },
                       icon: Icon(Icons.directions, size: 16.r),
                       label: const Text('توجيه'),
                       style: ElevatedButton.styleFrom(

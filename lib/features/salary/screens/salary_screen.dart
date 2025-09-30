@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:promoter_app/core/utils/sound_manager.dart';
 import 'package:syncfusion_flutter_gauges/gauges.dart';
+
 import '../../../core/di/injection_container.dart';
 import '../cubit/salary_cubit.dart';
 import '../cubit/salary_state.dart';
@@ -21,6 +23,7 @@ class _SalaryScreenState extends State<SalaryScreen> {
       child: Scaffold(
         backgroundColor: const Color(0xFFF5F5F5),
         appBar: AppBar(
+          backgroundColor: const Color(0xFF148ccd),
           title: const Text(
             'إدارة الراتب',
             style: TextStyle(
@@ -28,7 +31,6 @@ class _SalaryScreenState extends State<SalaryScreen> {
               color: Colors.white,
             ),
           ),
-          backgroundColor: const Color(0xFF148ccd),
           elevation: 0,
           centerTitle: true,
         ),
@@ -41,7 +43,10 @@ class _SalaryScreenState extends State<SalaryScreen> {
             if (state.errorMessage != null) {
               return _ErrorWidget(
                 message: state.errorMessage!,
-                onRetry: () => context.read<SalaryCubit>().loadSalaries(),
+                onRetry: () {
+                  SoundManager().playClickSound();
+                  context.read<SalaryCubit>().loadSalaries();
+                },
               );
             }
 
@@ -49,8 +54,7 @@ class _SalaryScreenState extends State<SalaryScreen> {
               children: [
                 _MonthSelector(
                   selectedMonth: state.selectedMonth,
-                  onMonthChanged: (month) =>
-                      context.read<SalaryCubit>().changeMonth(month),
+                  onMonthChanged: (month) => context.read<SalaryCubit>().changeMonth(month),
                 ),
                 if (state.stats != null) _StatsCards(stats: state.stats!),
                 Expanded(
@@ -102,20 +106,20 @@ class _LoadingWidget extends StatelessWidget {
                 color: Color(0xFFE0E0E0),
                 thicknessUnit: GaugeSizeUnit.factor,
               ),
-              pointers: <GaugePointer>[
+              pointers: const <GaugePointer>[
                 RangePointer(
                   value: 75,
                   cornerStyle: CornerStyle.bothCurve,
                   width: 0.2,
                   sizeUnit: GaugeSizeUnit.factor,
-                  color: const Color(0xFF148ccd),
+                  color: Color(0xFF148ccd),
                   enableAnimation: true,
                   animationDuration: 1500,
                   animationType: AnimationType.ease,
                 ),
               ],
-              annotations: <GaugeAnnotation>[
-                const GaugeAnnotation(
+              annotations: const <GaugeAnnotation>[
+                GaugeAnnotation(
                   positionFactor: 0.1,
                   angle: 90,
                   widget: Text(
@@ -412,8 +416,7 @@ class _SalaryCard extends StatelessWidget {
           Row(
             children: [
               Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                 decoration: BoxDecoration(
                   color: salary.typeColor,
                   borderRadius: BorderRadius.circular(20),
@@ -579,7 +582,10 @@ class _AddSalaryDialogState extends State<_AddSalaryDialog> {
       ),
       actions: [
         TextButton(
-          onPressed: () => Navigator.of(context).pop(),
+          onPressed: () {
+            SoundManager().playClickSound();
+            Navigator.of(context).pop();
+          },
           child: const Text('إلغاء'),
         ),
         ElevatedButton(
@@ -595,6 +601,7 @@ class _AddSalaryDialogState extends State<_AddSalaryDialog> {
   }
 
   Future<void> _selectDate() async {
+    SoundManager().playClickSound();
     final date = await showDatePicker(
       context: context,
       initialDate: _selectedDate,
@@ -608,6 +615,7 @@ class _AddSalaryDialogState extends State<_AddSalaryDialog> {
 
   void _submitForm() {
     if (_formKey.currentState!.validate()) {
+      SoundManager().playClickSound();
       final request = EntryRequestModel(
         date: _selectedDate.toIso8601String().split('T')[0],
         type: _selectedType,

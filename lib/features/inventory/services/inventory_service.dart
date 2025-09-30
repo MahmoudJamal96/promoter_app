@@ -1,7 +1,7 @@
 import 'dart:math';
 
-import '../models/product_model.dart';
 import '../models/inventory_item.dart';
+import '../models/product_model.dart';
 
 // Mock data service to simulate API responses
 class InventoryService {
@@ -199,18 +199,17 @@ class InventoryService {
         // Create product
         mockProducts.add(
           Product(
-            id: productId,
-            name: productName,
-            category: category,
-            price: price,
-            quantity: quantity,
-            imageUrl: imageUrl,
-            barcode: _generateBarcode(),
-            location: _locations[_random.nextInt(_locations.length)],
-            supplier: _suppliers[_random.nextInt(_suppliers.length)],
-            lastUpdated:
-                DateTime.now().subtract(Duration(days: _random.nextInt(30))),
-          ),
+              id: productId,
+              name: productName,
+              category: category,
+              price: price,
+              quantity: quantity,
+              imageUrl: imageUrl,
+              barcode: _generateBarcode(),
+              location: _locations[_random.nextInt(_locations.length)],
+              supplier: _suppliers[_random.nextInt(_suppliers.length)],
+              lastUpdated: DateTime.now().subtract(Duration(days: _random.nextInt(30))),
+              units: []),
         );
       }
     }
@@ -219,8 +218,7 @@ class InventoryService {
   }
 
   // Get all products with pagination
-  static Future<List<Product>> getProducts(
-      {int page = 0, int pageSize = 20}) async {
+  static Future<List<Product>> getProducts({int page = 0, int pageSize = 20}) async {
     // Simulate network delay
     await Future.delayed(const Duration(milliseconds: 500));
 
@@ -354,7 +352,7 @@ class InventoryService {
   // Get inventory items for counting
   Future<List<InventoryItem>> getInventoryItems() async {
     // Simulate API delay
-    await Future.delayed(Duration(milliseconds: 800));
+    await Future.delayed(const Duration(milliseconds: 800));
 
     // Initialize inventory items if needed
     _initInventoryItems();
@@ -365,7 +363,7 @@ class InventoryService {
   // Save updated inventory counts
   static Future<bool> saveInventoryCount(List<InventoryItem> items) async {
     // Simulate API delay
-    await Future.delayed(Duration(milliseconds: 1000));
+    await Future.delayed(const Duration(milliseconds: 1000));
 
     // Update our mock items
     _mockInventoryItems = items;
@@ -542,12 +540,10 @@ class SalesService {
         items: items,
         customerName: _customerNames[_random.nextInt(_customerNames.length)],
         customerPhone: _phoneNumbers[_random.nextInt(_phoneNumbers.length)],
-        paymentMethod:
-            PaymentMethod.values[_random.nextInt(PaymentMethod.values.length)],
+        paymentMethod: PaymentMethod.values[_random.nextInt(PaymentMethod.values.length)],
         taxRate: 0.15, // 15% VAT
         discount: _random.nextInt(100) + 0.0,
-        status:
-            InvoiceStatus.values[_random.nextInt(InvoiceStatus.values.length)],
+        status: InvoiceStatus.values[_random.nextInt(InvoiceStatus.values.length)],
       ));
     }
 
@@ -560,8 +556,7 @@ class SalesService {
   static final List<SalesInvoice> _invoices = _generateMockInvoices();
 
   // Get all invoices with pagination
-  static Future<List<SalesInvoice>> getInvoices(
-      {int page = 0, int pageSize = 20}) async {
+  static Future<List<SalesInvoice>> getInvoices({int page = 0, int pageSize = 20}) async {
     // Simulate network delay
     await Future.delayed(const Duration(milliseconds: 500));
 
@@ -588,12 +583,8 @@ class SalesService {
   }
 
   // Create new invoice
-  static Future<SalesInvoice> createInvoice(
-      List<SalesItem> items,
-      String customerName,
-      String customerPhone,
-      PaymentMethod paymentMethod,
-      double discount) async {
+  static Future<SalesInvoice> createInvoice(List<SalesItem> items, String customerName,
+      String customerPhone, PaymentMethod paymentMethod, double discount) async {
     // Simulate network delay
     await Future.delayed(const Duration(milliseconds: 700));
 

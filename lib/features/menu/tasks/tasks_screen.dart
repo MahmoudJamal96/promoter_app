@@ -1,17 +1,18 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
-import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get_it/get_it.dart';
+import 'package:promoter_app/core/utils/sound_manager.dart';
 
-import 'models/task_model.dart';
 import 'cubit/task_cubit.dart';
 import 'cubit/task_state.dart';
+import 'models/task_model.dart';
 import 'widgets/task_form_dialog.dart';
 import 'widgets/task_item.dart';
 
 class TasksScreen extends StatefulWidget {
-  const TasksScreen({Key? key}) : super(key: key);
+  const TasksScreen({super.key});
 
   @override
   State<TasksScreen> createState() => _TasksScreenState();
@@ -46,15 +47,19 @@ class _TasksScreenState extends State<TasksScreen> {
       value: _taskCubit,
       child: Scaffold(
         appBar: AppBar(
-          title: Text('مهامي', style: TextStyle(fontWeight: FontWeight.bold)),
+          title: const Text('مهامي', style: TextStyle(fontWeight: FontWeight.bold)),
           centerTitle: true,
+          backgroundColor: const Color(0xFF148ccd),
           actions: [
             IconButton(
-              icon: Icon(Icons.refresh),
-              onPressed: () => _taskCubit.fetchTasks(),
+              icon: const Icon(Icons.refresh),
+              onPressed: () {
+                SoundManager().playClickSound();
+                _taskCubit.fetchTasks();
+              },
             ),
             IconButton(
-              icon: Icon(Icons.filter_list),
+              icon: const Icon(Icons.filter_list),
               onPressed: _showFilterDialog,
             ),
           ],
@@ -73,7 +78,7 @@ class _TasksScreenState extends State<TasksScreen> {
                     SizedBox(height: 16.h),
                     Expanded(
                       child: state.status == TaskStateStatus.loading
-                          ? Center(child: CircularProgressIndicator())
+                          ? const Center(child: CircularProgressIndicator())
                           : state.filteredTasks.isEmpty
                               ? _buildEmptyState()
                               : ListView.builder(
@@ -101,17 +106,20 @@ class _TasksScreenState extends State<TasksScreen> {
                         ),
                         child: Row(
                           children: [
-                            Icon(Icons.error_outline, color: Colors.red),
+                            const Icon(Icons.error_outline, color: Colors.red),
                             SizedBox(width: 8.w),
                             Expanded(
                               child: Text(
                                 state.errorMessage,
-                                style: TextStyle(color: Colors.red),
+                                style: const TextStyle(color: Colors.red),
                               ),
                             ),
                             IconButton(
                               icon: Icon(Icons.close, size: 16.sp),
-                              onPressed: () => _taskCubit.clearError(),
+                              onPressed: () {
+                                SoundManager().playClickSound();
+                                _taskCubit.clearError();
+                              },
                             ),
                           ],
                         ),
@@ -125,7 +133,7 @@ class _TasksScreenState extends State<TasksScreen> {
         floatingActionButton: FloatingActionButton(
           onPressed: _showAddTaskDialog,
           backgroundColor: Theme.of(context).primaryColor,
-          child: Icon(Icons.add, color: Colors.white),
+          child: const Icon(Icons.add, color: Colors.white),
         ),
       ),
     );
@@ -188,7 +196,7 @@ class _TasksScreenState extends State<TasksScreen> {
         mainAxisAlignment: MainAxisAlignment.spaceAround,
         children: [
           _buildCountItem(notStartedCount, 'لم تبدأ', Colors.orange),
-          _buildCountItem(inProgressCount, 'قيد التنفيذ', Colors.blue),
+          _buildCountItem(inProgressCount, 'قيد التنفيذ', const Color(0xFF148ccd)),
           _buildCountItem(completedCount, 'مكتملة', Colors.green),
         ],
       ),
@@ -263,6 +271,7 @@ class _TasksScreenState extends State<TasksScreen> {
   // TaskItem Widget is now separated into its own file
 
   void _showFilterDialog() {
+    SoundManager().playClickSound();
     showModalBottomSheet(
       context: context,
       shape: RoundedRectangleBorder(
@@ -283,17 +292,19 @@ class _TasksScreenState extends State<TasksScreen> {
               ),
               SizedBox(height: 20.h),
               ListTile(
-                leading: Icon(Icons.schedule),
-                title: Text('الموعد النهائي'),
+                leading: const Icon(Icons.schedule),
+                title: const Text('الموعد النهائي'),
                 onTap: () {
+                  SoundManager().playClickSound();
                   Navigator.pop(context);
                   // Implement deadline filtering
                 },
               ),
               ListTile(
-                leading: Icon(Icons.priority_high),
-                title: Text('الأولوية'),
+                leading: const Icon(Icons.priority_high),
+                title: const Text('الأولوية'),
                 onTap: () {
+                  SoundManager().playClickSound();
                   Navigator.pop(context);
                   // Implement priority filtering
                 },
@@ -306,11 +317,12 @@ class _TasksScreenState extends State<TasksScreen> {
   }
 
   void _showAddTaskDialog() {
+    SoundManager().playClickSound();
     showDialog(
       context: context,
       builder: (context) => BlocProvider.value(
         value: _taskCubit,
-        child: TaskFormDialog(),
+        child: const TaskFormDialog(),
       ),
     );
   }

@@ -1,17 +1,19 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:promoter_app/core/utils/sound_manager.dart';
+
+import '../../../core/constants/strings.dart';
 import '../models/product_model.dart';
 import '../services/inventory_service.dart';
-import '../../../core/constants/strings.dart';
 
 class ProductDetailScreen extends StatefulWidget {
   final Product product;
 
   const ProductDetailScreen({
-    Key? key,
+    super.key,
     required this.product,
-  }) : super(key: key);
+  });
 
   @override
   State<ProductDetailScreen> createState() => _ProductDetailScreenState();
@@ -45,6 +47,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
   }
 
   Future<void> _updateProductQuantity() async {
+    SoundManager().playClickSound();
     final newQuantity = int.tryParse(_quantityController.text);
     if (newQuantity == null) {
       _showErrorSnackBar('الرجاء إدخال رقم صحيح');
@@ -91,7 +94,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
       return Scaffold(
         appBar: AppBar(
           title: const Text('تفاصيل المنتج'),
-          backgroundColor: Colors.white,
+          backgroundColor: const Color(0xFF148ccd),
           foregroundColor: Colors.black,
           elevation: 0,
         ),
@@ -104,9 +107,10 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('تفاصيل المنتج'),
-        backgroundColor: Colors.white,
-        foregroundColor: Colors.black,
+        backgroundColor: const Color(0xFF148ccd),
+        foregroundColor: Colors.white,
         elevation: 0,
+        centerTitle: true,
       ),
       body: SingleChildScrollView(
         padding: EdgeInsets.all(16.w),
@@ -230,7 +234,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
               ),
               SizedBox(width: 8.w),
               Text(
-                '(${_product.quantity} قطعة)',
+                '( ${_product.quantity} )',
                 style: TextStyle(
                   fontSize: 14.sp,
                   color: Colors.grey[600],
@@ -419,43 +423,39 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                   _buildQuantityButton(
                     icon: Icons.add,
                     onPressed: () {
-                      final currentQuantity =
-                          int.tryParse(_quantityController.text) ?? 0;
-                      _quantityController.text =
-                          (currentQuantity + 1).toString();
+                      SoundManager().playClickSound();
+                      final currentQuantity = int.tryParse(_quantityController.text) ?? 0;
+                      _quantityController.text = (currentQuantity + 1).toString();
                     },
                   ),
                   SizedBox(height: 8.h),
                   _buildQuantityButton(
                     icon: Icons.remove,
                     onPressed: () {
-                      final currentQuantity =
-                          int.tryParse(_quantityController.text) ?? 0;
-                      _quantityController.text = (currentQuantity - 1)
-                          .clamp(0, double.infinity)
-                          .toString();
+                      SoundManager().playClickSound();
+                      final currentQuantity = int.tryParse(_quantityController.text) ?? 0;
+                      _quantityController.text =
+                          (currentQuantity - 1).clamp(0, double.infinity).toString();
                     },
                   ),
                   SizedBox(height: 8.h),
                   _buildQuantityButton(
                     icon: Icons.add,
                     onPressed: () {
-                      final currentQuantity =
-                          int.tryParse(_quantityController.text) ?? 0;
+                      SoundManager().playClickSound();
+                      final currentQuantity = int.tryParse(_quantityController.text) ?? 0;
 
-                      _quantityController.text =
-                          (currentQuantity + 10).toString();
+                      _quantityController.text = (currentQuantity + 10).toString();
                     },
                   ),
                   SizedBox(height: 8.h),
                   _buildQuantityButton(
                     icon: Icons.exposure_minus_1,
                     onPressed: () {
-                      final currentQuantity =
-                          int.tryParse(_quantityController.text) ?? 0;
-                      _quantityController.text = (currentQuantity - 10)
-                          .clamp(0, double.infinity)
-                          .toString();
+                      SoundManager().playClickSound();
+                      final currentQuantity = int.tryParse(_quantityController.text) ?? 0;
+                      _quantityController.text =
+                          (currentQuantity - 10).clamp(0, double.infinity).toString();
                     },
                   ),
                 ],
@@ -504,14 +504,16 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
       width: 40.w,
       height: 40.h,
       child: ElevatedButton(
-        onPressed: onPressed,
+        onPressed: () {
+          onPressed();
+          SoundManager().playClickSound();
+        },
         style: ElevatedButton.styleFrom(
           padding: EdgeInsets.zero,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(8.r),
           ),
-          backgroundColor:
-              Theme.of(context).colorScheme.primary.withOpacity(0.1),
+          backgroundColor: Theme.of(context).colorScheme.primary.withOpacity(0.1),
           foregroundColor: Theme.of(context).colorScheme.primary,
         ),
         child: Icon(icon, size: 18.sp),

@@ -1,3 +1,5 @@
+import 'dart:developer';
+
 import 'package:promoter_app/core/error/exceptions.dart';
 import 'package:promoter_app/core/network/api_client.dart';
 import 'package:promoter_app/features/auth/data/models/token_model.dart';
@@ -25,7 +27,7 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
       final response = await client.post(
         '/auth/login',
         data: {
-          'email': email,
+          'phone': email,
           'password': password,
         },
       );
@@ -36,14 +38,12 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
 
       // Extract user data
       Map<String, dynamic> userData;
-      if (response['data'] != null &&
-          response['data'] is Map<String, dynamic>) {
-        print("Mahmoud Sub2");
+      if (response['data'] != null && response['data'] is Map<String, dynamic>) {
         userData = response['data'];
-      } else if (response['user'] != null &&
-          response['user'] is Map<String, dynamic>) {
+        log('User data: $userData');
+      } else if (response['user'] != null && response['user'] is Map<String, dynamic>) {
         userData = response['user'];
-
+        log('User data: $userData');
       } else {
         throw ApiException(message: 'Invalid user data format in response');
       }
@@ -55,14 +55,11 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
         token = response['access_token'];
       } else if (response['token'] != null) {
         token = response['token'];
-      }
-      else if(response['data']?['token'] != null){
+      } else if (response['data']?['token'] != null) {
         token = response['data']['token'];
-      }
-      else if(response['user']?['token'] != null){
+      } else if (response['user']?['token'] != null) {
         token = response['user']['token'];
-      }
-      else {
+      } else {
         throw ApiException(message: 'No token found in response');
       }
       print("Mahmoud Sub22");

@@ -15,6 +15,6 @@
 5. Test all changes to verify proper functionality
 
 ## Usage Examples:
-- Use `${product.price.toCurrency()}` instead of `${product.price.toStringAsFixed(2)} ر.س`
+- Use `${product.price.toCurrency()}` instead of `${product.price.toStringAsFixed(2)} ج.م`
 - Use `CurrencyFormatter.format(amount)` for formatting prices
 - Use `Strings.CURRENCY` when you need the currency symbol directly

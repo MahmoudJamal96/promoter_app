@@ -1,32 +1,76 @@
 import 'dart:io';
+
 import 'package:dio/dio.dart';
+import 'package:flutter/material.dart';
 import 'package:logger/logger.dart';
 import 'package:promoter_app/core/constants/api_constants.dart';
 import 'package:promoter_app/core/error/exceptions.dart';
 import 'package:promoter_app/core/loggers/interceptors/logger_interceptor.dart';
 import 'package:promoter_app/core/loggers/logger_cubit/logger_cubit.dart';
-import 'package:promoter_app/core/utils/request_to_curl.dart';
+import 'package:promoter_app/features/auth/screens/login_screen.dart';
+import 'package:promoter_app/main.dart';
 
 class ApiClient {
   final Dio dio;
   final Logger logger;
   late LoggerCubit loggerCubit;
 
-  ApiClient({required this.dio, required this.logger}) {
+  // Add callback for handling logout
+  final VoidCallback? onUnauthorized;
+  // Add callback for clearing token
+  final VoidCallback? onClearToken;
+
+  ApiClient({
+    required this.dio,
+    required this.logger,
+    this.onUnauthorized,
+    this.onClearToken,
+  }) {
     loggerCubit = LoggerCubit(logger: logger, tag: 'API');
 
     dio.options.baseUrl = ApiConstants.BASE_URL;
-    dio.options.connectTimeout =
-        Duration(seconds: ApiConstants.CONNECTION_TIMEOUT);
-    dio.options.receiveTimeout =
-        Duration(seconds: ApiConstants.RECEIVE_TIMEOUT);
+    dio.options.connectTimeout = const Duration(seconds: ApiConstants.CONNECTION_TIMEOUT);
+    dio.options.receiveTimeout = const Duration(seconds: ApiConstants.RECEIVE_TIMEOUT);
 
     dio.interceptors.add(LoggerInterceptor(loggerCubit: loggerCubit));
   }
 
   void setToken(String token) {
-    dio.options.headers[ApiConstants.AUTH_HEADER] =
-        '${ApiConstants.BEARER_PREFIX}$token';
+    dio.options.headers[ApiConstants.AUTH_HEADER] = '${ApiConstants.BEARER_PREFIX}$token';
+  }
+
+  void clearToken() {
+    dio.options.headers.remove(ApiConstants.AUTH_HEADER);
+    // Call the clear token callback if provided
+    onClearToken?.call();
+  }
+
+  void _handle401Unauthorized() {
+    // Clear the token
+    clearToken();
+
+    // Navigate to login screen
+    navigatorKey.currentState?.pushAndRemoveUntil(
+      MaterialPageRoute(builder: (_) => const LoginScreen()),
+      (route) => false,
+    );
+// show a snackbar or dialog if needed
+    ScaffoldMessenger.of(navigatorKey.currentContext!).showSnackBar(
+      const SnackBar(
+        content: Text('يرجى تسجيل الدخول مرة أخرى'),
+        duration: Duration(seconds: 2),
+      ),
+    );
+    // Log the unauthorized access
+    loggerCubit.logError(DioException(
+      requestOptions: RequestOptions(path: ''),
+      type: DioExceptionType.badResponse,
+      response: Response(
+        requestOptions: RequestOptions(path: ''),
+        statusCode: 401,
+        statusMessage: 'User session expired - redirecting to login',
+      ),
+    ));
   }
 
   Future<dynamic> get(
@@ -164,6 +208,8 @@ class ApiClient {
         final errorData = e.response?.data;
 
         if (statusCode == 401) {
+          // Handle 401 unauthorized - clear token and navigate to login
+          _handle401Unauthorized();
           throw UnauthorizedException();
         } else if (statusCode == 404) {
           throw NotFoundException();
@@ -176,9 +222,7 @@ class ApiClient {
           // Safely extract error message from response data
           if (errorData != null && errorData is Map<String, dynamic>) {
             errorMessage = errorData['message']?.toString() ?? errorMessage;
-            errorCode = errorData['code'] is num
-                ? (errorData['code'] as num).toInt()
-                : errorCode;
+            errorCode = errorData['code'] is num ? (errorData['code'] as num).toInt() : errorCode;
           }
 
           throw ApiException(message: errorMessage, code: errorCode);

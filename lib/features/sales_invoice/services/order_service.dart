@@ -1,5 +1,5 @@
-import '../../../core/network/api_client.dart';
 import '../../../core/di/injection_container.dart';
+import '../../../core/network/api_client.dart';
 import '../../inventory/services/inventory_service.dart' as inventory;
 import '../models/sales_invoice_model.dart';
 
@@ -19,10 +19,7 @@ class OrderService {
     try {
       // Format items as required by the API
       final List<Map<String, dynamic>> apiItems = items
-          .map((item) => {
-                'product_id': int.parse(item.product.id),
-                'quantity': item.quantity
-              })
+          .map((item) => {'product_id': int.parse(item.product.id), 'quantity': item.quantity})
           .toList(); // Set the payment method string
       String paymentMethodStr;
       switch (paymentMethod) {
@@ -30,7 +27,7 @@ class OrderService {
           paymentMethodStr = 'cash';
           break;
         case inventory.PaymentMethod.credit:
-          paymentMethodStr = 'credit';
+          paymentMethodStr = 'deferred';
           break;
         case inventory.PaymentMethod.bank:
           paymentMethodStr = 'bank_transfer';
@@ -43,7 +40,7 @@ class OrderService {
       final Map<String, dynamic> requestData = {
         'client_id': clientId,
         'payment_method': paymentMethodStr,
-        'notes': 'Customer: $customerName, Phone: $customerPhone',
+        'notes': customerName,
         'items': apiItems,
       };
 
@@ -76,8 +73,7 @@ class OrderService {
       print('Client ID: $clientId');
 
       // Log cost breakdown
-      double subtotal = items.fold(
-          0, (sum, item) => sum + (item.product.price * item.quantity));
+      double subtotal = items.fold(0, (sum, item) => sum + (item.product.price * item.quantity));
       print('=== COST BREAKDOWN ===');
       print('Subtotal: $subtotal');
       print('Discount: $discount');
@@ -95,7 +91,7 @@ class OrderService {
 
       print('=== PARSED ORDER DATA ===');
       print('Order Data: $orderData');
-
+      orderData['total_quantity'] = items.fold(0, (sum, item) => sum + item.quantity);
       // Return the created invoice
       return SalesInvoice.fromJson(orderData);
     } catch (e) {

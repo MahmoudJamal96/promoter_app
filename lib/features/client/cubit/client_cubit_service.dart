@@ -1,10 +1,12 @@
 import 'dart:async';
+
 import 'package:bloc/bloc.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:promoter_app/qara_ksa.dart';
+
 import '../models/client_model.dart';
-import '../services/location_service.dart';
 import '../services/client_service.dart';
+import '../services/location_service.dart';
 import 'client_state.dart'; // Changed from part to import
 
 class ClientCubit extends Cubit<ClientState> {
@@ -24,8 +26,7 @@ class ClientCubit extends Cubit<ClientState> {
       final position = _locationService.currentPosition;
 
       // Listen for position updates
-      _positionSubscription =
-          _locationService.positionStream.listen((position) {
+      _positionSubscription = _locationService.positionStream.listen((position) {
         _updatePosition(position);
       });
 
@@ -42,9 +43,29 @@ class ClientCubit extends Cubit<ClientState> {
     try {
       final clients = await _clientService.getClients();
 
-      final sortedClients = position != null
-          ? _locationService.sortClientsByDistance(clients, position)
-          : clients;
+      final sortedClients =
+          position != null ? _locationService.sortClientsByDistance(clients, position) : clients;
+
+      emit(ClientLoaded(
+        clients: clients,
+        sortedClients: sortedClients,
+        promoterPosition: position,
+        searchQuery: '',
+        filterStatus: null,
+      ));
+    } catch (e) {
+      emit(state.copyWith(isLoading: false, error: e.toString()));
+    }
+  }
+
+  List<Client> clientsList = [];
+  Future<void> loadClients(Position? position) async {
+    try {
+      final clients = await _clientService.getClients();
+      clientsList = clients; // Store the clients list for future use
+
+      final sortedClients =
+          position != null ? _locationService.sortClientsByDistance(clients, position) : clients;
 
       emit(ClientLoaded(
         clients: clients,
@@ -101,12 +122,12 @@ class ClientCubit extends Cubit<ClientState> {
         cityId: client.cityId ?? 1,
         typeOfWorkId: client.typeOfWorkId ?? 1,
         responsibleId: client.responsibleId ?? 1,
+        shopName: client.shopName ?? '',
       );
 
       if (state is ClientLoaded) {
         final currentState = state as ClientLoaded;
-        final newClients = List<Client>.from(currentState.clients)
-          ..add(newClient);
+        final newClients = List<Client>.from(currentState.clients)..add(newClient);
 
         final sortedClients = currentState.promoterPosition != null
             ? _locationService.sortClientsByDistance(
@@ -150,16 +171,14 @@ class ClientCubit extends Cubit<ClientState> {
           clients: clients,
           sortedClients: sortedClients,
         ));
-
-        // Then update in API
-        try {
-          await _clientService.updateClientStatus(clientId, status);
-        } catch (e) {
-          // If API call fails, revert the state and show error
-          emit(currentState.copyWith(
-              error: 'فشل في تحديث حالة العميل: ${e.toString()}'));
-          _loadClients(currentState.promoterPosition); // Reload from API
-        }
+      }
+      // Then update in API
+      try {
+        await _clientService.updateClientStatus(clientId, status);
+      } catch (e) {
+        // If API call fails, revert the state and show error
+        emit(currentState.copyWith(error: 'فشل في تحديث حالة العميل: ${e.toString()}'));
+        _loadClients(currentState.promoterPosition); // Reload from API
       }
     }
   }
@@ -167,8 +186,7 @@ class ClientCubit extends Cubit<ClientState> {
   double calculateTotalBalance() {
     if (state is! ClientLoaded) return 0.0;
     final currentState = state as ClientLoaded;
-    return currentState.clients
-        .fold(0, (total, client) => total + client.balance);
+    return currentState.clients.fold(0, (total, client) => total + client.balance);
   }
 
   @override

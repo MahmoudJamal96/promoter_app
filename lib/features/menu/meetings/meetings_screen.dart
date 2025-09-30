@@ -1,11 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:promoter_app/core/utils/sound_manager.dart';
 
 class MeetingsScreen extends StatefulWidget {
   final bool pastMeetings;
 
-  const MeetingsScreen({Key? key, this.pastMeetings = false}) : super(key: key);
+  const MeetingsScreen({super.key, this.pastMeetings = false});
 
   @override
   State<MeetingsScreen> createState() => _MeetingsScreenState();
@@ -25,9 +26,9 @@ class _MeetingsScreenState extends State<MeetingsScreen> {
       id: '1',
       title: 'اجتماع مع شركة الأمل',
       location: 'مكتب المبيعات الرئيسي',
-      date: DateTime.now().add(Duration(days: 1)),
-      startTime: TimeOfDay(hour: 10, minute: 0),
-      endTime: TimeOfDay(hour: 11, minute: 30),
+      date: DateTime.now().add(const Duration(days: 1)),
+      startTime: const TimeOfDay(hour: 10, minute: 0),
+      endTime: const TimeOfDay(hour: 11, minute: 30),
       participants: ['أحمد محمد', 'سارة علي', 'محمد خالد'],
       agenda: 'مناقشة العرض الجديد وإمكانيات التعاون المستقبلي',
     ),
@@ -35,9 +36,9 @@ class _MeetingsScreenState extends State<MeetingsScreen> {
       id: '2',
       title: 'لقاء مع عميل جديد',
       location: 'كافيه ستاربكس - الفرع الرئيسي',
-      date: DateTime.now().add(Duration(days: 3)),
-      startTime: TimeOfDay(hour: 13, minute: 0),
-      endTime: TimeOfDay(hour: 14, minute: 0),
+      date: DateTime.now().add(const Duration(days: 3)),
+      startTime: const TimeOfDay(hour: 13, minute: 0),
+      endTime: const TimeOfDay(hour: 14, minute: 0),
       participants: ['سعيد عبدالله'],
       agenda: 'تقديم منتجاتنا وخدماتنا للعميل الجديد',
     ),
@@ -45,9 +46,9 @@ class _MeetingsScreenState extends State<MeetingsScreen> {
       id: '3',
       title: 'اجتماع فريق المبيعات',
       location: 'قاعة الاجتماعات الكبرى',
-      date: DateTime.now().add(Duration(days: 5)),
-      startTime: TimeOfDay(hour: 9, minute: 0),
-      endTime: TimeOfDay(hour: 12, minute: 0),
+      date: DateTime.now().add(const Duration(days: 5)),
+      startTime: const TimeOfDay(hour: 9, minute: 0),
+      endTime: const TimeOfDay(hour: 12, minute: 0),
       participants: ['فريق المبيعات بالكامل'],
       agenda: 'مراجعة أهداف الربع السنوي ومناقشة استراتيجيات جديدة',
     ),
@@ -58,9 +59,9 @@ class _MeetingsScreenState extends State<MeetingsScreen> {
       id: '4',
       title: 'زيارة عميل شركة النور',
       location: 'مقر شركة النور',
-      date: DateTime.now().subtract(Duration(days: 5)),
-      startTime: TimeOfDay(hour: 11, minute: 0),
-      endTime: TimeOfDay(hour: 12, minute: 30),
+      date: DateTime.now().subtract(const Duration(days: 5)),
+      startTime: const TimeOfDay(hour: 11, minute: 0),
+      endTime: const TimeOfDay(hour: 12, minute: 30),
       participants: ['فهد عمر', 'خالد محمد'],
       agenda: 'متابعة الطلبيات السابقة وعرض المنتجات الجديدة',
       notes: 'تم الاتفاق على طلبية جديدة بقيمة 50,000 جنيه',
@@ -70,22 +71,21 @@ class _MeetingsScreenState extends State<MeetingsScreen> {
       id: '5',
       title: 'اجتماع متابعة مع مجموعة الفيصل',
       location: 'مقر مجموعة الفيصل',
-      date: DateTime.now().subtract(Duration(days: 10)),
-      startTime: TimeOfDay(hour: 14, minute: 0),
-      endTime: TimeOfDay(hour: 15, minute: 30),
+      date: DateTime.now().subtract(const Duration(days: 10)),
+      startTime: const TimeOfDay(hour: 14, minute: 0),
+      endTime: const TimeOfDay(hour: 15, minute: 30),
       participants: ['محمد سعيد', 'عبدالله راشد'],
       agenda: 'متابعة المشاريع المشتركة وبحث فرص التعاون المستقبلي',
-      notes:
-          'العميل غير راضٍ عن التسليم المتأخر، يجب متابعة الأمر مع قسم الشحن',
+      notes: 'العميل غير راضٍ عن التسليم المتأخر، يجب متابعة الأمر مع قسم الشحن',
       outcome: MeetingOutcome.needsFollowUp,
     ),
     Meeting(
       id: '6',
       title: 'عرض تقديمي لمنتج جديد',
       location: 'قاعة المؤتمرات - فندق الريتز',
-      date: DateTime.now().subtract(Duration(days: 15)),
-      startTime: TimeOfDay(hour: 10, minute: 0),
-      endTime: TimeOfDay(hour: 13, minute: 0),
+      date: DateTime.now().subtract(const Duration(days: 15)),
+      startTime: const TimeOfDay(hour: 10, minute: 0),
+      endTime: const TimeOfDay(hour: 13, minute: 0),
       participants: ['فريق التسويق', 'فريق المبيعات', 'عدة عملاء محتملين'],
       agenda: 'تقديم المنتج الجديد وشرح مميزاته وفوائده للعملاء',
       notes: 'العرض كان ناجحًا، تم استلام عدة طلبات مبدئية',
@@ -99,9 +99,10 @@ class _MeetingsScreenState extends State<MeetingsScreen> {
       appBar: AppBar(
         title: Text(
           widget.pastMeetings ? 'المقابلات السابقة' : 'المقابلات القادمة',
-          style: TextStyle(fontWeight: FontWeight.bold),
+          style: const TextStyle(fontWeight: FontWeight.bold),
         ),
         centerTitle: true,
+        backgroundColor: const Color(0xFF148ccd),
       ),
       body: SafeArea(
         child: _meetings.isEmpty
@@ -114,9 +115,7 @@ class _MeetingsScreenState extends State<MeetingsScreen> {
                     if (!widget.pastMeetings) _buildTodayMeetings(),
                     SizedBox(height: 16.h),
                     Text(
-                      widget.pastMeetings
-                          ? 'المقابلات السابقة'
-                          : 'المقابلات القادمة',
+                      widget.pastMeetings ? 'المقابلات السابقة' : 'المقابلات القادمة',
                       style: TextStyle(
                         fontSize: 18.sp,
                         fontWeight: FontWeight.bold,
@@ -135,8 +134,8 @@ class _MeetingsScreenState extends State<MeetingsScreen> {
                                 delay: (50 * index).ms,
                               )
                               .slide(
-                                  begin: Offset(0.1, 0),
-                                  end: Offset(0, 0),
+                                  begin: const Offset(0.1, 0),
+                                  end: const Offset(0, 0),
                                   duration: 300.ms,
                                   curve: Curves.easeOut);
                         },
@@ -153,7 +152,7 @@ class _MeetingsScreenState extends State<MeetingsScreen> {
                 _showAddMeetingDialog();
               },
               backgroundColor: Theme.of(context).primaryColor,
-              child: Icon(Icons.add, color: Colors.white),
+              child: const Icon(Icons.add, color: Colors.white),
             )
           : null,
     );
@@ -171,9 +170,7 @@ class _MeetingsScreenState extends State<MeetingsScreen> {
           ),
           SizedBox(height: 16.h),
           Text(
-            widget.pastMeetings
-                ? 'لا توجد مقابلات سابقة'
-                : 'لا توجد مقابلات قادمة',
+            widget.pastMeetings ? 'لا توجد مقابلات سابقة' : 'لا توجد مقابلات قادمة',
             style: TextStyle(
               fontSize: 18.sp,
               fontWeight: FontWeight.bold,
@@ -223,7 +220,7 @@ class _MeetingsScreenState extends State<MeetingsScreen> {
         SizedBox(height: 16.h),
         ...todayMeetings.map((meeting) => _buildTodayMeetingCard(meeting)),
         SizedBox(height: 16.h),
-        Divider(),
+        const Divider(),
       ],
     );
   }
@@ -282,7 +279,7 @@ class _MeetingsScreenState extends State<MeetingsScreen> {
                 // View meeting details
                 _showMeetingDetails(meeting);
               },
-              child: Text('عرض'),
+              child: const Text('عرض'),
             ),
           ],
         ),
@@ -314,8 +311,7 @@ class _MeetingsScreenState extends State<MeetingsScreen> {
                     ),
                   ),
                 ),
-                if (isPast && meeting.outcome != null)
-                  _buildOutcomeTag(meeting.outcome!),
+                if (isPast && meeting.outcome != null) _buildOutcomeTag(meeting.outcome!),
               ],
             ),
             SizedBox(height: 16.h),
@@ -390,12 +386,13 @@ class _MeetingsScreenState extends State<MeetingsScreen> {
                 if (!isPast)
                   OutlinedButton(
                     onPressed: () {
+                      SoundManager().playClickSound();
                       // Cancel meeting functionality
                     },
                     style: OutlinedButton.styleFrom(
                       foregroundColor: Colors.red,
                     ),
-                    child: Text('إلغاء'),
+                    child: const Text('إلغاء'),
                   ),
                 SizedBox(width: 8.w),
                 ElevatedButton(
@@ -458,6 +455,7 @@ class _MeetingsScreenState extends State<MeetingsScreen> {
   }
 
   void _showMeetingDetails(Meeting meeting) {
+    SoundManager().playClickSound();
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -499,8 +497,7 @@ class _MeetingsScreenState extends State<MeetingsScreen> {
                     _buildDetailItem('الوقت',
                         '${_formatTime(meeting.startTime)} - ${_formatTime(meeting.endTime)}'),
                     _buildDetailItem('المكان', meeting.location),
-                    _buildDetailItem(
-                        'المشاركون', meeting.participants.join('، ')),
+                    _buildDetailItem('المشاركون', meeting.participants.join('، ')),
                     _buildDetailItem('جدول الأعمال', meeting.agenda),
                     if (widget.pastMeetings && meeting.notes != null)
                       _buildDetailItem('ملاحظات', meeting.notes!),
@@ -521,6 +518,7 @@ class _MeetingsScreenState extends State<MeetingsScreen> {
                 width: double.infinity,
                 child: ElevatedButton(
                   onPressed: () {
+                    SoundManager().playClickSound();
                     Navigator.pop(context);
                   },
                   style: ElevatedButton.styleFrom(
@@ -528,7 +526,7 @@ class _MeetingsScreenState extends State<MeetingsScreen> {
                     foregroundColor: Colors.white,
                     padding: EdgeInsets.symmetric(vertical: 12.h),
                   ),
-                  child: Text('إغلاق'),
+                  child: const Text('إغلاق'),
                 ),
               ),
               if (!widget.pastMeetings) ...[
@@ -537,12 +535,13 @@ class _MeetingsScreenState extends State<MeetingsScreen> {
                   width: double.infinity,
                   child: OutlinedButton(
                     onPressed: () {
+                      SoundManager().playClickSound();
                       // Edit meeting functionality
                     },
                     style: OutlinedButton.styleFrom(
                       padding: EdgeInsets.symmetric(vertical: 12.h),
                     ),
-                    child: Text('تعديل المقابلة'),
+                    child: const Text('تعديل المقابلة'),
                   ),
                 ),
               ],
@@ -575,7 +574,7 @@ class _MeetingsScreenState extends State<MeetingsScreen> {
             ),
           ),
           SizedBox(height: 8.h),
-          Divider(),
+          const Divider(),
         ],
       ),
     );
@@ -585,12 +584,15 @@ class _MeetingsScreenState extends State<MeetingsScreen> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text('إضافة مقابلة جديدة'),
-        content: Text('سيتم إضافة ميزة إنشاء المقابلات قريباً'),
+        title: const Text('إضافة مقابلة جديدة'),
+        content: const Text('سيتم إضافة ميزة إنشاء المقابلات قريباً'),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: Text('حسناً'),
+            onPressed: () {
+              SoundManager().playClickSound();
+              Navigator.pop(context);
+            },
+            child: const Text('حسناً'),
           ),
         ],
       ),

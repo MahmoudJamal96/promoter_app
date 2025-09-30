@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:promoter_app/core/utils/sound_manager.dart';
+
 import '../models/task_model.dart';
 import '../utils/task_colors.dart';
 
@@ -9,11 +11,11 @@ class TaskItem extends StatelessWidget {
   final Function(String) onDelete;
 
   const TaskItem({
-    Key? key,
+    super.key,
     required this.task,
     required this.onEdit,
     required this.onDelete,
-  }) : super(key: key);
+  });
   @override
   Widget build(BuildContext context) {
     // Use the extension methods to get colors and icons
@@ -29,7 +31,7 @@ class TaskItem extends StatelessWidget {
         color: Colors.red,
         alignment: Alignment.centerRight,
         padding: EdgeInsets.only(right: 20.w),
-        child: Icon(Icons.delete, color: Colors.white),
+        child: const Icon(Icons.delete, color: Colors.white),
       ),
       direction: DismissDirection.endToStart,
       confirmDismiss: (direction) async {
@@ -37,16 +39,22 @@ class TaskItem extends StatelessWidget {
           context: context,
           builder: (BuildContext context) {
             return AlertDialog(
-              title: Text('حذف المهمة'),
-              content: Text('هل أنت متأكد من حذف هذه المهمة؟'),
+              title: const Text('حذف المهمة'),
+              content: const Text('هل أنت متأكد من حذف هذه المهمة؟'),
               actions: <Widget>[
                 TextButton(
-                  onPressed: () => Navigator.of(context).pop(false),
-                  child: Text('إلغاء'),
+                  onPressed: () {
+                    SoundManager().playClickSound();
+                    Navigator.of(context).pop(false);
+                  },
+                  child: const Text('إلغاء'),
                 ),
                 TextButton(
-                  onPressed: () => Navigator.of(context).pop(true),
-                  child: Text('حذف', style: TextStyle(color: Colors.red)),
+                  onPressed: () {
+                    SoundManager().playClickSound();
+                    Navigator.of(context).pop(true);
+                  },
+                  child: const Text('حذف', style: TextStyle(color: Colors.red)),
                 ),
               ],
             );
@@ -63,7 +71,10 @@ class TaskItem extends StatelessWidget {
         ),
         elevation: 2,
         child: InkWell(
-          onTap: () => onEdit(task),
+          onTap: () {
+            SoundManager().playClickSound();
+            onEdit(task);
+          },
           borderRadius: BorderRadius.circular(12.r),
           child: Padding(
             padding: EdgeInsets.all(16.w),
@@ -110,8 +121,7 @@ class TaskItem extends StatelessWidget {
                   children: [
                     Row(
                       children: [
-                        Icon(Icons.calendar_today,
-                            size: 14.sp, color: Colors.grey),
+                        Icon(Icons.calendar_today, size: 14.sp, color: Colors.grey),
                         SizedBox(width: 4.w),
                         Text(
                           '${task.deadline.day}/${task.deadline.month}/${task.deadline.year}',
@@ -124,8 +134,7 @@ class TaskItem extends StatelessWidget {
                     ),
                     daysLeft < 0
                         ? Container(
-                            padding: EdgeInsets.symmetric(
-                                horizontal: 8.w, vertical: 4.h),
+                            padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 4.h),
                             decoration: BoxDecoration(
                               color: Colors.red.withOpacity(0.1),
                               borderRadius: BorderRadius.circular(4.r),
@@ -141,8 +150,7 @@ class TaskItem extends StatelessWidget {
                           )
                         : daysLeft == 0
                             ? Container(
-                                padding: EdgeInsets.symmetric(
-                                    horizontal: 8.w, vertical: 4.h),
+                                padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 4.h),
                                 decoration: BoxDecoration(
                                   color: Colors.orange.withOpacity(0.1),
                                   borderRadius: BorderRadius.circular(4.r),
@@ -157,8 +165,7 @@ class TaskItem extends StatelessWidget {
                                 ),
                               )
                             : Container(
-                                padding: EdgeInsets.symmetric(
-                                    horizontal: 8.w, vertical: 4.h),
+                                padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 4.h),
                                 decoration: BoxDecoration(
                                   color: Colors.grey.withOpacity(0.1),
                                   borderRadius: BorderRadius.circular(4.r),

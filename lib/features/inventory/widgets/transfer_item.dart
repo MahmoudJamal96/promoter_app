@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:promoter_app/core/utils/sound_manager.dart';
 
 class TransferItem extends StatelessWidget {
   final String itemName;
@@ -11,19 +12,22 @@ class TransferItem extends StatelessWidget {
   final VoidCallback? onTap;
 
   const TransferItem({
-    Key? key,
+    super.key,
     required this.itemName,
     required this.fromWarehouse,
     required this.toWarehouse,
     required this.date,
     required this.quantity,
     this.onTap,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
-      onTap: onTap,
+      onTap: () {
+        onTap!();
+        SoundManager().playClickSound();
+      },
       child: Container(
         margin: EdgeInsets.symmetric(vertical: 8.h),
         decoration: BoxDecoration(
@@ -82,8 +86,7 @@ class TransferItem extends StatelessWidget {
                         ),
                         SizedBox(height: 4.h),
                         Container(
-                          padding: EdgeInsets.symmetric(
-                              horizontal: 12.w, vertical: 6.h),
+                          padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 6.h),
                           decoration: BoxDecoration(
                             color: Colors.blue.shade50,
                             borderRadius: BorderRadius.circular(8.r),
@@ -91,7 +94,7 @@ class TransferItem extends StatelessWidget {
                           child: Text(
                             fromWarehouse,
                             style: TextStyle(
-                              color: Colors.blue.shade700,
+                              color: const Color(0xFF148ccd),
                               fontWeight: FontWeight.w500,
                               fontSize: 14.sp,
                             ),
@@ -118,8 +121,7 @@ class TransferItem extends StatelessWidget {
                         ),
                         SizedBox(height: 4.h),
                         Container(
-                          padding: EdgeInsets.symmetric(
-                              horizontal: 12.w, vertical: 6.h),
+                          padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 6.h),
                           decoration: BoxDecoration(
                             color: Colors.green.shade50,
                             borderRadius: BorderRadius.circular(8.r),
@@ -143,8 +145,7 @@ class TransferItem extends StatelessWidget {
                 mainAxisAlignment: MainAxisAlignment.end,
                 children: [
                   Container(
-                    padding:
-                        EdgeInsets.symmetric(horizontal: 12.w, vertical: 6.h),
+                    padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 6.h),
                     decoration: BoxDecoration(
                       color: Theme.of(context).primaryColor.withOpacity(0.1),
                       borderRadius: BorderRadius.circular(20.r),

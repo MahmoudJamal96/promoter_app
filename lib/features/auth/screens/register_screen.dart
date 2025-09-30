@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:promoter_app/features/auth/screens/login_screen.dart';
+import 'package:promoter_app/core/utils/sound_manager.dart';
 
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
@@ -28,6 +28,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
   }
 
   void _handleRegister() async {
+    SoundManager().playClickSound();
     if (_formKey.currentState?.validate() ?? false) {
       setState(() {
         _isLoading = true;
@@ -62,7 +63,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        backgroundColor: Colors.transparent,
+        backgroundColor: const Color(0xFF148ccd),
         elevation: 0,
         iconTheme: IconThemeData(color: Theme.of(context).primaryColor),
       ),
@@ -147,8 +148,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                         return 'الرجاء إدخال البريد الإلكتروني';
                       }
                       // Simple email validation
-                      final emailRegex =
-                          RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$');
+                      final emailRegex = RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$');
                       if (!emailRegex.hasMatch(value)) {
                         return 'الرجاء إدخال بريد إلكتروني صحيح';
                       }
@@ -219,7 +219,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       ),
                     ),
                     child: _isLoading
-                        ? CircularProgressIndicator(color: Colors.white)
+                        ? const CircularProgressIndicator(color: Colors.white)
                         : Text(
                             'إنشاء حساب',
                             style: TextStyle(
@@ -245,6 +245,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       ),
                       TextButton(
                         onPressed: () {
+                          SoundManager().playClickSound();
                           // Navigate back to login
                           Navigator.of(context).pop();
                         },

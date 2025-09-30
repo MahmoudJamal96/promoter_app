@@ -2,15 +2,15 @@ import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:promoter_app/core/constants/assets.dart';
+import 'package:promoter_app/core/utils/sound_manager.dart';
 import 'package:promoter_app/core/view/widgets/image_loader.dart';
 import 'package:promoter_app/features/inventory/widgets/product_quantity_item.dart';
 
 class WarehouseQuantitiesScreen extends StatefulWidget {
-  const WarehouseQuantitiesScreen({Key? key}) : super(key: key);
+  const WarehouseQuantitiesScreen({super.key});
 
   @override
-  State<WarehouseQuantitiesScreen> createState() =>
-      _WarehouseQuantitiesScreenState();
+  State<WarehouseQuantitiesScreen> createState() => _WarehouseQuantitiesScreenState();
 }
 
 class _WarehouseQuantitiesScreenState extends State<WarehouseQuantitiesScreen> {
@@ -95,10 +95,10 @@ class _WarehouseQuantitiesScreenState extends State<WarehouseQuantitiesScreen> {
           style: TextStyle(fontSize: 18.sp),
         ),
         centerTitle: true,
-        backgroundColor: Theme.of(context).primaryColor,
+        backgroundColor: const Color(0xFF148ccd),
         actions: [
           IconButton(
-            icon: Icon(Icons.filter_list),
+            icon: const Icon(Icons.filter_list),
             onPressed: _showFilterBottomSheet,
           ),
         ],
@@ -111,11 +111,12 @@ class _WarehouseQuantitiesScreenState extends State<WarehouseQuantitiesScreen> {
               controller: _searchController,
               decoration: InputDecoration(
                 hintText: 'بحث عن منتج...',
-                prefixIcon: Icon(Icons.search, color: Colors.grey),
+                prefixIcon: const Icon(Icons.search, color: Colors.grey),
                 suffixIcon: _searchQuery.isNotEmpty
                     ? IconButton(
-                        icon: Icon(Icons.clear, color: Colors.grey),
+                        icon: const Icon(Icons.clear, color: Colors.grey),
                         onPressed: () {
+                          SoundManager().playClickSound();
                           setState(() {
                             _searchController.clear();
                             _searchQuery = '';
@@ -135,8 +136,7 @@ class _WarehouseQuantitiesScreenState extends State<WarehouseQuantitiesScreen> {
                   borderRadius: BorderRadius.circular(15.r),
                   borderSide: BorderSide(color: Theme.of(context).primaryColor),
                 ),
-                contentPadding:
-                    EdgeInsets.symmetric(vertical: 12.h, horizontal: 16.w),
+                contentPadding: EdgeInsets.symmetric(vertical: 12.h, horizontal: 16.w),
                 filled: true,
                 fillColor: Colors.grey.shade100,
               ),
@@ -154,8 +154,7 @@ class _WarehouseQuantitiesScreenState extends State<WarehouseQuantitiesScreen> {
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   Container(
-                    padding:
-                        EdgeInsets.symmetric(horizontal: 16.w, vertical: 8.h),
+                    padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 8.h),
                     decoration: BoxDecoration(
                       color: Theme.of(context).primaryColor.withOpacity(0.1),
                       borderRadius: BorderRadius.circular(20.r),
@@ -173,6 +172,7 @@ class _WarehouseQuantitiesScreenState extends State<WarehouseQuantitiesScreen> {
                         SizedBox(width: 8.w),
                         GestureDetector(
                           onTap: () {
+                            SoundManager().playClickSound();
                             setState(() {
                               _selectedWarehouse = null;
                             });
@@ -197,14 +197,12 @@ class _WarehouseQuantitiesScreenState extends State<WarehouseQuantitiesScreen> {
                     itemCount: filteredProducts.length,
                     itemBuilder: (context, index) {
                       final product = filteredProducts[index];
-                      Map<String, int> quantities =
-                          Map<String, int>.from(product['quantities']);
+                      Map<String, int> quantities = Map<String, int>.from(product['quantities']);
 
                       // Apply warehouse filter if selected
                       if (_selectedWarehouse != null) {
                         quantities = {
-                          _selectedWarehouse!:
-                              quantities[_selectedWarehouse] ?? 0,
+                          _selectedWarehouse!: quantities[_selectedWarehouse] ?? 0,
                         };
                       }
 
@@ -222,8 +220,8 @@ class _WarehouseQuantitiesScreenState extends State<WarehouseQuantitiesScreen> {
       floatingActionButton: FloatingActionButton.extended(
         onPressed: _exportData,
         backgroundColor: Theme.of(context).primaryColor,
-        icon: Icon(Icons.summarize),
-        label: Text('تصدير التقرير'),
+        icon: const Icon(Icons.summarize),
+        label: const Text('تصدير التقرير'),
       ),
     ).animate().fadeIn(duration: 500.ms);
   }
@@ -264,6 +262,7 @@ class _WarehouseQuantitiesScreenState extends State<WarehouseQuantitiesScreen> {
   }
 
   void _showFilterBottomSheet() {
+    SoundManager().playClickSound();
     showModalBottomSheet(
       context: context,
       shape: RoundedRectangleBorder(
@@ -296,20 +295,18 @@ class _WarehouseQuantitiesScreenState extends State<WarehouseQuantitiesScreen> {
               ),
               SizedBox(height: 16.h),
               ListTile(
-                title: Text('الكل'),
+                title: const Text('الكل'),
                 leading: Icon(
                   Icons.all_inbox,
-                  color: _selectedWarehouse == null
-                      ? Theme.of(context).primaryColor
-                      : Colors.grey,
+                  color: _selectedWarehouse == null ? Theme.of(context).primaryColor : Colors.grey,
                 ),
                 selected: _selectedWarehouse == null,
-                selectedTileColor:
-                    Theme.of(context).primaryColor.withOpacity(0.1),
+                selectedTileColor: Theme.of(context).primaryColor.withOpacity(0.1),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(10.r),
                 ),
                 onTap: () {
+                  SoundManager().playClickSound();
                   setState(() {
                     _selectedWarehouse = null;
                   });
@@ -321,24 +318,23 @@ class _WarehouseQuantitiesScreenState extends State<WarehouseQuantitiesScreen> {
                   title: Text(name),
                   leading: Icon(
                     Icons.warehouse,
-                    color: _selectedWarehouse == name
-                        ? Theme.of(context).primaryColor
-                        : Colors.grey,
+                    color:
+                        _selectedWarehouse == name ? Theme.of(context).primaryColor : Colors.grey,
                   ),
                   selected: _selectedWarehouse == name,
-                  selectedTileColor:
-                      Theme.of(context).primaryColor.withOpacity(0.1),
+                  selectedTileColor: Theme.of(context).primaryColor.withOpacity(0.1),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(10.r),
                   ),
                   onTap: () {
+                    SoundManager().playClickSound();
                     setState(() {
                       _selectedWarehouse = name;
                     });
                     Navigator.pop(context);
                   },
                 );
-              }).toList(),
+              }),
             ],
           ),
         );
@@ -357,9 +353,9 @@ class _WarehouseQuantitiesScreenState extends State<WarehouseQuantitiesScreen> {
   }
 
   void _showProductDetails(Map<String, dynamic> product) {
+    SoundManager().playClickSound();
     final quantities = product['quantities'] as Map<String, dynamic>;
-    final totalQuantity =
-        quantities.values.fold<int>(0, (prev, qty) => prev + (qty as int));
+    final totalQuantity = quantities.values.fold<int>(0, (prev, qty) => prev + (qty as int));
 
     showModalBottomSheet(
       context: context,
@@ -421,8 +417,7 @@ class _WarehouseQuantitiesScreenState extends State<WarehouseQuantitiesScreen> {
                     ),
                     SizedBox(height: 8.h),
                     Container(
-                      padding:
-                          EdgeInsets.symmetric(horizontal: 12.w, vertical: 6.h),
+                      padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 6.h),
                       decoration: BoxDecoration(
                         color: Theme.of(context).primaryColor.withOpacity(0.1),
                         borderRadius: BorderRadius.circular(20.r),
@@ -468,17 +463,13 @@ class _WarehouseQuantitiesScreenState extends State<WarehouseQuantitiesScreen> {
                             width: 40.w,
                             height: 40.h,
                             decoration: BoxDecoration(
-                              color: quantity > 0
-                                  ? Colors.green.shade50
-                                  : Colors.red.shade50,
+                              color: quantity > 0 ? Colors.green.shade50 : Colors.red.shade50,
                               borderRadius: BorderRadius.circular(8.r),
                             ),
                             child: Center(
                               child: Icon(
                                 Icons.warehouse,
-                                color: quantity > 0
-                                    ? Colors.green.shade700
-                                    : Colors.red.shade700,
+                                color: quantity > 0 ? Colors.green.shade700 : Colors.red.shade700,
                                 size: 20.sp,
                               ),
                             ),
@@ -504,17 +495,13 @@ class _WarehouseQuantitiesScreenState extends State<WarehouseQuantitiesScreen> {
                               vertical: 6.h,
                             ),
                             decoration: BoxDecoration(
-                              color: quantity > 0
-                                  ? Colors.green.shade50
-                                  : Colors.red.shade50,
+                              color: quantity > 0 ? Colors.green.shade50 : Colors.red.shade50,
                               borderRadius: BorderRadius.circular(20.r),
                             ),
                             child: Text(
                               '$quantity قطعة',
                               style: TextStyle(
-                                color: quantity > 0
-                                    ? Colors.green.shade700
-                                    : Colors.red.shade700,
+                                color: quantity > 0 ? Colors.green.shade700 : Colors.red.shade700,
                                 fontWeight: FontWeight.bold,
                               ),
                             ),
@@ -532,8 +519,8 @@ class _WarehouseQuantitiesScreenState extends State<WarehouseQuantitiesScreen> {
                   Expanded(
                     child: OutlinedButton.icon(
                       onPressed: () => _transferProduct(product),
-                      icon: Icon(Icons.swap_horiz),
-                      label: Text('تحويل'),
+                      icon: const Icon(Icons.swap_horiz),
+                      label: const Text('تحويل'),
                       style: OutlinedButton.styleFrom(
                         padding: EdgeInsets.symmetric(vertical: 12.h),
                         side: BorderSide(color: Theme.of(context).primaryColor),
@@ -544,10 +531,11 @@ class _WarehouseQuantitiesScreenState extends State<WarehouseQuantitiesScreen> {
                   Expanded(
                     child: ElevatedButton.icon(
                       onPressed: () {
+                        SoundManager().playClickSound();
                         Navigator.pop(context);
                       },
-                      icon: Icon(Icons.check),
-                      label: Text('موافق'),
+                      icon: const Icon(Icons.check),
+                      label: const Text('موافق'),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Theme.of(context).primaryColor,
                         padding: EdgeInsets.symmetric(vertical: 12.h),
@@ -564,15 +552,17 @@ class _WarehouseQuantitiesScreenState extends State<WarehouseQuantitiesScreen> {
   }
 
   void _transferProduct(Map<String, dynamic> product) {
+    SoundManager().playClickSound();
     Navigator.pop(context);
     Navigator.pushNamed(context, '/warehouse-transfer');
   }
 
   void _exportData() {
+    SoundManager().playClickSound();
     // Implement export functionality
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text('جاري تصدير التقرير...'),
+        content: const Text('جاري تصدير التقرير...'),
         backgroundColor: Theme.of(context).primaryColor,
       ),
     );

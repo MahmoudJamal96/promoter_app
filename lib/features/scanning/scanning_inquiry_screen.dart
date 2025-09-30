@@ -15,7 +15,8 @@ class _ScanningInquiryScreenState extends State<ScanningInquiryScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text("الاستعلام عن منتج"),
+        backgroundColor: const Color(0xFF148ccd),
+        title: const Text("الاستعلام عن منتج"),
       ),
       body: Scanner(
         scanResult: (barcode) {

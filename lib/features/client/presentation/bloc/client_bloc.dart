@@ -1,4 +1,5 @@
 import 'dart:async';
+
 import 'package:equatable/equatable.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:geolocator/geolocator.dart';
@@ -22,7 +23,7 @@ class ClientBloc extends Bloc<ClientEvent, ClientState> {
     required this.getClientsUsecase,
     this.updateClientStatusUsecase,
   }) : super(ClientInitial()) {
-    on<LoadClientsEvent>(_onLoadClients);
+    on<LoadClientsEvent>(onLoadClients);
     on<SearchClientsEvent>(_onSearchClients);
     on<FilterClientsByStatusEvent>(_onFilterClients);
     on<UpdateClientStatusEvent>(_onUpdateClientStatus);
@@ -49,7 +50,8 @@ class ClientBloc extends Bloc<ClientEvent, ClientState> {
     }
   }
 
-  Future<void> _onLoadClients(
+  List<Client> clientsList = [];
+  Future<void> onLoadClients(
     LoadClientsEvent event,
     Emitter<ClientState> emit,
   ) async {
@@ -62,6 +64,7 @@ class ClientBloc extends Bloc<ClientEvent, ClientState> {
       (clients) {
         // Sort clients by distance if location is available
         final sortedClients = _sortByDistance(clients);
+        clientsList = sortedClients; // Store the clients list for future use
         emit(ClientLoaded(
           clients: clients,
           filteredClients: sortedClients,
@@ -135,9 +138,8 @@ class ClientBloc extends Bloc<ClientEvent, ClientState> {
 
       // Apply status filter
       if (event.status != null) {
-        filteredClients = filteredClients
-            .where((client) => client.visitStatus == event.status)
-            .toList();
+        filteredClients =
+            filteredClients.where((client) => client.visitStatus == event.status).toList();
       }
 
       // Sort by distance
@@ -261,8 +263,7 @@ class ClientBloc extends Bloc<ClientEvent, ClientState> {
 
     // Apply status filter
     if (filterStatus != null) {
-      result =
-          result.where((client) => client.visitStatus == filterStatus).toList();
+      result = result.where((client) => client.visitStatus == filterStatus).toList();
     }
 
     return result;

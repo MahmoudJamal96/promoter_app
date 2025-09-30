@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+
 import '../models/task_model.dart';
 
 /// Extensions to provide color schemes for task priorities and statuses
@@ -32,7 +33,7 @@ extension TaskStatusExtension on TaskStatus {
       case TaskStatus.completed:
         return Colors.green.shade700;
       case TaskStatus.inProgress:
-        return Colors.blue.shade700;
+        return const Color(0xFF148ccd);
       case TaskStatus.notStarted:
         return Colors.grey.shade700;
       case TaskStatus.all:

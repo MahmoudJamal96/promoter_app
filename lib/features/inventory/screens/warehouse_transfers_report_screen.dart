@@ -2,19 +2,18 @@ import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:promoter_app/core/constants/assets.dart';
+import 'package:promoter_app/core/utils/sound_manager.dart';
 import 'package:promoter_app/core/view/widgets/image_loader.dart';
 import 'package:promoter_app/features/inventory/widgets/transfer_item.dart';
 
 class WarehouseTransfersReportScreen extends StatefulWidget {
-  const WarehouseTransfersReportScreen({Key? key}) : super(key: key);
+  const WarehouseTransfersReportScreen({super.key});
 
   @override
-  State<WarehouseTransfersReportScreen> createState() =>
-      _WarehouseTransfersReportScreenState();
+  State<WarehouseTransfersReportScreen> createState() => _WarehouseTransfersReportScreenState();
 }
 
-class _WarehouseTransfersReportScreenState
-    extends State<WarehouseTransfersReportScreen> {
+class _WarehouseTransfersReportScreenState extends State<WarehouseTransfersReportScreen> {
   // Mock data for transfers
   final List<Map<String, dynamic>> transfers = [
     {
@@ -119,7 +118,7 @@ class _WarehouseTransfersReportScreenState
           style: TextStyle(fontSize: 18.sp),
         ),
         centerTitle: true,
-        backgroundColor: Theme.of(context).primaryColor,
+        backgroundColor: const Color(0xFF148ccd),
       ),
       body: Column(
         children: [
@@ -131,11 +130,12 @@ class _WarehouseTransfersReportScreenState
                   controller: _searchController,
                   decoration: InputDecoration(
                     hintText: 'بحث في التحويلات...',
-                    prefixIcon: Icon(Icons.search, color: Colors.grey),
+                    prefixIcon: const Icon(Icons.search, color: Colors.grey),
                     suffixIcon: _searchQuery.isNotEmpty
                         ? IconButton(
-                            icon: Icon(Icons.clear, color: Colors.grey),
+                            icon: const Icon(Icons.clear, color: Colors.grey),
                             onPressed: () {
+                              SoundManager().playClickSound();
                               setState(() {
                                 _searchController.clear();
                                 _searchQuery = '';
@@ -153,11 +153,9 @@ class _WarehouseTransfersReportScreenState
                     ),
                     focusedBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(15.r),
-                      borderSide:
-                          BorderSide(color: Theme.of(context).primaryColor),
+                      borderSide: BorderSide(color: Theme.of(context).primaryColor),
                     ),
-                    contentPadding:
-                        EdgeInsets.symmetric(vertical: 12.h, horizontal: 16.w),
+                    contentPadding: EdgeInsets.symmetric(vertical: 12.h, horizontal: 16.w),
                     filled: true,
                     fillColor: Colors.grey.shade100,
                   ),
@@ -210,12 +208,13 @@ class _WarehouseTransfersReportScreenState
       ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () {
+          SoundManager().playClickSound();
           // Navigate to create new transfer
           Navigator.pushNamed(context, '/warehouse-transfer');
         },
         backgroundColor: Theme.of(context).primaryColor,
-        icon: Icon(Icons.add),
-        label: Text('تحويل جديد'),
+        icon: const Icon(Icons.add),
+        label: const Text('تحويل جديد'),
       ),
     ).animate().fadeIn(duration: 500.ms);
   }
@@ -289,6 +288,7 @@ class _WarehouseTransfersReportScreenState
   }
 
   void _showTransferDetails(Map<String, dynamic> transfer) {
+    SoundManager().playClickSound();
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -336,13 +336,14 @@ class _WarehouseTransfersReportScreenState
                   Expanded(
                     child: OutlinedButton.icon(
                       onPressed: () {
+                        SoundManager().playClickSound();
                         // Print or share transfer details
                         ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(content: Text('طباعة تفاصيل التحويل')),
+                          const SnackBar(content: Text('طباعة تفاصيل التحويل')),
                         );
                       },
-                      icon: Icon(Icons.print),
-                      label: Text('طباعة'),
+                      icon: const Icon(Icons.print),
+                      label: const Text('طباعة'),
                       style: OutlinedButton.styleFrom(
                         padding: EdgeInsets.symmetric(vertical: 12.h),
                         side: BorderSide(color: Theme.of(context).primaryColor),
@@ -353,10 +354,11 @@ class _WarehouseTransfersReportScreenState
                   Expanded(
                     child: ElevatedButton.icon(
                       onPressed: () {
+                        SoundManager().playClickSound();
                         Navigator.pop(context);
                       },
-                      icon: Icon(Icons.check),
-                      label: Text('موافق'),
+                      icon: const Icon(Icons.check),
+                      label: const Text('موافق'),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Theme.of(context).primaryColor,
                         padding: EdgeInsets.symmetric(vertical: 12.h),

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:promoter_app/core/utils/sound_manager.dart';
 
 class WarehouseCard extends StatelessWidget {
   final String name;
@@ -9,17 +10,20 @@ class WarehouseCard extends StatelessWidget {
   final VoidCallback? onTap;
 
   const WarehouseCard({
-    Key? key,
+    super.key,
     required this.name,
     required this.code,
     required this.itemsCount,
     this.onTap,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
-      onTap: onTap,
+      onTap: () {
+        onTap!();
+        SoundManager().playClickSound();
+      },
       child: Container(
         margin: EdgeInsets.symmetric(vertical: 8.h),
         decoration: BoxDecoration(

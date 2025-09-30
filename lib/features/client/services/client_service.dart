@@ -1,7 +1,7 @@
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
-import '../../../core/constants/api_constants.dart';
-import '../../../core/network/api_client.dart';
+
 import '../../../core/di/injection_container.dart';
+import '../../../core/network/api_client.dart';
 import '../models/client_model.dart';
 import '../models/location_models.dart';
 
@@ -27,12 +27,11 @@ class ClientService {
 
       if (response != null && response['data'] != null) {
         // Handle potential pagination format
-        final statesData = response['data'] is List
-            ? response['data']
-            : response['data']['data'] ?? [];
+        final statesData =
+            response['data'] is List ? response['data'] : response['data']['data'] ?? [];
 
-        return List<State>.from(statesData
-            .map((state) => State(id: state['id'], name: state['name'])));
+        return List<State>.from(
+            statesData.map((state) => State(id: state['id'], name: state['name'])));
       }
 
       // Fall back to hardcoded data if API fails
@@ -55,12 +54,11 @@ class ClientService {
       final response = await _apiClient.get('/get-cities?state_id=$stateId');
 
       if (response != null && response['data'] != null) {
-        final citiesData = response['data'] is List
-            ? response['data']
-            : response['data']['data'] ?? [];
+        final citiesData =
+            response['data'] is List ? response['data'] : response['data']['data'] ?? [];
 
-        return List<City>.from(citiesData.map((city) =>
-            City(id: city['id'], name: city['name'], stateId: stateId)));
+        return List<City>.from(
+            citiesData.map((city) => City(id: city['id'], name: city['name'], stateId: stateId)));
       }
 
       // Fall back to hardcoded data if API fails
@@ -87,12 +85,11 @@ class ClientService {
       final response = await _apiClient.get('/get-type-of-work');
 
       if (response != null && response['data'] != null) {
-        final typesData = response['data'] is List
-            ? response['data']
-            : response['data']['data'] ?? [];
+        final typesData =
+            response['data'] is List ? response['data'] : response['data']['data'] ?? [];
 
-        return List<WorkType>.from(typesData
-            .map((type) => WorkType(id: type['id'], name: type['name'])));
+        return List<WorkType>.from(
+            typesData.map((type) => WorkType(id: type['id'], name: type['name'])));
       }
 
       // Fall back to hardcoded data if API fails
@@ -109,12 +106,11 @@ class ClientService {
       final response = await _apiClient.get('/get-responsible');
 
       if (response != null && response['data'] != null) {
-        final responsiblesData = response['data'] is List
-            ? response['data']
-            : response['data']['data'] ?? [];
+        final responsiblesData =
+            response['data'] is List ? response['data'] : response['data']['data'] ?? [];
 
-        return List<Responsible>.from(responsiblesData.map(
-            (person) => Responsible(id: person['id'], name: person['name'])));
+        return List<Responsible>.from(
+            responsiblesData.map((person) => Responsible(id: person['id'], name: person['name'])));
       }
 
       // Return empty list if API fails
@@ -154,6 +150,7 @@ class ClientService {
   Future<Client> createClient({
     required String name,
     required String phone,
+    required String shopName,
     required String address,
     required double latitude,
     required double longitude,
@@ -171,13 +168,15 @@ class ClientService {
       'longitude': longitude,
       'lat': latitude,
       'long': longitude,
+      'lon': longitude,
       'Lat': latitude,
       'Long': longitude,
       'code': code,
       'responsible_id': responsibleId,
-      'state_id': stateId,
-      'city_id': cityId,
+      //'state_id': stateId,
+      // 'city_id': cityId,
       'type_of_work_id': typeOfWorkId,
+      'shop_name': shopName
     };
 
     final response = await _apiClient.post('/new-client', data: data);
@@ -201,9 +200,9 @@ class ClientService {
         break;
     }
 
-    await _apiClient.put(
-      '/clients/$clientId/status',
-      data: {'status': statusValue},
+    await _apiClient.post(
+      '/update-one-meeting',
+      data: {"client_id": clientId, 'status': statusValue},
     );
   } // Helper method to map JSON to Client model
 
@@ -240,8 +239,7 @@ class ClientService {
 
       // Construct a basic address from available location info
       if (cityName.isNotEmpty || stateName.isNotEmpty) {
-        address =
-            [cityName, stateName].where((part) => part.isNotEmpty).join(', ');
+        address = [cityName, stateName].where((part) => part.isNotEmpty).join(', ');
       }
     }
 
@@ -268,7 +266,7 @@ class ClientService {
           double.tryParse(json['lon']?.toString() ?? '') ??
           double.tryParse(json['Long']?.toString() ?? '') ??
           0.0,
-      visitStatus: _mapApiStatusToModel(json['status'] ?? ''),
+      visitStatus: _mapApiStatusToModel(json['last_meeting_status'] ?? ''),
       distanceToPromoter: json['distance']?.toDouble() ?? 0.0,
     );
   }
